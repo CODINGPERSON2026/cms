@@ -1,0 +1,39 @@
+from imports import *
+from extensions import csrf
+
+
+def create_app():
+    app = Flask(__name__)
+
+    app.config.from_object(Config)
+
+    db.init_app(app)
+    csrf.init_app(app)
+    migrate = Migrate(app, db)
+    
+
+    app.register_blueprint(login_bp)
+    app.register_blueprint(unit_bp)
+
+    
+        
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        print(str(e))
+        return jsonify({"success": False, "message": e.description}), 400
+
+    @app.route("/")
+    def homepage():
+
+        if "user_id" not in session:
+            return "Unauthorized - Please login first", 401
+        route = session['role']
+        return redirect(f'/{route}')
+    return app
+
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(port=9090, debug=True)

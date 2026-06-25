@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS — {{ self.page_title() }}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    
+    
+
+    <style>
+        /* =========================================
+           CSS VARIABLES — DEFAULT (Forest)
+        ========================================= */
+        :root {
+            --sidebar-width: 72px;
+
+            --bg-base:      #f4f6f5;
+            --bg-surface:   #ffffff;
+            --bg-raised:    #f0f2f1;
+            --bg-header:    #ffffff;
+
+            --border-dim:   #e2e7e4;
+            --border-glow:  #a8c8b2;
+
+            --accent:       #2d6b42;
+            --accent-dim:   #1e4f2f;
+            --accent-muted: rgba(45, 107, 66, 0.08);
+            --accent-glow:  rgba(45, 107, 66, 0.18);
+
+            --success-color: #0dd906;
+            --danger:        #c0392b;
+            --warning:       #b8860b;
+
+            --text-primary:   #1a2420;
+            --text-secondary: #4d6358;
+            --text-muted:     #8fa99a;
+
+            --header-shadow: 0 1px 0 var(--border-dim), 0 4px 20px rgba(0,0,0,0.05);
+
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ── Midnight / Stealth ── */
+        [data-theme="midnight"] {
+            --bg-base:      #0f172a;
+            --bg-surface:   #1e293b;
+            --bg-raised:    #334155;
+            --bg-header:    #1e293b;
+            --border-dim:   #334155;
+            --border-glow:  #38bdf8;
+            --accent:       #38bdf8;
+            --accent-dim:   #0ea5e9;
+            --accent-muted: rgba(56, 189, 248, 0.10);
+            --accent-glow:  rgba(56, 189, 248, 0.20);
+            --text-primary:   #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted:     #64748b;
+            --header-shadow: 0 1px 0 #334155, 0 4px 24px rgba(0,0,0,0.35);
+            --success-color: #0dd906;
+        }
+
+        /* ── Desert / Tactical ── */
+        [data-theme="desert"] {
+            --bg-base:      #d6ccc2;
+            --bg-surface:   #edede9;
+            --bg-raised:    #e3d5ca;
+            --bg-header:    #edede9;
+            --border-dim:   #d5bdaf;
+            --border-glow:  #a0522d;
+            --accent:       #a0522d;
+            --accent-dim:   #8b4513;
+            --accent-muted: rgba(160, 82, 45, 0.10);
+            --accent-glow:  rgba(160, 82, 45, 0.20);
+            --text-primary:   #3e2723;
+            --text-secondary: #5d4037;
+            --text-muted:     #8d6e63;
+            --header-shadow: 0 1px 0 #d5bdaf, 0 4px 20px rgba(62,39,35,0.08);
+            --success-color: #0dd906;
+        }
+
+        /* ── Security / Alert ── */
+        [data-theme="security"] {
+            --bg-base:      #0a0a0a;
+            --bg-surface:   #1a1a1a;
+            --bg-raised:    #2a2a2a;
+            --bg-header:    #111111;
+            --border-dim:   #2e2e2e;
+            --border-glow:  #ff4d4d;
+            --accent:       #e74c3c;
+            --accent-dim:   #c0392b;
+            --accent-muted: rgba(231, 76, 60, 0.10);
+            --accent-glow:  rgba(231, 76, 60, 0.20);
+            --text-primary:   #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted:     #888888;
+            --header-shadow: 0 1px 0 #2e2e2e, 0 4px 24px rgba(231,76,60,0.10);
+            --success-color: #0dd906;
+        }
+
+        /* ── Arctic / Frost ── */
+        [data-theme="arctic"] {
+            --bg-base:      #f0f4f8;
+            --bg-surface:   #ffffff;
+            --bg-raised:    #e1e8f0;
+            --bg-header:    #ffffff;
+            --border-dim:   #d1d9e6;
+            --border-glow:  #2c3e50;
+            --accent:       #34495e;
+            --accent-dim:   #2c3e50;
+            --accent-muted: rgba(52, 73, 94, 0.10);
+            --accent-glow:  rgba(52, 73, 94, 0.15);
+            --text-primary:   #2c3e50;
+            --text-secondary: #546e7a;
+            --text-muted:     #90a4ae;
+            --header-shadow: 0 1px 0 #d1d9e6, 0 4px 16px rgba(44,62,80,0.06);
+            --success-color: #0dd906;
+        }
+
+        /* =========================================
+           RESET & BASE
+        ========================================= */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            
+            overflow-x: hidden;
+            min-height: 100vh;
+            transition: background var(--transition), color var(--transition);
+        }
+
+        /* Subtle grid overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(45,107,66,0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(45,107,66,0.035) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* =========================================
+           SIDEBAR
+        ========================================= */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-dim);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: visible;
+            z-index: 1040;
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        /* Animated side accent line */
+        .sidebar::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 50%;
+            transform: translateY(-50%);
+            width: 3px; height: 120px;
+            background: linear-gradient(180deg, transparent, var(--accent), transparent);
+            border-radius: 0 2px 2px 0;
+        }
+
+        /* ── Sidebar Logo ── */
+        .sidebar-logo {
+            width: 100%;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid var(--border-dim);
+            position: relative;
+            cursor: default;
+        }
+
+        .logo-ring {
+            width: 48px; height: 48px;
+            min-width: 48px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid var(--border-glow);
+            background: var(--bg-raised);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .sidebar-logo:hover .logo-ring {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 5px var(--accent-muted), 0 4px 16px var(--accent-glow);
+        }
+
+        .logo-ring img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* ── Nav ── */
+        .sidebar-nav {
+            flex: 1;
+            width: 100%;
+            padding: 16px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 13px 0;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1.15rem;
+            transition: color 0.2s, background 0.2s;
+            border-left: 2px solid transparent;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            color: var(--accent);
+            background: var(--accent-muted);
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: var(--accent-muted);
+        }
+
+        /* ── Tooltip ── */
+        .nav-tooltip {
+            position: absolute;
+            left: calc(100% + 12px);
+            top: 50%;
+            transform: translateY(-50%) translateX(-6px);
+            background: var(--text-primary);
+            color: var(--bg-surface);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            padding: 6px 12px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+            z-index: 1050;
+        }
+
+        .nav-tooltip::before {
+            content: '';
+            position: absolute;
+            right: 100%; top: 50%;
+            transform: translateY(-50%);
+            border: 5px solid transparent;
+            border-right-color: var(--text-primary);
+        }
+
+        .nav-item:hover .nav-tooltip,
+        .sidebar-logo:hover .nav-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .sidebar-logo .nav-tooltip {
+            left: calc(100% + 12px);
+            top: 50%;
+            transform: translateY(-50%) translateX(-6px);
+        }
+
+        /* ── Footer ── */
+        .sidebar-footer {
+            width: 100%;
+            padding: 16px 0 20px;
+            border-top: 1px solid var(--border-dim);
+            position: relative;
+        }
+
+        /* =========================================
+           MAIN CONTENT
+        ========================================= */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =========================================
+           PAGE HEADER — theme-synced
+        ========================================= */
+        .page-header {
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 74px;
+            padding: 0 24px 0 22px;
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border-dim);
+            box-shadow: var(--header-shadow);
+            transition:
+                background var(--transition),
+                border-color var(--transition),
+                box-shadow var(--transition);
+        }
+
+        /* Left: accent bar + title stack */
+        .ph-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .ph-accent-bar {
+            flex-shrink: 0;
+            width: 4px;
+            height: 34px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+            transition: background var(--transition);
+        }
+
+        .ph-title-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-width: 0;
+        }
+
+        .ph-eyebrow {
+            
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            opacity: 0.8;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .ph-title {
+            
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: color var(--transition);
+        }
+
+        /* Right: clock + logo */
+        .ph-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Live clock block */
+        .ph-clock {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 1px;
+        }
+
+        .ph-clock-date {
+            
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+
+        .ph-clock-time {
+            
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            transition: color var(--transition);
+        }
+
+        /* Divider between clock and logo */
+        .ph-divider {
+            width: 1px;
+            height: 32px;
+            background: var(--border-dim);
+            flex-shrink: 0;
+        }
+
+        /* Unit logo ring — vertical rectangle for portrait image */
+        .ph-logo-ring {
+            width: 50px;
+             height: 68px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--border-glow);
+            background: var(--bg-raised);
+            flex-shrink: 0;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            cursor: default;
+        }
+
+        .ph-logo-ring:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-muted);
+        }
+
+        .ph-logo-ring img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            object-position: center top;
+        }
+
+        /* =========================================
+           CONTENT WRAPPER
+        ========================================= */
+        .content-wrapper {
+            flex: 1;
+            padding: 0;
+        }
+
+        /* =========================================
+           MOBILE OVERLAY
+        ========================================= */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(2px);
+            z-index: 1035;
+        }
+
+        .overlay.show { display: block; }
+
+        /* ── Mobile hamburger ── */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 14px; left: 14px;
+            z-index: 1041;
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            border: 1px solid var(--border-dim);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            font-size: 1rem;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* =========================================
+           RESPONSIVE
+        ========================================= */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                left: -80px;
+                transition: left 0.3s ease;
+            }
+            .sidebar.show { left: 0; }
+            .main-content { margin-left: 0; }
+            .nav-tooltip { display: none; }
+            .mobile-menu-btn { display: flex; }
+            .ph-clock { display: none; }
+            .ph-divider { display: none; }
+            .page-header { padding-left: 60px; }
+        }
+
+        @media (max-width: 480px) {
+            .ph-eyebrow { display: none; }
+            .ph-title { font-size: 1rem; }
+        }
+
+        /* =========================================
+           THEME PICKER POPOVER
+        ========================================= */
+        .theme-picker-popover {
+            position: absolute;
+            bottom: 68px;
+            left: calc(100% + 12px);
+            transform: translateX(10px);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 16px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.15);
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.25s, transform 0.25s, visibility 0.25s;
+            z-index: 2000;
+        }
+
+        .theme-picker-popover.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Arrow */
+        .theme-picker-popover::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: -6px;
+            transform: translateY(-50%) rotate(45deg);
+            width: 12px; height: 12px;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-dim);
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        /* Picker label */
+        .theme-picker-label {
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 4px 10px 6px;
+            
+        }
+
+        .theme-option-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 170px;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            text-align: left;
+            
+        }
+
+        .theme-option-btn:hover {
+            background: var(--accent-muted);
+            border-color: var(--border-glow);
+        }
+
+        .theme-option-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .swatch {
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.25);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 991.98px) {
+            .theme-picker-popover {
+                left: 80px;
+                bottom: auto;
+                top: auto;
+                transform: translateX(0) translateY(10px);
+            }
+            .theme-picker-popover.show {
+                transform: translateX(0) translateY(0);
+            }
+            .theme-picker-popover::before { display: none; }
+        }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- MOBILE OVERLAY -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- MOBILE MENU BTN -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="sidebar" id="sidebar">
+
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <div class="logo-ring">
+                <img src="{{ url_for('static', filename='logo/chinar.jpg') }}" alt="CMS Logo">
+            </div>
+            <span class="nav-tooltip">CMS &mdash; Clothing MS</span>
+        </div>
+
+        <!-- Nav links — fill from child templates via block or keep static -->
+        <nav class="sidebar-nav" id="sidebarNav">
+            {% block sidebar_nav %}{% endblock %}
+        </nav>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+
+            <!-- Theme picker popover -->
+            <div class="theme-picker-popover" id="themePicker">
+                <div class="theme-picker-label">Appearance</div>
+                <button class="theme-option-btn" data-theme="default">
+                    <span class="swatch" style="background:#2d6b42;"></span>Forest Default
+                </button>
+                <button class="theme-option-btn" data-theme="midnight">
+                    <span class="swatch" style="background:#38bdf8;"></span>Midnight Stealth
+                </button>
+                <button class="theme-option-btn" data-theme="desert">
+                    <span class="swatch" style="background:#a0522d;"></span>Tactical Desert
+                </button>
+                <button class="theme-option-btn" data-theme="security">
+                    <span class="swatch" style="background:#e74c3c;"></span>Alert Security
+                </button>
+                <button class="theme-option-btn" data-theme="arctic">
+                    <span class="swatch" style="background:#34495e;"></span>Frost Arctic
+                </button>
+            </div>
+
+            <a href="javascript:void(0)" class="nav-item" id="themeToggle">
+                <i class="fa-solid fa-palette"></i>
+                <span class="nav-tooltip">Theme Gallery</span>
+            </a>
+
+            <a href="#" class="nav-item">
+                <i class="fa-solid fa-gear"></i>
+                <span class="nav-tooltip">Settings</span>
+            </a>
+
+            <a href="/auth/logout" class="nav-item" style="color: var(--danger);">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="nav-tooltip">Logout</span>
+            </a>
+
+        </div>
+    </aside>
+
+    <!-- ===================== MAIN ===================== -->
+    <div class="main-content" id="mainContent">
+
+        <!-- PAGE HEADER -->
+        <header class="page-header">
+            <!-- Left: accent bar + title -->
+            <div class="ph-left">
+                <div class="ph-accent-bar"></div>
+                <div class="ph-title-stack">
+                    <span class="ph-eyebrow">15 CESR &mdash; Clothing MS</span>
+                    <h1 class="ph-title">{% block page_title %}{% endblock %}</h1>
+                </div>
+            </div>
+
+            <!-- Right: live clock + unit logo -->
+            <div class="ph-right">
+                <div class="ph-clock">
+                    <span class="ph-clock-date" id="headerDate"></span>
+                    <span class="ph-clock-time" id="headerTime"></span>
+                </div>
+                <div class="ph-divider"></div>
+                <div class="ph-logo-ring">
+                    <img src="{{ url_for('static', filename='logo/jimmy.png') }}" alt="Unit Insignia">
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT -->
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div><!-- /main-content -->
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // ── Active nav highlighting ──────────────────────────────────
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.sidebar-nav .nav-item[data-path]').forEach(function (link) {
+            const path = link.getAttribute('data-path');
+            const isActive = path === '/'
+                ? currentPath === '/'
+                : currentPath.startsWith(path);
+            if (isActive) link.classList.add('active');
+        });
+
+        // ── Theme system ─────────────────────────────────────────────
+        const themeToggle  = document.getElementById('themeToggle');
+        const themePicker  = document.getElementById('themePicker');
+        const htmlEl       = document.documentElement;
+        const optionBtns   = document.querySelectorAll('.theme-option-btn');
+
+        function updatePickerUI(activeTheme) {
+            optionBtns.forEach(btn =>
+                btn.classList.toggle('active', btn.getAttribute('data-theme') === activeTheme)
+            );
+        }
+
+        function applyTheme(themeId) {
+            if (themeId === 'default') {
+                htmlEl.removeAttribute('data-theme');
+            } else {
+                htmlEl.setAttribute('data-theme', themeId);
+            }
+            localStorage.setItem('selected-theme', themeId);
+            updatePickerUI(themeId);
+        }
+
+        const savedTheme = localStorage.getItem('selected-theme') || 'default';
+        applyTheme(savedTheme);
+
+        themeToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            themePicker.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function () {
+            themePicker.classList.remove('show');
+        });
+
+        optionBtns.forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                applyTheme(this.getAttribute('data-theme'));
+                themePicker.classList.remove('show');
+            });
+        });
+
+        // ── Mobile sidebar ────────────────────────────────────────────
+        const overlay       = document.getElementById('overlay');
+        const sidebar       = document.getElementById('sidebar');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+
+        function openSidebar() {
+            sidebar.classList.add('show');
+            overlay.classList.add('show');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+
+        if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openSidebar);
+        if (overlay)       overlay.addEventListener('click', closeSidebar);
+
+        // ── Live clock ────────────────────────────────────────────────
+        const headerDate = document.getElementById('headerDate');
+        const headerTime = document.getElementById('headerTime');
+
+        function tick() {
+            const now = new Date();
+            if (headerDate) {
+                headerDate.textContent = now.toLocaleDateString('en-IN', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                }).toUpperCase();
+            }
+            if (headerTime) {
+                headerTime.textContent = now.toLocaleTimeString('en-IN', {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    hour12: false
+                });
+            }
+        }
+        tick();
+        setInterval(tick, 1000);
+
+    });
+    </script>
+
+</body>
+</html>

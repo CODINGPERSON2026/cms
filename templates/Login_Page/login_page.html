@@ -1,0 +1,67 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+
+    <h2>Login</h2>
+
+    <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+        <label>Username</label>
+        <input type="text" id="username" required>
+    </div>
+
+    <br>
+
+    <div>
+        <label>Password</label>
+        <input type="password" id="password" required>
+    </div>
+
+    <br>
+
+    <button id="login_btn">Login</button>
+
+    <script>
+        document.getElementById("login_btn").addEventListener("click", function () {
+
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const csrf_token = document.getElementById("csrf_token").value;
+
+            fetch("/auth/login  ", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrf_token
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+
+                if (data.success) {
+                    
+                    window.location.href = data.redirect;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+
+        });
+    </script>
+
+</body>
+</html>
+
