@@ -10,7 +10,8 @@ def create_app():
     db.init_app(app)
     csrf.init_app(app)
     migrate = Migrate(app, db)
-    
+    with app.app_context():
+        db.create_all()
 
     app.register_blueprint(login_bp)
     app.register_blueprint(unit_bp)

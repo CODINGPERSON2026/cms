@@ -1,0 +1,724 @@
+{% extends '/base.html' %} {% block page_title %}Generate Request{% endblock %}
+{% block head %}
+<style>
+  /* =========================================
+       REQUEST ITEM FORM STYLES
+    ========================================= */
+
+  .request-page {
+    padding: 28px;
+    max-width: 820px;
+  }
+
+  /* ── Back Link ── */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    transition: all 0.2s;
+    margin-bottom: 22px;
+  }
+
+  .back-link:hover {
+    color: var(--accent);
+    background: var(--accent-muted);
+  }
+
+  .back-link i {
+    font-size: 0.75rem;
+    transition: transform 0.2s;
+  }
+
+  .back-link:hover i {
+    transform: translateX(-3px);
+  }
+
+  /* ── Form Card ── */
+  .form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+    border-radius: 18px;
+    overflow: hidden;
+    transition: all var(--transition);
+  }
+
+  .form-card-header {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--border-dim);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+  }
+
+  /* Top accent line */
+  .form-card-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 28px;
+    right: 28px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: linear-gradient(
+      90deg,
+      var(--accent),
+      var(--accent-dim),
+      var(--accent)
+    );
+    opacity: 0.6;
+  }
+
+  .form-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .form-card-title-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .form-card-eyebrow {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .form-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Form Body ── */
+  .form-card-body {
+    padding: 28px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group--full {
+    grid-column: 1 / -1;
+  }
+
+  .form-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .form-label i {
+    color: var(--accent);
+    font-size: 0.7rem;
+  }
+
+  .form-label .required-star {
+    color: var(--danger);
+    font-weight: 800;
+  }
+
+  /* Shared input / select styles */
+  .form-input,
+  .form-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border-dim);
+    border-radius: 12px;
+    background: var(--bg-raised);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.25s;
+  }
+
+  .form-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .form-input:focus,
+  .form-select:focus {
+    border-color: var(--accent);
+    background: var(--bg-surface);
+    box-shadow: 0 0 0 4px var(--accent-muted);
+  }
+
+  .form-select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234d6358' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+  }
+
+  /* ── Validation Error Styles ── */
+  .form-input.input-error,
+  .form-select.input-error {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
+  }
+
+  .form-input.input-error:focus,
+  .form-select.input-error:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.18);
+  }
+
+  .field-error-msg {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--danger);
+    letter-spacing: 0.3px;
+    margin-top: 2px;
+    display: none;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .field-error-msg.show {
+    display: flex;
+  }
+
+  .field-error-msg i {
+    font-size: 0.65rem;
+  }
+
+  /* ── Priority Chips ── */
+  .priority-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .priority-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: 1.5px solid var(--border-dim);
+    border-radius: 10px;
+    background: var(--bg-raised);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .priority-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .priority-chip input[type="radio"] {
+    display: none;
+  }
+
+  .priority-chip.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  .priority-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .priority-dot--normal {
+    background: #27ae60;
+  }
+  .priority-dot--urgent {
+    background: #f39c12;
+  }
+  .priority-dot--critical {
+    background: #e74c3c;
+  }
+
+  .priority-chip.selected .priority-dot {
+    background: #ffffff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+  }
+
+  /* ── Form Footer ── */
+  .form-card-footer {
+    padding: 20px 28px;
+    border-top: 1px solid var(--border-dim);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    background: var(--bg-raised);
+  }
+
+  .btn-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-form::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .btn-form:hover::before {
+    opacity: 1;
+  }
+
+  .btn-form i {
+    font-size: 0.9rem;
+  }
+
+  .btn-form--submit {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    color: #ffffff;
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
+
+  .btn-form--submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px var(--accent-glow);
+  }
+
+  .btn-form--reset {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-dim);
+  }
+
+  .btn-form--reset:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    transform: translateY(-2px);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .request-page {
+      padding: 16px;
+    }
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .form-card-body {
+      padding: 20px;
+    }
+    .form-card-footer {
+      flex-direction: column;
+    }
+    .btn-form {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %} {% block sidebar_nav %}
+<a href="/unit/" class="nav-item" data-path="/unit">
+  <i class="fa-solid fa-grid-2"></i>
+  <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="#" class="nav-item">
+  <i class="fa-solid fa-shirt"></i>
+  <span class="nav-tooltip">Clothing Items</span>
+</a>
+<a href="#" class="nav-item">
+  <i class="fa-solid fa-clipboard-list"></i>
+  <span class="nav-tooltip">My Requests</span>
+</a>
+<a href="#" class="nav-item">
+  <i class="fa-solid fa-box-open"></i>
+  <span class="nav-tooltip">Entitlements</span>
+</a>
+<a href="#" class="nav-item">
+  <i class="fa-solid fa-clock-rotate-left"></i>
+  <span class="nav-tooltip">Issue History</span>
+</a>
+{% endblock %} {% block content %}
+
+<div class="request-page">
+  <!-- Back Link -->
+  <a href="/unit/" class="back-link">
+    <i class="fa-solid fa-arrow-left"></i>
+    Back to Dashboard
+  </a>
+
+  <!-- Form Card -->
+  <div class="form-card">
+    <!-- Header -->
+    <div class="form-card-header">
+      <div class="form-card-icon">
+        <i class="fa-solid fa-plus"></i>
+      </div>
+      <div class="form-card-title-stack">
+        <span class="form-card-eyebrow">New Demand</span>
+        <span class="form-card-title">Generate Clothing Request</span>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="form-card-body">
+      <form id="requestForm" autocomplete="off">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <div class="form-grid">
+          <!-- Item Name -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fa-solid fa-shirt"></i>
+              Item Name <span class="required-star">*</span>
+            </label>
+            <select id="itemName" name="item_id" class="form-select" required>
+              <option value="">Select Item</option>
+
+              {% for item in items %}
+              <option value="{{ item.id }}">{{ item.item_name }}</option>
+              {% endfor %}
+            </select>
+            <span class="field-error-msg" id="errItemName"
+              ><i class="fa-solid fa-circle-exclamation"></i> Please select an
+              item</span
+            >
+          </div>
+
+          <!-- Quantity -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fa-solid fa-hashtag"></i>
+              Quantity <span class="required-star">*</span>
+            </label>
+            <input
+              type="number"
+              class="form-input"
+              id="itemQty"
+              placeholder="Enter quantity"
+              min="1"
+              max="100"
+              required
+            />
+            <span class="field-error-msg" id="errItemQty"
+              ><i class="fa-solid fa-circle-exclamation"></i> Enter a valid
+              quantity (1-100)</span
+            >
+          </div>
+
+          
+        
+
+          <!-- Reason -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fa-solid fa-circle-info"></i>
+              Reason for Request <span class="required-star">*</span>
+            </label>
+            <select class="form-select" id="itemReason" required>
+              <option value="" disabled selected>Select reason</option>
+              <option value="new_issue">New Issue</option>
+              <option value="replacement">Replacement (Worn Out)</option>
+              <option value="damaged">Damaged / Unserviceable</option>
+              <option value="lost">Lost in Field</option>
+              <option value="size_change">Size Change</option>
+            </select>
+            <span class="field-error-msg" id="errItemReason"
+              ><i class="fa-solid fa-circle-exclamation"></i> Please select a
+              reason</span
+            >
+          </div>
+
+          <!-- Priority -->
+          <div class="form-group form-group--full">
+            <label class="form-label">
+              <i class="fa-solid fa-flag"></i>
+              Priority
+            </label>
+            <div class="priority-group" id="priorityGroup">
+              <label class="priority-chip selected">
+                <input type="radio" name="priority" value="normal" checked />
+                <span class="priority-dot priority-dot--normal"></span>
+                Normal
+              </label>
+              <label class="priority-chip">
+                <input type="radio" name="priority" value="urgent" />
+                <span class="priority-dot priority-dot--urgent"></span>
+                Urgent
+              </label>
+              <label class="priority-chip">
+                <input type="radio" name="priority" value="critical" />
+                <span class="priority-dot priority-dot--critical"></span>
+                Critical
+              </label>
+            </div>
+          </div>
+
+          <!-- Request Remarks -->
+          <div class="form-group form-group--full">
+            <label class="form-label">
+              <i class="fa-solid fa-comment-dots"></i>
+              Request Remarks
+            </label>
+            <input
+              type="text"
+              class="form-input"
+              id="itemRemarks"
+              placeholder="Enter remarks (optional)"
+              maxlength="200"
+            />
+            <span class="field-error-msg" id="errRemarks"
+              ><i class="fa-solid fa-circle-exclamation"></i> Special characters
+              are not allowed</span
+            >
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Footer -->
+    <div class="form-card-footer">
+      <button type="button" class="btn-form btn-form--reset" id="btnReset">
+        <i class="fa-solid fa-rotate-left"></i>
+        Reset
+      </button>
+      <button type="button" class="btn-form btn-form--submit" id="btnSubmit">
+        <i class="fa-solid fa-paper-plane"></i>
+        Submit Request
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // ── Special character regex (allow letters, numbers, spaces, hyphens, commas, periods) ──
+    const SAFE_PATTERN = /^[A-Za-z0-9\s,\.\-]*$/;
+    const BLOCK_CHARS = /[^A-Za-z0-9\s,\.\-]/g;
+
+    // ── Helper: show / clear field error ─────────────────────────
+    function showError(inputEl, msgEl) {
+      inputEl.classList.add("input-error");
+      if (msgEl) msgEl.classList.add("show");
+    }
+
+    function clearError(inputEl, msgEl) {
+      inputEl.classList.remove("input-error");
+      if (msgEl) msgEl.classList.remove("show");
+    }
+
+    // ── Live: block special chars on keypress ────────────────────
+    function attachInputGuard(inputId, errId) {
+      const input = document.getElementById(inputId);
+      const err = document.getElementById(errId);
+      if (!input) return;
+
+      // Block disallowed keys
+      input.addEventListener("keypress", function (e) {
+        const char = String.fromCharCode(e.which || e.keyCode);
+        if (!SAFE_PATTERN.test(char)) {
+          e.preventDefault();
+          showError(input, err);
+          setTimeout(() => clearError(input, err), 2000);
+        }
+      });
+
+      // Sanitize on paste
+      input.addEventListener("paste", function (e) {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData(
+          "text"
+        );
+        const clean = pasted.replace(BLOCK_CHARS, "");
+        document.execCommand("insertText", false, clean);
+        if (pasted !== clean) {
+          showError(input, err);
+          setTimeout(() => clearError(input, err), 2000);
+        }
+      });
+
+      // Clear error on valid input
+      input.addEventListener("input", function () {
+        if (SAFE_PATTERN.test(this.value)) clearError(input, err);
+      });
+    }
+
+    // Attach guards to text inputs
+    attachInputGuard("itemQty", "errItemQty");
+    attachInputGuard("itemRemarks", "errRemarks");
+
+    // ── Clear error on select change ────────────────────────────
+    ["itemName", "itemReason"].forEach((id) => {
+      const el = document.getElementById(id);
+      const err = document.getElementById(
+        "err" + id.charAt(0).toUpperCase() + id.slice(1)
+      );
+      if (el) el.addEventListener("change", () => clearError(el, err));
+    });
+
+    // ── Priority chip selection ─────────────────────────────────
+    const chips = document.querySelectorAll(".priority-chip");
+    chips.forEach((chip) => {
+      chip.addEventListener("click", function () {
+        chips.forEach((c) => c.classList.remove("selected"));
+        this.classList.add("selected");
+      });
+    });
+
+    // ── Reset button ────────────────────────────────────────────
+    document.getElementById("btnReset").addEventListener("click", function () {
+      document.getElementById("requestForm").reset();
+      chips.forEach((c) => c.classList.remove("selected"));
+      chips[0].classList.add("selected");
+      // Clear all errors
+      document
+        .querySelectorAll(".input-error")
+        .forEach((el) => el.classList.remove("input-error"));
+      document
+        .querySelectorAll(".field-error-msg.show")
+        .forEach((el) => el.classList.remove("show"));
+    });
+
+    // ── Submit validation (non-functional submit) ───────────────
+    document.getElementById("btnSubmit").addEventListener("click", function () {
+      let isValid = true;
+
+      // Item Name
+      const itemName = document.getElementById("itemName");
+      const errItemName = document.getElementById("errItemName");
+      if (!itemName.value) {
+        showError(itemName, errItemName);
+        isValid = false;
+      } else {
+        clearError(itemName, errItemName);
+      }
+
+      // Quantity
+      const itemQty = document.getElementById("itemQty");
+      const errItemQty = document.getElementById("errItemQty");
+      const qtyVal = parseInt(itemQty.value);
+      if (!itemQty.value || isNaN(qtyVal) || qtyVal < 1 || qtyVal > 100) {
+        showError(itemQty, errItemQty);
+        isValid = false;
+      } else {
+        clearError(itemQty, errItemQty);
+      }
+
+      // Reason
+      const itemReason = document.getElementById("itemReason");
+      const errItemReason = document.getElementById("errItemReason");
+      if (!itemReason.value) {
+        showError(itemReason, errItemReason);
+        isValid = false;
+      } else {
+        clearError(itemReason, errItemReason);
+      }
+
+      // Remarks — check for special chars
+      const remarks = document.getElementById("itemRemarks");
+      const errRemarks = document.getElementById("errRemarks");
+      if (remarks.value && !SAFE_PATTERN.test(remarks.value)) {
+        showError(remarks, errRemarks);
+        isValid = false;
+      } else {
+        clearError(remarks, errRemarks);
+      }
+
+      if (!isValid) {
+        // Scroll to first error
+        const firstErr = document.querySelector(".input-error");
+        if (firstErr)
+          firstErr.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      const payload = {
+        item_id: itemName.value,
+        quantity: itemQty.value,
+        reason: itemReason.value,
+        priority: document.querySelector(
+            'input[name="priority"]:checked'
+        ).value,
+        remarks: remarks.value
+    };
+    
+    fetch('/unit/api/submit-request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector(
+                'meta[name="csrf-token"]'
+            ).getAttribute('content')
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+    
+            document.getElementById('requestForm').reset();
+    
+            chips.forEach(c => c.classList.remove('selected'));
+            chips[0].classList.add('selected');
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        alert("Failed to submit request.");
+    });
+    });
+  });
+</script>
+{% endblock %}

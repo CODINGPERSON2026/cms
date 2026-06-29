@@ -1,13 +1,596 @@
-
-
 {% extends '/base.html' %}
-
-
-
 
 {% block page_title %}Dashboard{% endblock %}
 
+{% block head %}
+<script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
+<style>
+    /* =========================================
+       UNIT DASHBOARD STYLES
+    ========================================= */
+
+    /* ── Action Bar ── */
+    .action-bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 22px 28px;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 28px;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+        opacity: 0;
+        transition: opacity 0.25s;
+    }
+
+    .action-btn:hover::before {
+        opacity: 1;
+    }
+
+    .action-btn i {
+        font-size: 1rem;
+    }
+
+    /* Primary - Generate Request */
+    .action-btn--primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+        color: #ffffff;
+        box-shadow: 0 4px 16px var(--accent-glow), 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .action-btn--primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px var(--accent-glow), 0 2px 6px rgba(0,0,0,0.12);
+    }
+
+    .action-btn--primary:active {
+        transform: translateY(0);
+    }
+
+    /* Secondary - Pending Request */
+    .action-btn--secondary {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        border: 1.5px solid var(--border-dim);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .action-btn--secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-muted);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+
+    .action-btn--secondary:active {
+        transform: translateY(0);
+    }
+
+    /* Badge on pending */
+    .action-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 20px;
+        background: var(--danger);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        line-height: 1;
+    }
+
+    /* ── Charts Section ── */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 22px;
+        padding: 0 28px 28px;
+    }
+
+    .chart-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        padding: 24px;
+        transition: all var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Subtle glow line at top */
+    .chart-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 24px;
+        right: 24px;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-dim), var(--accent));
+        opacity: 0.5;
+        transition: opacity 0.3s;
+    }
+
+    .chart-card:hover::before {
+        opacity: 1;
+    }
+
+    .chart-card:hover {
+        box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+    }
+
+    .chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .chart-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .chart-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--accent-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        font-size: 1rem;
+        flex-shrink: 0;
+        transition: all 0.25s;
+    }
+
+    .chart-card:hover .chart-icon {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .chart-title-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .chart-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .chart-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: 0.3px;
+    }
+
+    .chart-total {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+    }
+
+    .chart-total-number {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--accent);
+        line-height: 1;
+        letter-spacing: -0.5px;
+    }
+
+    .chart-total-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .chart-canvas-wrap {
+        position: relative;
+        width: 100%;
+    }
+
+    .chart-canvas-wrap canvas {
+        width: 100% !important;
+    }
+
+    /* Donut center text */
+    .donut-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .donut-center-text {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        pointer-events: none;
+    }
+
+    .donut-center-number {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .donut-center-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 991.98px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+            padding: 0 16px 20px;
+        }
+        .action-bar {
+            padding: 16px;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            flex: 1;
+            justify-content: center;
+            min-width: 160px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .action-btn {
+            padding: 10px 18px;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
 
 
+{% block sidebar_nav %}
+    <a href="/unit/" class="nav-item" data-path="/unit">
+        <i class="fa-solid fa-grid-2"></i>
+        <span class="nav-tooltip">Dashboard</span>
+    </a>
+    <a href="#" class="nav-item">
+        <i class="fa-solid fa-shirt"></i>
+        <span class="nav-tooltip">Clothing Items</span>
+    </a>
+    <a href="#" class="nav-item">
+        <i class="fa-solid fa-clipboard-list"></i>
+        <span class="nav-tooltip">My Requests</span>
+    </a>
+    <a href="#" class="nav-item">
+        <i class="fa-solid fa-box-open"></i>
+        <span class="nav-tooltip">Entitlements</span>
+    </a>
+    <a href="#" class="nav-item">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span class="nav-tooltip">Issue History</span>
+    </a>
+{% endblock %}
 
 
+{% block content %}
+
+<!-- ── Action Bar ── -->
+<div class="action-bar">
+    <a href="/unit/request-item" class="action-btn action-btn--primary" id="btnGenerateRequest">
+        <i class="fa-solid fa-plus"></i>
+        Generate Request
+    </a>
+    <button class="action-btn action-btn--secondary" id="btnPendingRequest">
+        <i class="fa-solid fa-hourglass-half"></i>
+        Pending Requests
+        <span class="action-badge">7</span>
+    </button>
+</div>
+
+<!-- ── Charts ── -->
+<div class="charts-grid">
+
+    <!-- Bar Chart Card -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <div class="chart-header-left">
+                <div class="chart-icon">
+                    <i class="fa-solid fa-chart-column"></i>
+                </div>
+                <div class="chart-title-stack">
+                    <span class="chart-label">Inventory</span>
+                    <span class="chart-title">Items Received This Year</span>
+                </div>
+            </div>
+            <div class="chart-total">
+                <span class="chart-total-number" id="barTotal">0</span>
+                <span class="chart-total-label">Total Items</span>
+            </div>
+        </div>
+        <div class="chart-canvas-wrap">
+            <canvas id="barChart" height="280"></canvas>
+        </div>
+    </div>
+
+    <!-- Donut Chart Card -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <div class="chart-header-left">
+                <div class="chart-icon">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div class="chart-title-stack">
+                    <span class="chart-label">Distribution</span>
+                    <span class="chart-title">Request Status</span>
+                </div>
+            </div>
+        </div>
+        <div class="chart-canvas-wrap donut-wrap">
+            <canvas id="donutChart" height="280"></canvas>
+            <div class="donut-center-text">
+                <span class="donut-center-number" id="donutTotal">0</span>
+                <span class="donut-center-label">Requests</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Theme-aware colors ──────────────────────────────────────
+    function getThemeColors() {
+        const cs = getComputedStyle(document.documentElement);
+        return {
+            accent:     cs.getPropertyValue('--accent').trim(),
+            accentDim:  cs.getPropertyValue('--accent-dim').trim(),
+            accentGlow: cs.getPropertyValue('--accent-glow').trim(),
+            textPrimary:   cs.getPropertyValue('--text-primary').trim(),
+            textSecondary: cs.getPropertyValue('--text-secondary').trim(),
+            textMuted:     cs.getPropertyValue('--text-muted').trim(),
+            borderDim:     cs.getPropertyValue('--border-dim').trim(),
+            bgSurface:     cs.getPropertyValue('--bg-surface').trim(),
+        };
+    }
+
+    // ── Dummy Data ──────────────────────────────────────────────
+    const barLabels = ['Trousers', 'Coat', 'Gloves', 'Boots', 'Beret', 'Socks', 'Jersey', 'Belt'];
+    const barData   = [45, 32, 58, 27, 40, 65, 22, 38];
+    const barTotal  = barData.reduce((a, b) => a + b, 0);
+
+    const donutLabels = ['Approved', 'Pending', 'Rejected', 'In Process'];
+    const donutData   = [34, 7, 5, 12];
+    const donutTotal  = donutData.reduce((a, b) => a + b, 0);
+
+    // Animate totals
+    animateCount('barTotal', barTotal);
+    animateCount('donutTotal', donutTotal);
+
+    function animateCount(elId, target) {
+        const el = document.getElementById(elId);
+        let current = 0;
+        const step = Math.ceil(target / 40);
+        const timer = setInterval(() => {
+            current += step;
+            if (current >= target) { current = target; clearInterval(timer); }
+            el.textContent = current;
+        }, 25);
+    }
+
+    // ── Bar Chart ───────────────────────────────────────────────
+    function createBarChart() {
+        const tc = getThemeColors();
+        const ctx = document.getElementById('barChart').getContext('2d');
+
+        // Gradient fill
+        const grad = ctx.createLinearGradient(0, 0, 0, 280);
+        grad.addColorStop(0, tc.accent);
+        grad.addColorStop(1, tc.accentDim);
+
+        return new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: barLabels,
+                datasets: [{
+                    label: 'Items Issued',
+                    data: barData,
+                    backgroundColor: grad,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    barThickness: 36,
+                    hoverBackgroundColor: tc.accent,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: tc.textPrimary,
+                        titleColor: tc.bgSurface,
+                        bodyColor: tc.bgSurface,
+                        padding: 12,
+                        cornerRadius: 10,
+                        titleFont: { weight: '700', size: 13 },
+                        bodyFont: { size: 12 },
+                    },
+                    // Data labels on top
+                    datalabels: false,
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: {
+                            color: tc.textMuted,
+                            font: { size: 11, weight: '600' },
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: tc.borderDim,
+                            drawTicks: false,
+                        },
+                        border: { display: false, dash: [4, 4] },
+                        ticks: {
+                            color: tc.textMuted,
+                            font: { size: 11 },
+                            padding: 8,
+                        },
+                        beginAtZero: true,
+                    }
+                },
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutQuart',
+                    onComplete: function() {
+                        // Draw count labels on top of bars
+                        const chart = this;
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        ctx.font = '700 12px sans-serif';
+                        ctx.fillStyle = tc.accent;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+
+                        chart.data.datasets[0].data.forEach((val, i) => {
+                            const meta = chart.getDatasetMeta(0).data[i];
+                            ctx.fillText(val, meta.x, meta.y - 6);
+                        });
+                        ctx.restore();
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Donut Chart ─────────────────────────────────────────────
+    function createDonutChart() {
+        const tc = getThemeColors();
+        const ctx = document.getElementById('donutChart').getContext('2d');
+
+        // Color palette for segments
+        const palette = [
+            '#27ae60',  // Approved - green
+            '#f39c12',  // Pending - amber
+            '#e74c3c',  // Rejected - red
+            tc.accent,  // In Process - theme accent
+        ];
+
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: donutLabels,
+                datasets: [{
+                    data: donutData,
+                    backgroundColor: palette,
+                    borderWidth: 3,
+                    borderColor: tc.bgSurface,
+                    hoverBorderColor: tc.bgSurface,
+                    hoverOffset: 8,
+                    spacing: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: tc.textSecondary,
+                            font: { size: 12, weight: '600' },
+                            padding: 16,
+                            usePointStyle: true,
+                            pointStyleWidth: 12,
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: tc.textPrimary,
+                        titleColor: tc.bgSurface,
+                        bodyColor: tc.bgSurface,
+                        padding: 12,
+                        cornerRadius: 10,
+                        titleFont: { weight: '700', size: 13 },
+                        bodyFont: { size: 12 },
+                        callbacks: {
+                            label: function(ctx) {
+                                const pct = ((ctx.parsed / donutTotal) * 100).toFixed(1);
+                                return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    duration: 1400,
+                    easing: 'easeOutQuart',
+                }
+            }
+        });
+    }
+
+    // ── Initialize ──────────────────────────────────────────────
+    let barChart   = createBarChart();
+    let donutChart = createDonutChart();
+
+    // Re-render on theme change so colors stay in sync
+    const observer = new MutationObserver(() => {
+        barChart.destroy();
+        donutChart.destroy();
+        barChart   = createBarChart();
+        donutChart = createDonutChart();
+    });
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+    });
+});
+</script>
+{% endblock %}
