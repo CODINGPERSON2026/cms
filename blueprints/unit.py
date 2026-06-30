@@ -106,3 +106,134 @@ def get_admin_from_org_ladder(org_id):
         current_org = OrgLadder.query.get(current_org.parent_id)
 
     return None
+
+
+
+# THIS BELOW FUNCTINLAITY IS ONLY FOR ADD UNIT AND MANAGING DATA
+@unit_bp.route("/org")
+def manage_org():
+    print(session)
+    orgs = OrgLadder.query.order_by(
+        OrgLadder.name
+    ).all()
+
+    return render_template(
+        "create_user/create_user.html",
+        orgs=orgs
+    )
+@unit_bp.route("/api/create-org", methods=["POST"])
+def create_org():
+
+    try:
+        data = request.get_json()
+
+        name = data.get("name")
+        org_type = data.get("type")
+        parent_id = data.get("parent_id")
+
+        if not name:
+            return jsonify({
+                "success": False,
+                "message": "Organization name required"
+            }), 400
+
+        new_org = OrgLadder(
+            name=name,
+            type=org_type,
+            parent_id=parent_id if parent_id else None
+        )
+
+        db.session.add(new_org)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Organization created successfully"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+@unit_bp.route("/api/create-user", methods=["POST"])
+def create_user():
+    try:
+        data = request.get_json()
+
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+        role = data.get("role", "").strip()
+
+        # ---------------- VALIDATION ----------------
+        if not username:
+            return jsonify({"success": False, "message": "Username is required."}), 400
+
+        if not password:
+            return jsonify({"success": False, "message": "Password is required."}), 400
+
+        if not role:
+            return jsonify({"success": False, "message": "Role is required."}), 400
+
+        # ---------------- CHECK USER EXISTS ----------------
+        existing_user = LoginUser.query.filter_by(username=username).first()
+        if existing_user:
+            return jsonify({"success": False, "message": "Username already exists."}), 400
+
+        # ---------------- SESSION USER ----------------
+        if "user_id" not in session:
+            return jsonify({"success": False, "message": "Unauthorized."}), 401
+
+        current_user = LoginUser.query.get(session["user_id"])
+
+        if not current_user:
+            return jsonify({"success": False, "message": "Invalid session user."}), 401
+
+        # ---------------- ROLE → ORG TYPE MAP ----------------
+        org_type_map = {
+            "division_admin": "division",
+            "brigade_admin": "brigade",
+            "unit": "unit"
+        }
+
+        if role not in org_type_map:
+            return jsonify({"success": False, "message": "Invalid role type."}), 400
+
+        org_type = org_type_map[role]
+
+        # ---------------- CREATE ORG ----------------
+        new_org = OrgLadder(
+            name=username,
+            type=org_type,
+            parent_id=current_user.org_id
+        )
+
+        db.session.add(new_org)
+        db.session.flush()   # gets new_org.id before commit
+
+        # ---------------- CREATE USER ----------------
+        new_user = LoginUser(
+            username=username,
+            password=password,
+            role=role,
+            org_id=new_org.id
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"{role} + organisation created successfully."
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500

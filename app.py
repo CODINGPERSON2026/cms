@@ -15,6 +15,8 @@ def create_app():
 
     app.register_blueprint(login_bp)
     app.register_blueprint(unit_bp)
+    app.register_blueprint(div_bp)
+    app.register_blueprint(ord_bp)
 
     
         
@@ -31,8 +33,15 @@ def create_app():
             return "Unauthorized - Please login first", 401
         route = session['role']
         return redirect(f'/{route}')
+    
+    @app.context_processor
+    def inject_user_data():
+        return {
+            "current_role": session.get("role"),
+            "current_user_id": session.get("user_id"),
+            "current_username": session.get("username")
+        }
     return app
-
 
 app = create_app()
 

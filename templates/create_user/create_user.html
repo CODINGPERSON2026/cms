@@ -1,0 +1,264 @@
+{% extends '/base.html' %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <style>
+
+       
+
+        .card{
+            width:100%;
+            max-width:650px;
+            background:white;
+            border-radius:20px;
+            overflow:hidden;
+            box-shadow:0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header{
+            background:linear-gradient(135deg,#0d6efd,#0056d2);
+            color:white;
+            padding:25px;
+            text-align:center;
+        }
+
+        .card-header h2{
+            font-size:28px;
+        }
+
+        .card-body{
+            padding:35px;
+        }
+
+        .info-box{
+            background:#eef5ff;
+            border-left:5px solid #0d6efd;
+            padding:15px;
+            border-radius:8px;
+            margin-bottom:25px;
+        }
+
+        .form-group{
+            margin-bottom:20px;
+        }
+
+        label{
+            display:block;
+            margin-bottom:8px;
+            font-weight:bold;
+        }
+
+        .form-control{
+            width:100%;
+            padding:12px;
+            border:1px solid #ced4da;
+            border-radius:10px;
+            font-size:15px;
+        }
+
+        .form-control:focus{
+            outline:none;
+            border-color:#0d6efd;
+            box-shadow:0 0 10px rgba(13,110,253,0.25);
+        }
+
+        .btn-create{
+            width:100%;
+            padding:14px;
+            border:none;
+            border-radius:10px;
+            background:linear-gradient(135deg,#198754,#157347);
+            color:white;
+            font-size:16px;
+            font-weight:bold;
+            cursor:pointer;
+        }
+
+        .btn-create:hover{
+            transform:translateY(-2px);
+        }
+
+        .btn-create:disabled{
+            opacity:0.7;
+            cursor:not-allowed;
+        }
+
+        .helper{
+            margin-top:6px;
+            color:#6c757d;
+            font-size:13px;
+        }
+
+    </style>
+
+</head>
+<body>
+
+<div class="card">
+
+    {% if current_role == "super_admin" %}
+    <div class="card-header">
+        <h2>Create User</h2>
+    </div>
+                    
+                {% endif %}
+
+    <div class="card-body">
+
+        <div class="info-box">
+            Logged in as:
+            <strong>{{ current_username }}</strong>
+            ({{ current_role }})
+        </div>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input
+                type="text"
+                id="username"
+                class="form-control"
+                placeholder="Example: 99_DIV">
+            <div class="helper">
+                Username must match an existing organisation name.
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input
+                type="password"
+                id="password"
+                class="form-control"
+                placeholder="Enter Password">
+        </div>
+
+        <div class="form-group">
+            <label>Role</label>
+
+            <select id="role" class="form-control">
+
+                {% if current_role == "super_admin" %}
+                    <option value="division_admin">
+                        Division Admin
+                    </option>
+                {% endif %}
+
+                {% if current_role == "division_admin" %}
+                    <option value="brigade_admin">
+                        Brigade Admin
+                    </option>
+
+                    <option value="unit">
+                        Unit
+                    </option>
+                {% endif %}
+
+                {% if current_role == "brigade_admin" %}
+                    <option value="unit">
+                        Unit
+                    </option>
+                {% endif %}
+
+            </select>
+        </div>
+
+        <button id="createUserBtn" class="btn-create">
+            Create User
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    .getAttribute("content");
+
+document
+    .getElementById("createUserBtn")
+    .addEventListener("click", createUser);
+
+async function createUser(){
+
+    const username = document
+        .getElementById("username")
+        .value
+        .trim();
+
+    const password = document
+        .getElementById("password")
+        .value
+        .trim();
+
+    const role = document
+        .getElementById("role")
+        .value;
+
+    if(username === ""){
+        alert("Please enter username.");
+        return;
+    }
+
+    if(password === ""){
+        alert("Please enter password.");
+        return;
+    }
+
+    const button = document.getElementById("createUserBtn");
+
+    button.disabled = true;
+    button.innerText = "Creating User...";
+
+    try{
+
+        const response = await fetch(
+            "/unit/api/create-user",
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json",
+                    "X-CSRFToken":csrfToken
+                },
+                body:JSON.stringify({
+                    username:username,
+                    password:password,
+                    role:role
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if(result.success){
+
+            alert(result.message);
+
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+
+        }
+        else{
+            alert(result.message);
+        }
+
+    }
+    catch(error){
+        console.error(error);
+        alert("Something went wrong.");
+    }
+    finally{
+        button.disabled = false;
+        button.innerText = "Create User";
+    }
+}
+
+</script>
+
+</body>
+</html>
+{%endblock%}

@@ -14,6 +14,8 @@ from flask import (
 from config import Config
 from blueprints.login import login_bp
 from blueprints.unit import unit_bp
+from blueprints.division import div_bp
+from blueprints.ord import ord_bp
 
 from extensions import db
 from flask_wtf.csrf import CSRFError
