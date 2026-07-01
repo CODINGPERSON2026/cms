@@ -47,6 +47,8 @@ def login():
         session["user_id"] = user.id
         session["username"] = user.username
         session["role"] = user.role
+        session['org_id'] = user.org_id
+        
         return jsonify({
             "success": True,
             "redirect": f"/{user.role}"

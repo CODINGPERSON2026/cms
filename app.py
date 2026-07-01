@@ -17,6 +17,8 @@ def create_app():
     app.register_blueprint(unit_bp)
     app.register_blueprint(div_bp)
     app.register_blueprint(ord_bp)
+    app.register_blueprint(bde_bp)
+    app.register_blueprint(mgt_bp)
 
     
         
@@ -28,11 +30,14 @@ def create_app():
 
     @app.route("/")
     def homepage():
-
         if "user_id" not in session:
-            return "Unauthorized - Please login first", 401
+            return render_template('/Login_page/login_page.html')
         route = session['role']
         return redirect(f'/{route}')
+    
+    @app.route("/incoming-requests")
+    def incoming_requests():
+        return render_template("/incoming_requests/incoming_requests.html")
     
     @app.context_processor
     def inject_user_data():
@@ -41,6 +46,10 @@ def create_app():
             "current_user_id": session.get("user_id"),
             "current_username": session.get("username")
         }
+    
+    
+    
+    
     return app
 
 app = create_app()

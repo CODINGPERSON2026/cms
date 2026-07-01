@@ -1,19 +1,20 @@
+{% extends 'base.html'%}
+{% block page_title %}Division Dashboard{% endblock %}
 
-{% extends '/base.html' %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block sidebar_nav %}
+   
+<a href="/" class="nav-item">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+  
+{% endblock %}
+
+
+
 {% block content %}
-{% if session['role'] in [ 'division_admin', 'brigade_admin'] %}
-<div class="card shadow-sm">
-    <div class="card-body text-center">
-        <h5>Organization Management</h5>
-        <p>Create and manage subordinate organizations.</p>
 
-        <a href="{{ url_for('unit.manage_org') }}"
-           class="btn btn-primary">
-            Manage Organization
-        </a>
-    </div>
-</div>
-{% endif %}
-{%endblock %}
+
+
+{% endblock %}`
