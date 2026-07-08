@@ -1,6 +1,6 @@
 
 from imports import *
-from models import LoginUser
+from models import LoginUser,User
 import re
 
 login_bp = Blueprint("login", __name__, url_prefix="/auth")
@@ -30,7 +30,7 @@ def login():
                 "message": "Username can only contain letters, numbers and underscore"
             })
 
-        user = LoginUser.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=username).first()
 
         if not user:
             return jsonify({
@@ -47,7 +47,7 @@ def login():
         session["user_id"] = user.id
         session["username"] = user.username
         session["role"] = user.role
-        session['org_id'] = user.org_id
+        # session['org_id'] = user.org_id
         
         return jsonify({
             "success": True,

@@ -1,0 +1,665 @@
+{% extends '/base.html' %}
+
+{% block page_title %}Enter SCME Issued Data{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/scme/" class="nav-item">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/scme/enter-items" class="nav-item active">
+    <i class="fa-solid fa-file-signature"></i>
+    <span class="nav-tooltip">Enter Ledgers</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .enter-page {
+        padding: 28px;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 8px 14px;
+        border-radius: 10px;
+        transition: all 0.2s;
+        margin-bottom: 22px;
+    }
+
+    .back-link:hover {
+        color: var(--accent);
+        background: var(--accent-muted);
+    }
+
+    .back-link i {
+        font-size: 0.75rem;
+        transition: transform 0.2s;
+    }
+
+    .back-link:hover i {
+        transform: translateX(-3px);
+    }
+
+    .form-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+
+    .form-card-header {
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        position: relative;
+    }
+
+    .form-card-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 28px;
+        right: 28px;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-dim), var(--accent));
+        opacity: 0.6;
+    }
+
+    .form-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--accent-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        font-size: 1.1rem;
+    }
+
+    .form-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .form-card-body {
+        padding: 28px;
+    }
+
+    .form-group-custom {
+        margin-bottom: 20px;
+    }
+
+    .form-label-custom {
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+    }
+
+    .form-select-custom, .form-input-custom {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-dim);
+        border-radius: 10px;
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        transition: all var(--transition);
+        outline: none;
+    }
+
+    .form-select-custom:focus, .form-input-custom:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-glow);
+        background-color: var(--bg-surface);
+    }
+
+    .form-input-custom:disabled {
+        background-color: var(--bg-raised);
+        color: var(--text-secondary);
+        opacity: 0.8;
+        cursor: not-allowed;
+    }
+
+    .btn-submit {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 28px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all var(--transition);
+    }
+
+    .btn-submit:hover {
+        background: var(--accent-dim);
+        box-shadow: 0 4px 12px var(--accent-glow);
+        transform: translateY(-1px);
+    }
+
+    .btn-submit:active {
+        transform: translateY(0);
+    }
+
+    .items-table-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+
+    .table-container {
+        padding: 0;
+        overflow-x: auto;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .table-custom th {
+        background-color: var(--bg-raised);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-dim);
+        text-align: left;
+    }
+
+    .table-custom td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-dim);
+        color: var(--text-primary);
+        font-size: 0.92rem;
+    }
+
+    .table-custom tr:last-child td {
+        border-bottom: none;
+    }
+
+    .table-custom tr {
+        transition: background-color 0.2s;
+    }
+
+    .table-custom tr:hover {
+        background-color: var(--accent-muted);
+    }
+
+    .badge-category {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background-color: var(--accent-muted);
+        color: var(--accent);
+        border: 1px solid var(--border-glow);
+    }
+
+    .empty-state {
+        padding: 45px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .empty-state i {
+        font-size: 2.2rem;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        display: block;
+    }
+
+    .field-error-msg {
+        color: var(--danger);
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: none;
+        align-items: center;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .field-error-msg.show {
+        display: flex;
+    }
+
+    .input-error {
+        border-color: var(--danger) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="enter-page">
+    <!-- Back Button -->
+    <a href="/scme/" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Dashboard
+    </a>
+
+    <!-- Issued Item Data Entry Form -->
+    <div class="form-card">
+        <div class="form-card-header">
+            <div class="form-card-icon">
+                <i class="fa-solid fa-file-signature"></i>
+            </div>
+            <h2 class="form-card-title">Record SCME Issued Clothing Item</h2>
+        </div>
+        <div class="form-card-body">
+            <form id="issueItemForm" autocomplete="off">
+                <div class="row">
+                    <!-- Unit dropdown -->
+                    <div class="col-md-4 form-group-custom">
+                        <label class="form-label-custom" for="unitName">Select Unit</label>
+                        <select id="unitName" name="unit_name" class="form-select-custom" required>
+                            <option value="">-- Choose Unit --</option>
+                            {% for u in units %}
+                            <option value="{{ u.name }}">{{ u.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="field-error-msg" id="errUnitName">
+                            <i class="fa-solid fa-circle-exclamation"></i> Please select a valid unit.
+                        </span>
+                    </div>
+
+                    <!-- Category dropdown -->
+                    <div class="col-md-4 form-group-custom">
+                        <label class="form-label-custom" for="categorySelect">Select Category</label>
+                        <select id="categorySelect" class="form-select-custom" required>
+                            <option value="">-- Choose Category --</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="field-error-msg" id="errCategory">
+                            <i class="fa-solid fa-circle-exclamation"></i> Please select a category.
+                        </span>
+                    </div>
+
+                    <!-- Item dropdown (cascading) -->
+                    <div class="col-md-4 form-group-custom">
+                        <label class="form-label-custom" for="itemId">Select Item</label>
+                        <select id="itemId" name="item_id" class="form-select-custom" required disabled>
+                            <option value="">-- Select Category First --</option>
+                        </select>
+                        <span class="field-error-msg" id="errItemId">
+                            <i class="fa-solid fa-circle-exclamation"></i> Please select a valid item.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Scale Field -->
+                    <div class="col-md-3 form-group-custom">
+                        <label class="form-label-custom" for="scaleField">Scale</label>
+                        <input type="text" id="scaleField" name="scale" class="form-input-custom" placeholder="Scale per person (e.g. 1, 2)" required>
+                        <span class="field-error-msg" id="errScale">
+                            <i class="fa-solid fa-circle-exclamation"></i> Scale must be a positive integer.
+                        </span>
+                    </div>
+
+                    <!-- A/U Field -->
+                    <div class="col-md-3 form-group-custom">
+                        <label class="form-label-custom" for="auField">Authorised (A/U)</label>
+                        <input type="text" id="auField" name="a_u" class="form-input-custom" placeholder="Authorised (e.g. 100)" required>
+                        <span class="field-error-msg" id="errAu">
+                            <i class="fa-solid fa-circle-exclamation"></i> A/U must be a positive integer.
+                        </span>
+                    </div>
+
+                    <!-- Held Field -->
+                    <div class="col-md-3 form-group-custom">
+                        <label class="form-label-custom" for="heldField">Held Quantity</label>
+                        <input type="text" id="heldField" name="held" class="form-input-custom" placeholder="Held qty (e.g. 85)" required>
+                        <span class="field-error-msg" id="errHeld">
+                            <i class="fa-solid fa-circle-exclamation"></i> Held quantity must be a positive integer.
+                        </span>
+                    </div>
+
+                    <!-- Deficiency (Deafy) Field -->
+                    <div class="col-md-3 form-group-custom">
+                        <label class="form-label-custom" for="deafyField">Deficiency (Deafy)</label>
+                        <input type="text" id="deafyField" class="form-input-custom" placeholder="Auto-calculated (A/U - Held)" disabled>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="btnSubmit">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    Record Issued Item
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Registry history table -->
+    <div class="items-table-card">
+        <div class="form-card-header">
+            <div class="form-card-icon">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <h2 class="form-card-title">Recorded Unit SCME Ledgers</h2>
+        </div>
+        <div class="table-container">
+            <table class="table-custom" id="issuedTable">
+                <thead>
+                    <tr>
+                        <th>Unit Name</th>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th style="text-align: center;">Scale</th>
+                        <th style="text-align: center;">A/U</th>
+                        <th style="text-align: center;">Held</th>
+                        <th style="text-align: center; color: var(--danger);">Deficiency</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody id="issuedTableBody">
+                    {% if issued_items %}
+                        {% for record in issued_items %}
+                        <tr id="record-row-{{ record.id }}">
+                            <td style="font-weight: 600;">{{ record.unit_name }}</td>
+                            <td>{{ record.item.item_name }}</td>
+                            <td><span class="badge-category">{{ record.item.category }}</span></td>
+                            <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.scale }}</td>
+                            <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.a_u }}</td>
+                            <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.held }}</td>
+                            <td style="text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--danger);">
+                                {{ record.deficiency }}
+                            </td>
+                            <td style="font-size: 0.82rem; color: var(--text-secondary);">
+                                {{ record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else '' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr id="noRecordsRow">
+                            <td colspan="8" class="empty-state">
+                                <i class="fa-solid fa-receipt"></i>
+                                No ledger items recorded yet. Fill out the form above to record SCME issued items.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // ── All items injected from Flask to dynamically filter on Category change ──
+    const scmeItems = [
+        {% for item in items %}
+        { id: {{ item.id }}, name: "{{ item.item_name }}", category: "{{ item.category }}" },
+        {% endfor %}
+    ];
+
+    const form = document.getElementById("issueItemForm");
+    const unitNameSelect = document.getElementById("unitName");
+    const categorySelect = document.getElementById("categorySelect");
+    const itemIdSelect = document.getElementById("itemId");
+    const scaleInput = document.getElementById("scaleField");
+    const auInput = document.getElementById("auField");
+    const heldInput = document.getElementById("heldField");
+    const deafyInput = document.getElementById("deafyField");
+
+    const errUnitName = document.getElementById("errUnitName");
+    const errCategory = document.getElementById("errCategory");
+    const errItemId = document.getElementById("errItemId");
+    const errScale = document.getElementById("errScale");
+    const errAu = document.getElementById("errAu");
+    const errHeld = document.getElementById("errHeld");
+
+    const issuedTableBody = document.getElementById("issuedTableBody");
+
+    // ── Helper functions for validation messages ──
+    function showError(inputEl, msgEl) {
+        inputEl.classList.add("input-error");
+        msgEl.classList.add("show");
+    }
+
+    function clearError(inputEl, msgEl) {
+        inputEl.classList.remove("input-error");
+        msgEl.classList.remove("show");
+    }
+
+    // ── Cascading Dropdowns: Category -> Item ──
+    categorySelect.addEventListener("change", function () {
+        const selectedCat = this.value;
+        itemIdSelect.innerHTML = "";
+        clearError(categorySelect, errCategory);
+
+        if (!selectedCat) {
+            itemIdSelect.innerHTML = '<option value="">-- Select Category First --</option>';
+            itemIdSelect.disabled = true;
+            return;
+        }
+
+        // Filter items
+        const filtered = scmeItems.filter(item => item.category === selectedCat);
+        
+        // Populate options
+        itemIdSelect.innerHTML = '<option value="">-- Choose Item --</option>';
+        filtered.forEach(item => {
+            const opt = document.createElement("option");
+            opt.value = item.id;
+            opt.textContent = item.name;
+            itemIdSelect.appendChild(opt);
+        });
+
+        itemIdSelect.disabled = false;
+        clearError(itemIdSelect, errItemId);
+    });
+
+    itemIdSelect.addEventListener("change", function () {
+        clearError(itemIdSelect, errItemId);
+    });
+
+    unitNameSelect.addEventListener("change", function () {
+        clearError(unitNameSelect, errUnitName);
+    });
+
+    // ── Numbers-only constraint & deficiency calculation ──
+    function validateAndCalculate() {
+        const scaleValStr = scaleInput.value.trim();
+        const auValStr = auInput.value.trim();
+        const heldValStr = heldInput.value.trim();
+
+        // Check Scale validity
+        const scaleValid = scaleValStr !== "" && /^\d+$/.test(scaleValStr);
+        if (scaleValStr && !scaleValid) {
+            showError(scaleInput, errScale);
+        } else {
+            clearError(scaleInput, errScale);
+        }
+
+        // Check A/U validity
+        const auValid = auValStr !== "" && /^\d+$/.test(auValStr);
+        if (auValStr && !auValid) {
+            showError(auInput, errAu);
+        } else {
+            clearError(auInput, errAu);
+        }
+
+        // Check Held validity
+        const heldValid = heldValStr !== "" && /^\d+$/.test(heldValStr);
+        if (heldValStr && !heldValid) {
+            showError(heldInput, errHeld);
+        } else {
+            clearError(heldInput, errHeld);
+        }
+
+        // Auto-calculate Deficiency
+        if (auValid && heldValid) {
+            const au = parseInt(auValStr, 10);
+            const held = parseInt(heldValStr, 10);
+            const diff = au - held;
+            deafyInput.value = diff;
+        } else {
+            deafyInput.value = "";
+        }
+    }
+
+    // Bind event listeners for real-time calculations and number block
+    [scaleInput, auInput, heldInput].forEach(input => {
+        // Block typing non-digits
+        input.addEventListener("keypress", function (e) {
+            const char = String.fromCharCode(e.which || e.keyCode);
+            if (!/^\d$/.test(char)) {
+                e.preventDefault();
+            }
+        });
+
+        input.addEventListener("input", validateAndCalculate);
+        
+        // Prevent pasting non-digits
+        input.addEventListener("paste", function (e) {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData("text");
+            const clean = pasted.replace(/[^\d]/g, "");
+            document.execCommand("insertText", false, clean);
+            validateAndCalculate();
+        });
+    });
+
+    // ── Submit Handling via fetch ──
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const unitName = unitNameSelect.value;
+        const category = categorySelect.value;
+        const itemId = itemIdSelect.value;
+        const scaleStr = scaleInput.value.trim();
+        const auStr = auInput.value.trim();
+        const heldStr = heldInput.value.trim();
+
+        let isValid = true;
+
+        if (!unitName) {
+            showError(unitNameSelect, errUnitName);
+            isValid = false;
+        }
+        if (!category) {
+            showError(categorySelect, errCategory);
+            isValid = false;
+        }
+        if (!itemId) {
+            showError(itemIdSelect, errItemId);
+            isValid = false;
+        }
+        if (!scaleStr || !/^\d+$/.test(scaleStr)) {
+            showError(scaleInput, errScale);
+            isValid = false;
+        }
+        if (!auStr || !/^\d+$/.test(auStr)) {
+            showError(auInput, errAu);
+            isValid = false;
+        }
+        if (!heldStr || !/^\d+$/.test(heldStr)) {
+            showError(heldInput, errHeld);
+            isValid = false;
+        }
+
+        if (!isValid) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        // Submit AJAX
+        fetch("/scme/api/issue-item", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify({
+                unit_name: unitName,
+                item_id: itemId,
+                scale: scaleStr,
+                a_u: auStr,
+                held: heldStr
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Clear Form
+                form.reset();
+                itemIdSelect.innerHTML = '<option value="">-- Select Category First --</option>';
+                itemIdSelect.disabled = true;
+                deafyInput.value = "";
+                
+                // Remove empty state
+                const noRecordsRow = document.getElementById("noRecordsRow");
+                if (noRecordsRow) {
+                    noRecordsRow.remove();
+                }
+
+                // Add Row to Table
+                const newRow = document.createElement("tr");
+                newRow.id = `record-row-${data.issued_item.id}`;
+                newRow.innerHTML = `
+                    <td style="font-weight: 600;">${data.issued_item.unit_name}</td>
+                    <td>${data.issued_item.item_name}</td>
+                    <td><span class="badge-category">${data.issued_item.category}</span></td>
+                    <td style="text-align: center; font-variant-numeric: tabular-nums;">${data.issued_item.scale}</td>
+                    <td style="text-align: center; font-variant-numeric: tabular-nums;">${data.issued_item.a_u}</td>
+                    <td style="text-align: center; font-variant-numeric: tabular-nums;">${data.issued_item.held}</td>
+                    <td style="text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--danger);">${data.issued_item.deficiency}</td>
+                    <td style="font-size: 0.82rem; color: var(--text-secondary);">${data.issued_item.created_at}</td>
+                `;
+
+                issuedTableBody.insertBefore(newRow, issuedTableBody.firstChild);
+
+                // Highlight Row
+                newRow.style.backgroundColor = "var(--accent-glow)";
+                setTimeout(() => {
+                    newRow.style.transition = "background-color 1s";
+                    newRow.style.backgroundColor = "";
+                }, 1000);
+
+            } else {
+                alert(data.message || "Failed to record entry.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("An error occurred during submission.");
+        });
+    });
+});
+</script>
+{% endblock %}

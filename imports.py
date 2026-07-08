@@ -18,6 +18,7 @@ from blueprints.division import div_bp
 from blueprints.ord import ord_bp
 from blueprints.brigade import bde_bp
 from blueprints.management import mgt_bp
+from blueprints.scme import scme_bp
 
 from extensions import db
 from flask_wtf.csrf import CSRFError

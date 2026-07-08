@@ -1,0 +1,643 @@
+{% extends '/base.html' %}
+
+{% block page_title %}SCME Overview Dashboard{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/scme/" class="nav-item active">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/scme/enter-items" class="nav-item">
+    <i class="fa-solid fa-file-signature"></i>
+    <span class="nav-tooltip">Enter Ledgers</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<style>
+    .dashboard-container {
+        padding: 24px;
+    }
+
+    /* ── Metric Cards Grid ── */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+        transition: all var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; right: 0;
+        width: 45px; height: 45px;
+        background: var(--accent-muted);
+        border-radius: 50% 0 0 0;
+        opacity: 0.5;
+        transition: transform 0.3s;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .metric-card:hover::after {
+        transform: scale(1.5);
+    }
+
+    .metric-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .metric-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .metric-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .metric-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    /* Color mappings for icon boxes */
+    .icon-box-primary { background-color: var(--accent-muted); color: var(--accent); }
+    .icon-box-success { background-color: rgba(13, 217, 6, 0.08); color: #0c9e05; }
+    .icon-box-danger { background-color: rgba(192, 57, 43, 0.08); color: var(--danger); }
+    .icon-box-warning { background-color: rgba(184, 134, 11, 0.08); color: var(--warning); }
+
+    /* ── Chart Panels Grid ── */
+    .chart-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 991.98px) {
+        .chart-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chart-panel-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chart-panel-header {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chart-panel-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .chart-panel-title i {
+        color: var(--accent);
+    }
+
+    .chart-canvas-wrapper {
+        padding: 24px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        min-height: 350px;
+        position: relative;
+    }
+
+    /* Override Highcharts credits and default tooltip borders */
+    .highcharts-credits {
+        display: none !important;
+    }
+    
+    .deficiency-high {
+        color: var(--danger) !important;
+    }
+    
+    .deficiency-ok {
+        color: #10b981 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Top metrics grid -->
+    <div class="metric-grid">
+        <!-- 1. Catalog Items -->
+        <div class="metric-card">
+            <div class="metric-icon-box icon-box-primary">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Registered Items</span>
+                <span class="metric-value">{{ total_items }}</span>
+            </div>
+        </div>
+
+        <!-- 2. Active Units -->
+        <div class="metric-card">
+            <div class="metric-icon-box icon-box-primary">
+                <i class="fa-solid fa-sitemap"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Active Units</span>
+                <span class="metric-value">{{ active_units }}</span>
+            </div>
+        </div>
+
+        <!-- 3. Fulfillment Rate -->
+        <div class="metric-card">
+            <div class="metric-icon-box icon-box-success">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Fulfillment</span>
+                <span class="metric-value">{{ fulfillment_rate }}%</span>
+            </div>
+        </div>
+
+        <!-- 4. Global Deficiency -->
+        <div class="metric-card">
+            <div class="metric-icon-box icon-box-danger">
+                <i class="fa-solid fa-arrow-trend-down"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Deficiency (Deafy)</span>
+                <span class="metric-value" style="color: var(--danger);">{{ global_deficiency }}</span>
+            </div>
+        </div>
+
+        <!-- 5. Critical Alerts -->
+        <div class="metric-card">
+            <div class="metric-icon-box {% if critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Critical Alerts</span>
+                <span class="metric-value" {% if critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ critical_alerts }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chart Row -->
+    <div class="chart-row">
+        <!-- 3D Grouped Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    Unit Ledger Comparison (3D Bar Chart)
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="unit3DBarChart" data-chart='{{ unit_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- 3D Donut Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    Global Fulfillment (3D Donut)
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="global3DDonutChart" data-chart='{{ overall_chart_data | tojson }}' data-rate="{{ fulfillment_rate }}" style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Chart Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="chart-row-secondary animate-fade-in">
+        <!-- 3D Horizontal Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Top 5 Deficient Items (3D Prism Chart)
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="item3DPrismChart" data-chart='{{ item_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- Quick actions / details panel -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-list-check"></i>
+                    Quick Action Ledgers
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper" style="align-items: flex-start; justify-content: flex-start; padding: 24px; overflow-y: auto; min-height: 350px; display: flex;">
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">
+                        Manage supply levels, authorized scales, and deficiency records for units under command.
+                    </p>
+                    <a href="/scme/enter-items" class="btn btn-outline-success w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600;">
+                        <span><i class="fa-solid fa-file-signature me-2"></i>Record New Issued Item</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                    
+                    <!-- View Table Format Popup Button -->
+                    <button type="button" class="btn btn-outline-info w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#ledgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
+                        <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    
+                    <a href="/mgt" class="btn btn-outline-secondary w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--border-dim); color: var(--text-primary); font-weight:600;">
+                        <span><i class="fa-solid fa-sitemap me-2"></i>View Management Tree</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Modal for Table View -->
+    <div class="modal fade" id="ledgerTableModal" tabindex="-1" aria-labelledby="ledgerTableModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 20px 24px;">
+                    <h5 class="modal-title" id="ledgerTableModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent);"></i>
+                        Issued Ledgers Summary Table
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
+                </div>
+                <div class="modal-body" style="padding: 0;">
+                    <table class="table-custom" style="width: 100%; border-collapse: collapse; margin: 0;">
+                        <thead style="position: sticky; top: 0; z-index: 10;">
+                            <tr>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Unit</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Item</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Category</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Scale</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">A/U</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Held</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Deficiency</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if issued_items %}
+                                {% for record in issued_items %}
+                                <tr style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
+                                    <td style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">{{ record.unit_name.replace('_', ' ').upper() }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; color: var(--text-primary);">{{ record.item.item_name }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem;"><span class="badge-category">{{ record.item.category }}</span></td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums;">{{ record.scale }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums;">{{ record.a_u }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums;">{{ record.held }}</td>
+                                    <td class="{% if record.deficiency > 0 %}deficiency-high{% else %}deficiency-ok{% endif %}" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700;">
+                                        {{ record.deficiency }}
+                                    </td>
+                                    <td style="padding: 14px 20px; font-size: 0.82rem; color: var(--text-secondary);">
+                                        {{ record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else '' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="empty-state" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                        <i class="fa-solid fa-receipt" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                        No ledger records found.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 16px 24px;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: var(--bg-raised); border-color: var(--border-dim); color: var(--text-primary);">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Offline Local Highcharts & 3D modules -->
+<script src="{{ url_for('static', filename='highcharts.js') }}"></script>
+<script src="{{ url_for('static', filename='highcharts-3d.js') }}"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Move modal to body to prevent stacking and z-index issues caused by parent CSS layouts
+    const modalEl = document.getElementById('ledgerTableModal');
+    if (modalEl) {
+        document.body.appendChild(modalEl);
+    }
+
+    // Inject backend data (read from HTML5 data attributes to keep Javascript syntax clean and warnings-free)
+    const unitChartData = JSON.parse(document.getElementById('unit3DBarChart').dataset.chart);
+    const itemChartData = JSON.parse(document.getElementById('item3DPrismChart').dataset.chart);
+    const overallChartData = JSON.parse(document.getElementById('global3DDonutChart').dataset.chart);
+    const fulfillmentRate = parseFloat(document.getElementById('global3DDonutChart').dataset.rate);
+
+    // Global theme variables mapped from CSS
+    const computedStyles = getComputedStyle(document.documentElement);
+    const textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || "#1a2420";
+    const textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
+    const borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
+
+    // Format unit names for chart display labels (e.g. 19_inf_div -> 19 INF DIV)
+    const unitCategories = unitChartData.map(d => d.unit_name.replace(/_/g, ' ').toUpperCase());
+    const auSeries = unitChartData.map(d => d.a_u);
+    const heldSeries = unitChartData.map(d => d.held);
+
+    // Format item names for deficiency chart
+    const itemCategories = itemChartData.map(d => d.item_name);
+    const itemDeficiencies = itemChartData.map(d => d.deficiency);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 1: UNIT LEDGER COMPARISON (3D GROUPED COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    Highcharts.chart('unit3DBarChart', {
+        chart: {
+            type: 'column',
+            options3d: {
+                enabled: true,
+                alpha: 12,
+                beta: 18,
+                depth: 60,
+                viewDistance: 25
+            },
+            backgroundColor: 'transparent'
+        },
+        title: { text: null },
+        xAxis: {
+            categories: unitCategories,
+            labels: {
+                style: {
+                    color: textSecondary,
+                    fontWeight: 'bold',
+                    fontSize: '9px'
+                }
+            },
+            gridLineColor: borderDim,
+            lineColor: borderDim
+        },
+        yAxis: {
+            title: {
+                text: 'Quantity',
+                style: { color: textSecondary, fontWeight: 'bold' }
+            },
+            labels: {
+                style: { color: textSecondary }
+            },
+            gridLineColor: borderDim
+        },
+        plotOptions: {
+            column: {
+                depth: 30,
+                grouping: true,
+                shadow: false,
+                dataLabels: {
+                    enabled: true,
+                    crop: false,
+                    overflow: 'none',
+                    style: {
+                        fontWeight: 'bold',
+                        fontSize: '9px',
+                        textOutline: 'none',
+                        color: 'var(--text-primary)'
+                    }
+                }
+            }
+        },
+        series: [{
+            name: 'Authorised (A/U)',
+            data: auSeries,
+            color: '#38bdf8' // Sky blue
+        }, {
+            name: 'Held',
+            data: heldSeries,
+            color: '#f43f5e' // Soft red
+        }],
+        legend: {
+            itemStyle: {
+                color: textPrimary,
+                textTransform: 'uppercase',
+                fontSize: '9px',
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            backgroundColor: 'var(--bg-surface)',
+            borderWidth: 1,
+            borderColor: 'var(--border-dim)',
+            style: {
+                color: 'var(--text-primary)'
+            }
+        },
+        credits: { enabled: false }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 2: GLOBAL FULFILLMENT (3D DONUT CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const valHeld = overallChartData.held;
+    const valDeficiency = overallChartData.deficiency;
+
+    Highcharts.chart('global3DDonutChart', {
+        chart: {
+            type: 'pie',
+            options3d: {
+                enabled: true,
+                alpha: 45,
+                beta: 0
+            },
+            backgroundColor: 'transparent'
+        },
+        title: {
+            text: fulfillmentRate + '%',
+            align: 'center',
+            verticalAlign: 'middle',
+            y: 0,
+            style: {
+                color: textPrimary,
+                fontSize: '24px',
+                fontWeight: 'bold',
+                fontFamily: 'sans-serif'
+            }
+        },
+        subtitle: {
+            text: 'FULFILLED',
+            align: 'center',
+            verticalAlign: 'middle',
+            y: 18,
+            style: {
+                color: textSecondary,
+                fontSize: '9px',
+                fontWeight: 'bold',
+                letterSpacing: '1px'
+            }
+        },
+        plotOptions: {
+            pie: {
+                innerSize: '70%',
+                depth: 45,
+                dataLabels: {
+                    enabled: false
+                },
+                showInLegend: true
+            }
+        },
+        series: [{
+            name: 'Quantity',
+            data: [
+                { name: 'Held', y: valHeld, color: '#10b981' }, // Emerald green
+                { name: 'Deficiency', y: valDeficiency, color: '#ef4444' } // Red
+            ]
+        }],
+        legend: {
+            itemStyle: {
+                color: textPrimary,
+                textTransform: 'uppercase',
+                fontSize: '9px',
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            backgroundColor: 'var(--bg-surface)',
+            borderWidth: 1,
+            borderColor: 'var(--border-dim)',
+            style: {
+                color: 'var(--text-primary)'
+            }
+        },
+        credits: { enabled: false }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 3: TOP 5 DEFICIENT ITEMS (3D HORIZONTAL BAR CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    Highcharts.chart('item3DPrismChart', {
+        chart: {
+            type: 'bar',
+            options3d: {
+                enabled: true,
+                alpha: 10,
+                beta: 15,
+                depth: 50,
+                viewDistance: 25
+            },
+            backgroundColor: 'transparent'
+        },
+        title: { text: null },
+        xAxis: {
+            categories: itemCategories,
+            labels: {
+                style: {
+                    color: textSecondary,
+                    fontWeight: 'bold',
+                    fontSize: '9px'
+                }
+            },
+            gridLineColor: borderDim,
+            lineColor: borderDim
+        },
+        yAxis: {
+            title: {
+                text: 'Deficiency Quantity',
+                style: { color: textSecondary, fontWeight: 'bold' }
+            },
+            labels: {
+                style: { color: textSecondary }
+            },
+            gridLineColor: borderDim
+        },
+        plotOptions: {
+            bar: {
+                depth: 25,
+                colorByPoint: false,
+                dataLabels: {
+                    enabled: true,
+                    crop: false,
+                    overflow: 'none',
+                    style: {
+                        fontWeight: 'bold',
+                        fontSize: '9px',
+                        textOutline: 'none',
+                        color: 'var(--text-primary)'
+                    }
+                }
+            }
+        },
+        series: [{
+            name: 'Deficiency',
+            data: itemDeficiencies,
+            color: '#f59e0b', // Amber
+            showInLegend: false
+        }],
+        tooltip: {
+            backgroundColor: 'var(--bg-surface)',
+            borderWidth: 1,
+            borderColor: 'var(--border-dim)',
+            style: {
+                color: 'var(--text-primary)'
+            }
+        },
+        credits: { enabled: false }
+    });
+});
+</script>
+{% endblock %}
