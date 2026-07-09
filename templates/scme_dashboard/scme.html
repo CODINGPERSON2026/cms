@@ -19,6 +19,91 @@
         padding: 24px;
     }
 
+    /* ── Tab bar ── */
+    .ledger-tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .ledger-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        padding: 13px 24px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 10px 10px 0 0;
+        position: relative;
+        transition: all 0.2s;
+        top: 1px;
+    }
+
+    .ledger-tab i {
+        font-size: 0.9rem;
+    }
+
+    .ledger-tab:hover {
+        color: var(--text-primary);
+        background: var(--accent-muted);
+    }
+
+    .ledger-tab.active {
+        color: var(--accent);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-bottom: 1px solid var(--bg-surface);
+    }
+
+    .ledger-tab .tab-soon {
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 5px;
+        background: var(--bg-raised);
+        color: var(--text-muted);
+        border: 1px solid var(--border-dim);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── ECC placeholder panel ── */
+    .coming-soon {
+        background: var(--bg-surface);
+        border: 1px dashed var(--border-dim);
+        border-radius: 18px;
+        padding: 70px 40px;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .coming-soon i {
+        font-size: 2.6rem;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .coming-soon h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 8px;
+    }
+
+    .coming-soon p {
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
     /* ── Metric Cards Grid ── */
     .metric-grid {
         display: grid;
@@ -135,6 +220,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
     }
 
     .chart-panel-title {
@@ -149,6 +236,23 @@
 
     .chart-panel-title i {
         color: var(--accent);
+    }
+
+    .chart-panel-filter {
+        padding: 7px 12px;
+        border-radius: 9px;
+        border: 1px solid var(--border-dim);
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        font-size: 0.78rem;
+        font-weight: 600;
+        outline: none;
+        min-width: 130px;
+        cursor: pointer;
+    }
+
+    .chart-panel-filter:hover {
+        border-color: var(--accent);
     }
 
     .chart-canvas-wrapper {
@@ -225,6 +329,23 @@
 
 {% block content %}
 <div class="dashboard-container">
+
+    <!-- Tab bar -->
+    <div class="ledger-tabs" role="tablist">
+        <button type="button" class="ledger-tab active" id="tabScme" data-tab="scme" role="tab" aria-selected="true">
+            <i class="fa-solid fa-file-signature"></i>
+            SCME
+        </button>
+        <button type="button" class="ledger-tab" id="tabEcc" data-tab="ecc" role="tab" aria-selected="false">
+            <i class="fa-solid fa-clipboard-list"></i>
+            ECC
+            <span class="tab-soon">Soon</span>
+        </button>
+    </div>
+
+    <!-- ══════════════════════════ SCME TAB PANEL ══════════════════════════ -->
+    <div class="tab-panel active" id="panelScme" role="tabpanel">
+
     <!-- Top metrics grid -->
     <div class="metric-grid">
         <!-- 1. Catalog Items -->
@@ -293,6 +414,17 @@
                     <i class="fa-solid fa-chart-bar"></i>
                     Unit Ledger Comparison (3D Bar Chart)
                 </h3>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <select id="unitChartFilter" class="chart-panel-filter" aria-label="Filter chart by unit">
+                        <option value="">All Units</option>
+                    </select>
+                    <select id="itemChartFilter" class="chart-panel-filter" aria-label="Filter chart by item">
+                        <option value="">All Items</option>
+                    </select>
+                    <select id="categoryChartFilter" class="chart-panel-filter" aria-label="Filter chart by category">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
             </div>
             <div class="chart-canvas-wrapper">
                 <div id="unit3DBarChart" data-chart='{{ unit_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
@@ -448,6 +580,19 @@
         </div>
     </div>
     {% include 'modals/modals.html' %}
+
+    </div>
+    <!-- ══════════════════════════ END SCME TAB PANEL ══════════════════════════ -->
+
+    <!-- ══════════════════════════ ECC TAB PANEL (placeholder) ══════════════════════════ -->
+    <div class="tab-panel" id="panelEcc" role="tabpanel">
+        <div class="coming-soon">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <h3>ECC Dashboard — Coming Soon</h3>
+            <p>This section is under construction. The ECC overview dashboard will be built here.</p>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
@@ -458,6 +603,26 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    // ── Tab switching ──
+    const tabs = document.querySelectorAll(".ledger-tab");
+    const panels = {
+        scme: document.getElementById("panelScme"),
+        ecc: document.getElementById("panelEcc")
+    };
+    tabs.forEach(tab => {
+        tab.addEventListener("click", function () {
+            const target = this.dataset.tab;
+            tabs.forEach(t => {
+                const on = t === this;
+                t.classList.toggle("active", on);
+                t.setAttribute("aria-selected", on ? "true" : "false");
+            });
+            Object.keys(panels).forEach(key => {
+                panels[key].classList.toggle("active", key === target);
+            });
+        });
+    });
+
     // Move modal to body to prevent stacking and z-index issues caused by parent CSS layouts
     const modalEl = document.getElementById('ledgerTableModal');
     if (modalEl) {
@@ -476,10 +641,44 @@ document.addEventListener("DOMContentLoaded", function () {
     const textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
     const borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
 
-    // Format unit names for chart display labels (e.g. 19_inf_div -> 19 INF DIV)
-    const unitCategories = unitChartData.map(d => d.unit_name.replace(/_/g, ' ').toUpperCase());
-    const auSeries = unitChartData.map(d => d.a_u);
-    const heldSeries = unitChartData.map(d => d.held);
+    // unitChartData is now granular: one row per (unit, item, category) combination,
+    // so the chart can be filtered by unit, item, and/or category on the client side.
+    function formatUnitLabel(u) {
+        return u.replace(/_/g, ' ').toUpperCase();
+    }
+
+    const allUnitNames = [...new Set(unitChartData.map(d => d.unit_name))];
+    const allItemNames = [...new Set(unitChartData.map(d => d.item_name))].sort();
+    const allCategories = [...new Set(unitChartData.map(d => d.category))].sort();
+
+    // Aggregates rows down to per-unit totals for whichever unit/item/category filters are active.
+    // Passing '' (empty string) for a filter means "no restriction" on that dimension.
+    function aggregateUnitChart(unitFilter, itemFilter, categoryFilter) {
+        const units = unitFilter ? [unitFilter] : allUnitNames;
+        const au = [], held = [], def = [];
+
+        units.forEach(u => {
+            const rows = unitChartData.filter(d =>
+                d.unit_name === u &&
+                (!itemFilter || d.item_name === itemFilter) &&
+                (!categoryFilter || d.category === categoryFilter)
+            );
+            au.push(rows.reduce((sum, r) => sum + r.a_u, 0));
+            held.push(rows.reduce((sum, r) => sum + r.held, 0));
+            def.push(rows.reduce((sum, r) => sum + r.deficiency, 0));
+        });
+
+        return {
+            categories: units.map(formatUnitLabel),
+            au, held, def
+        };
+    }
+
+    const initialAgg = aggregateUnitChart('', '', '');
+    const unitCategories = initialAgg.categories;
+    const auSeries = initialAgg.au;
+    const heldSeries = initialAgg.held;
+    const defSeries = initialAgg.def;
 
     // Format item names for deficiency chart
     const itemCategories = itemChartData.map(d => d.item_name);
@@ -488,7 +687,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ─────────────────────────────────────────────────────────────────────────
     // CHART 1: UNIT LEDGER COMPARISON (3D GROUPED COLUMN CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    Highcharts.chart('unit3DBarChart', {
+    const unitBarChart = Highcharts.chart('unit3DBarChart', {
         chart: {
             type: 'column',
             options3d: {
@@ -549,6 +748,10 @@ document.addEventListener("DOMContentLoaded", function () {
             name: 'Held',
             data: heldSeries,
             color: '#f43f5e' // Soft red
+        }, {
+            name: 'Deficiency',
+            data: defSeries,
+            color: '#f59e0b' // Amber
         }],
         legend: {
             itemStyle: {
@@ -568,6 +771,39 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         credits: { enabled: false }
     });
+
+    // ── Unit / Item / Category filters for the ledger comparison chart ──
+    const unitFilterSel = document.getElementById('unitChartFilter');
+    const itemFilterSel = document.getElementById('itemChartFilter');
+    const categoryFilterSel = document.getElementById('categoryChartFilter');
+
+    if (unitFilterSel && itemFilterSel && categoryFilterSel) {
+        allUnitNames.forEach(u => {
+            unitFilterSel.insertAdjacentHTML('beforeend', `<option value="${u}">${formatUnitLabel(u)}</option>`);
+        });
+        allItemNames.forEach(i => {
+            itemFilterSel.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
+        });
+        allCategories.forEach(c => {
+            categoryFilterSel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`);
+        });
+
+        function refreshUnitChart() {
+            const agg = aggregateUnitChart(unitFilterSel.value, itemFilterSel.value, categoryFilterSel.value);
+            unitBarChart.update({
+                xAxis: { categories: agg.categories },
+                series: [
+                    { data: agg.au },
+                    { data: agg.held },
+                    { data: agg.def }
+                ]
+            });
+        }
+
+        unitFilterSel.addEventListener('change', refreshUnitChart);
+        itemFilterSel.addEventListener('change', refreshUnitChart);
+        categoryFilterSel.addEventListener('change', refreshUnitChart);
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // CHART 2: GLOBAL FULFILLMENT (3D DONUT CHART)

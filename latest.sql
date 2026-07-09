@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.41, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cms
 -- ------------------------------------------------------
--- Server version	8.0.46
+-- Server version	8.0.40
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -34,8 +34,33 @@ CREATE TABLE `alembic_version` (
 
 LOCK TABLES `alembic_version` WRITE;
 /*!40000 ALTER TABLE `alembic_version` DISABLE KEYS */;
-INSERT INTO `alembic_version` VALUES ('00a0ba334aad');
+INSERT INTO `alembic_version` VALUES ('ddef8ff8d849');
 /*!40000 ALTER TABLE `alembic_version` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `ecc_scme_items`
+--
+
+DROP TABLE IF EXISTS `ecc_scme_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ecc_scme_items` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `item_name` varchar(255) NOT NULL,
+  `category` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ecc_scme_items`
+--
+
+LOCK TABLES `ecc_scme_items` WRITE;
+/*!40000 ALTER TABLE `ecc_scme_items` DISABLE KEYS */;
+INSERT INTO `ecc_scme_items` VALUES (1,'Gaiters','CAT-II'),(2,'Poncho Glacier','CAT-II'),(3,'Karabiner \"P\" Type','CAT-II'),(4,'Karabiner \"S\" Type','CAT-II'),(5,'Pulleys','CAT-II'),(6,'Tent HA 10–12 Men','CAT-II'),(7,'Spare Glass Goggles','CAT-II'),(8,'Rope Climbing Glacier','CAT-II'),(9,'Thermal Insoles','CAT-II'),(10,'Under Slung Cargo Nets','CAT-II'),(11,'Knife All Purpose','CAT-II'),(12,'Rock Piton','CAT-II'),(13,'Fire Star Refill 4 Kg','CAT-II'),(14,'Fire Star Cooker','CAT-II'),(15,'Fire Star Refill Tube 150 gm','CAT-II'),(16,'Oxygen Cylinder','CAT-II'),(17,'Altimeter','CAT-II'),(18,'Ladder Crevasse','CAT-II'),(19,'Survival Blanket','CAT-II'),(20,'Boot Crampons','CAT-II'),(21,'Ice Axe & Shovel','CAT-II'),(22,'Cord Avalanche','CAT-II'),(23,'AVD / Pipes','CAT-II'),(24,'Ice Piton \"F\" Type','CAT-II'),(25,'Ice Piton \"G\" Type','CAT-II'),(26,'Combination Harness','CAT-II'),(27,'Splint Inflatable','CAT-II'),(28,'Hammer Piton','CAT-II'),(29,'Ladder Ice Wall Climbing','CAT-II'),(30,'Jummer (Ascender / Descender LH)','CAT-II'),(31,'Jummer (Ascender / Descender RH)','CAT-II'),(32,'Sledge Evacuation / Metallic Sledge','CAT-II'),(33,'Hyper Baric Chamber','CAT-II'),(34,'Rescue Bag','CAT-II'),(35,'Rod Avalanche','CAT-II'),(36,'Avalanche Air Bag with Backpack, Flask & Snow Shoe Flak (Trigger)','CAT-II');
+/*!40000 ALTER TABLE `ecc_scme_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -163,15 +188,17 @@ CREATE TABLE `scme_issued_items` (
   `id` int NOT NULL AUTO_INCREMENT,
   `unit_name` varchar(255) NOT NULL,
   `item_id` int NOT NULL,
-  `scale` int NOT NULL,
-  `a_u` int NOT NULL,
+  `scale` varchar(10) NOT NULL,
+  `a_u` varchar(10) NOT NULL,
   `held` int NOT NULL,
   `deficiency` int NOT NULL,
   `created_at` datetime DEFAULT (now()),
+  `unit_authorized` int NOT NULL,
+  `issue_count` int NOT NULL,
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`),
-  CONSTRAINT `scme_issued_items_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `scme_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  CONSTRAINT `scme_issued_items_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -180,33 +207,8 @@ CREATE TABLE `scme_issued_items` (
 
 LOCK TABLES `scme_issued_items` WRITE;
 /*!40000 ALTER TABLE `scme_issued_items` DISABLE KEYS */;
-INSERT INTO `scme_issued_items` VALUES (20,'19_inf_div',1,2,900,750,150,'2026-07-08 21:17:53'),(21,'19_inf_div',2,1,450,400,50,'2026-07-08 21:17:53'),(22,'19_inf_div',8,1,90,70,20,'2026-07-08 21:17:53'),(23,'19_inf_div',21,1,150,110,40,'2026-07-08 21:17:53'),(24,'19_inf_div',16,1,40,30,10,'2026-07-08 21:17:53'),(25,'28_inf_div',1,2,1100,950,150,'2026-07-08 21:17:53'),(26,'28_inf_div',2,1,550,480,70,'2026-07-08 21:17:53'),(27,'28_inf_div',3,2,300,250,50,'2026-07-08 21:17:53'),(28,'28_inf_div',6,1,80,65,15,'2026-07-08 21:17:53'),(29,'28_inf_div',19,1,400,380,20,'2026-07-08 21:17:53'),(30,'8_mnt_div',8,1,180,120,60,'2026-07-08 21:17:53'),(31,'8_mnt_div',17,1,50,40,10,'2026-07-08 21:17:53'),(32,'8_mnt_div',20,1,300,220,80,'2026-07-08 21:17:53'),(33,'8_mnt_div',30,1,80,60,20,'2026-07-08 21:17:53'),(34,'15_cesr',10,1,30,25,5,'2026-07-08 21:17:53'),(35,'15_cesr',32,1,15,10,5,'2026-07-08 21:17:53'),(36,'15_cesr',34,1,40,35,5,'2026-07-08 21:17:53'),(37,'15_cesr',27,1,60,50,10,'2026-07-08 21:17:53');
+INSERT INTO `scme_issued_items` VALUES (1,'15 CESR',17,'50%','Nos',300,100,'2026-07-09 14:20:33',500,100),(2,'8 INF DIV',17,'50%','Nos',600,0,'2026-07-09 14:39:15',700,100),(4,'28 INF DIV',6,'50%','Nos',300,150,'2026-07-09 15:26:45',500,50);
 /*!40000 ALTER TABLE `scme_issued_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `scme_items`
---
-
-DROP TABLE IF EXISTS `scme_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `scme_items` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `item_name` varchar(255) NOT NULL,
-  `category` varchar(50) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `scme_items`
---
-
-LOCK TABLES `scme_items` WRITE;
-/*!40000 ALTER TABLE `scme_items` DISABLE KEYS */;
-INSERT INTO `scme_items` VALUES (1,'Gaiters','CAT-II'),(2,'Poncho Glacier','CAT-II'),(3,'Karabiner \"P\" Type','CAT-II'),(4,'Karabiner \"S\" Type','CAT-II'),(5,'Pulleys','CAT-II'),(6,'Tent HA 10–12 Men','CAT-II'),(7,'Spare Glass Goggles','CAT-II'),(8,'Rope Climbing Glacier','CAT-II'),(9,'Thermal Insoles','CAT-II'),(10,'Under Slung Cargo Nets','CAT-II'),(11,'Knife All Purpose','CAT-II'),(12,'Rock Piton','CAT-II'),(13,'Fire Star Refill 4 Kg','CAT-II'),(14,'Fire Star Cooker','CAT-II'),(15,'Fire Star Refill Tube 150 gm','CAT-II'),(16,'Oxygen Cylinder','CAT-II'),(17,'Altimeter','CAT-II'),(18,'Ladder Crevasse','CAT-II'),(19,'Survival Blanket','CAT-II'),(20,'Boot Crampons','CAT-II'),(21,'Ice Axe & Shovel','CAT-II'),(22,'Cord Avalanche','CAT-II'),(23,'AVD / Pipes','CAT-II'),(24,'Ice Piton \"F\" Type','CAT-II'),(25,'Ice Piton \"G\" Type','CAT-II'),(26,'Combination Harness','CAT-II'),(27,'Splint Inflatable','CAT-II'),(28,'Hammer Piton','CAT-II'),(29,'Ladder Ice Wall Climbing','CAT-II'),(30,'Jummer (Ascender / Descender LH)','CAT-II'),(31,'Jummer (Ascender / Descender RH)','CAT-II'),(32,'Sledge Evacuation / Metallic Sledge','CAT-II'),(33,'Hyper Baric Chamber','CAT-II'),(34,'Rescue Bag','CAT-II'),(35,'Rod Avalanche','CAT-II'),(36,'Avalanche Air Bag with Backpack, Flask & Snow Shoe Flak (Trigger)','CAT-II');
-/*!40000 ALTER TABLE `scme_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -229,7 +231,7 @@ CREATE TABLE `units` (
 
 LOCK TABLES `units` WRITE;
 /*!40000 ALTER TABLE `units` DISABLE KEYS */;
-INSERT INTO `units` VALUES (1,'19_inf_div'),(2,'28_inf_div'),(3,'8_mnt_div'),(4,'15_cesr');
+INSERT INTO `units` VALUES (1,'19 INF DIV'),(2,'28 INF DIV'),(3,'8 INF DIV'),(4,'15 CESR');
 /*!40000 ALTER TABLE `units` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -269,4 +271,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-08 21:42:15
+-- Dump completed on 2026-07-09 15:35:16

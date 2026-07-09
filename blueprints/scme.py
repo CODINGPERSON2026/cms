@@ -37,21 +37,31 @@ def scme_home():
         ScmeIssuedItems.held < (ScmeIssuedItems.unit_authorized / 2)
     ).count()
 
-    # Chart 1: Unit breakdown (authorised / held / issue count by unit)
+    # Chart 1: Unit x Item breakdown (authorised / held / issue count / deficiency)
+    # Kept granular (unit, item, category) instead of unit-only, so the dashboard
+    # can filter the chart by unit, item, and/or category on the client side.
     # NOTE: scale is now a percentage string ("50%") and can't be summed — removed from this aggregate.
     unit_stats = db.session.query(
         ScmeIssuedItems.unit_name,
+        ScmeItems.item_name,
+        ScmeItems.category,
         func.sum(ScmeIssuedItems.unit_authorized).label('unit_authorized'),
         func.sum(ScmeIssuedItems.held).label('held'),
-        func.sum(ScmeIssuedItems.issue_count).label('issue_count')
-    ).group_by(ScmeIssuedItems.unit_name).all()
+        func.sum(ScmeIssuedItems.issue_count).label('issue_count'),
+        func.sum(ScmeIssuedItems.deficiency).label('deficiency')
+    ).join(ScmeItems, ScmeItems.id == ScmeIssuedItems.item_id)\
+     .group_by(ScmeIssuedItems.unit_name, ScmeItems.item_name, ScmeItems.category)\
+     .all()
 
     unit_chart_data = [
         {
             "unit_name": row[0],
-            "a_u": int(row[1] or 0),          # authorised total (kept key 'a_u' for the chart template)
-            "held": int(row[2] or 0),
-            "issue_count": int(row[3] or 0)
+            "item_name": row[1],
+            "category": row[2],
+            "a_u": int(row[3] or 0),          # authorised total (kept key 'a_u' for the chart template)
+            "held": int(row[4] or 0),
+            "issue_count": int(row[5] or 0),
+            "deficiency": int(row[6] or 0)
         } for row in unit_stats
     ]
 
@@ -94,7 +104,6 @@ def scme_home():
         issued_items=issued_items,
         catalog_items=catalog_items
     )
-
 @scme_bp.route('/enter-items')
 def enter_items():
     if "user_id" not in session or session.get("role") != "scme":
