@@ -12,43 +12,49 @@ scme_bp = Blueprint("scme", __name__, url_prefix='/scme')
 def scme_home():
     if "user_id" not in session or session.get("role") != "scme":
         return redirect("/auth/login")
-        
+
     from sqlalchemy import func
-    
+
     # 1. Total Catalog Items
     total_items = ScmeItems.query.count()
-    
+
     # 2. Active Units Tracked
     active_units = db.session.query(ScmeIssuedItems.unit_name).distinct().count()
-    
+
     # 3. Global Deficiency (Deafy)
     global_deficiency = db.session.query(func.sum(ScmeIssuedItems.deficiency)).scalar() or 0
-    
-    # 4. Fulfillment Rate calculation
-    total_au = db.session.query(func.sum(ScmeIssuedItems.a_u)).scalar() or 0
+
+    # 4. Fulfillment Rate — authorised total now comes from unit_authorized (a_u is a string)
+    total_au = db.session.query(func.sum(ScmeIssuedItems.unit_authorized)).scalar() or 0
     total_held = db.session.query(func.sum(ScmeIssuedItems.held)).scalar() or 0
+    # cast to float: SUM() returns Decimal, which can't divide a float directly
+    total_au = float(total_au)
+    total_held = float(total_held)
     fulfillment_rate = round((total_held / total_au * 100), 1) if total_au > 0 else 0
-    
-    # 5. Critical Alerts Count (held < 50% of a_u)
-    critical_alerts = ScmeIssuedItems.query.filter(ScmeIssuedItems.held < (ScmeIssuedItems.a_u / 2)).count()
-    
-    # Chart 1: Deficiency by Unit (Scale, A/U, Held by unit)
+
+    # 5. Critical Alerts Count (held < 50% of authorised)
+    critical_alerts = ScmeIssuedItems.query.filter(
+        ScmeIssuedItems.held < (ScmeIssuedItems.unit_authorized / 2)
+    ).count()
+
+    # Chart 1: Unit breakdown (authorised / held / issue count by unit)
+    # NOTE: scale is now a percentage string ("50%") and can't be summed — removed from this aggregate.
     unit_stats = db.session.query(
         ScmeIssuedItems.unit_name,
-        func.sum(ScmeIssuedItems.scale).label('scale'),
-        func.sum(ScmeIssuedItems.a_u).label('a_u'),
-        func.sum(ScmeIssuedItems.held).label('held')
+        func.sum(ScmeIssuedItems.unit_authorized).label('unit_authorized'),
+        func.sum(ScmeIssuedItems.held).label('held'),
+        func.sum(ScmeIssuedItems.issue_count).label('issue_count')
     ).group_by(ScmeIssuedItems.unit_name).all()
-    
+
     unit_chart_data = [
         {
             "unit_name": row[0],
-            "scale": int(row[1] or 0),
-            "a_u": int(row[2] or 0),
-            "held": int(row[3] or 0)
+            "a_u": int(row[1] or 0),          # authorised total (kept key 'a_u' for the chart template)
+            "held": int(row[2] or 0),
+            "issue_count": int(row[3] or 0)
         } for row in unit_stats
     ]
-    
+
     # Chart 2: Top 5 Items with Highest Deficiency
     top_deficient = db.session.query(
         ScmeItems.item_name,
@@ -57,22 +63,24 @@ def scme_home():
      .group_by(ScmeItems.item_name)\
      .order_by(func.sum(ScmeIssuedItems.deficiency).desc())\
      .limit(5).all()
-     
+
     item_chart_data = [
         {
             "item_name": row[0],
             "deficiency": int(row[1] or 0)
         } for row in top_deficient
     ]
-    
+
     # Chart 3: Fulfillment vs Deficiency breakdown
     overall_chart_data = {
         "held": int(total_held),
         "deficiency": int(global_deficiency)
     }
-    
+
     issued_items = ScmeIssuedItems.query.order_by(ScmeIssuedItems.created_at.desc()).all()
-    
+    # Full catalog list for the "Registered Items" drill-down modal
+    catalog_items = ScmeItems.query.order_by(ScmeItems.item_name).all()
+
     return render_template(
         '/scme_dashboard/scme.html',
         total_items=total_items,
@@ -83,9 +91,9 @@ def scme_home():
         unit_chart_data=unit_chart_data,
         item_chart_data=item_chart_data,
         overall_chart_data=overall_chart_data,
-        issued_items=issued_items
+        issued_items=issued_items,
+        catalog_items=catalog_items
     )
-
 
 @scme_bp.route('/enter-items')
 def enter_items():
@@ -158,55 +166,70 @@ def api_add_item():
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @scme_bp.route('/api/issue-item', methods=['POST'])
 def api_issue_item():
     if "user_id" not in session or session.get("role") != "scme":
         return jsonify({"success": False, "message": "Unauthorized"}), 401
-        
+
     try:
         data = request.get_json()
-        unit_name = data.get("unit_name", "").strip()
+        
+        unit_name = (data.get("unit_name") or "").strip()
         item_id = data.get("item_id")
-        scale = data.get("scale")
-        a_u = data.get("a_u")
+        a_u = (data.get("a_u") or "").strip()
+        scale = (data.get("scale") or "").strip()
+        unit_authorized = data.get("unit_authorized")
         held = data.get("held")
+        issue_count = data.get("issue_count")
+
         
         if not unit_name or not item_id:
             return jsonify({"success": False, "message": "Unit Name and Item are required."}), 400
-            
+        if a_u not in ("Nos", "Prs"):
+            return jsonify({"success": False, "message": "A/U must be Nos or Prs."}), 400
+
+        # ── Scale: percentage string like "50%" (1-100) ──
+        scale_digits = scale.replace("%", "").strip()
+        if not scale_digits.isdigit() or not (1 <= int(scale_digits) <= 100):
+            return jsonify({"success": False, "message": "Scale must be a percentage between 1% and 100%."}), 400
+        scale_val = f"{int(scale_digits)}%"
+
+        # ── Integer fields ──
         try:
-            scale_val = int(scale)
-            a_u_val = int(a_u)
+            unit_authorized_val = int(unit_authorized)
             held_val = int(held)
+            issue_count_val = int(issue_count)
         except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Scale, A/U and Held must be numbers."}), 400
-            
-        if scale_val < 0 or a_u_val < 0 or held_val < 0:
+            return jsonify({"success": False, "message": "Unit Authorized, Held and Issue Count must be numbers."}), 400
+
+        if unit_authorized_val < 0 or held_val < 0 or issue_count_val < 0:
             return jsonify({"success": False, "message": "Values cannot be negative."}), 400
-            
-        deficiency_val = a_u_val - held_val
-        
-        # Verify Unit and Item exist
+
+        # Deficiency = Unit Authorized - Held - Issue Count
+        deficiency_val = unit_authorized_val - held_val - issue_count_val
+
+        # ── Verify Unit and Item exist ──
         unit_exists = Units.query.filter_by(name=unit_name).first()
         item_exists = ScmeItems.query.get(item_id)
-        
+
         if not unit_exists:
             return jsonify({"success": False, "message": "Selected Unit does not exist."}), 400
         if not item_exists:
             return jsonify({"success": False, "message": "Selected Item does not exist."}), 400
-            
+
         new_issued = ScmeIssuedItems(
             unit_name=unit_name,
             item_id=item_id,
+            a_u=a_u,
+            unit_authorized=unit_authorized_val,
             scale=scale_val,
-            a_u=a_u_val,
             held=held_val,
+            issue_count=issue_count_val,
             deficiency=deficiency_val
         )
         db.session.add(new_issued)
         db.session.commit()
-        
+
         return jsonify({
             "success": True,
             "message": "SCME issued item recorded successfully.",
@@ -215,16 +238,119 @@ def api_issue_item():
                 "unit_name": new_issued.unit_name,
                 "item_name": item_exists.item_name,
                 "category": item_exists.category,
-                "scale": new_issued.scale,
                 "a_u": new_issued.a_u,
+                "unit_authorized": new_issued.unit_authorized,
+                "scale": new_issued.scale,
                 "held": new_issued.held,
+                "issue_count": new_issued.issue_count,
                 "deficiency": new_issued.deficiency,
                 "created_at": new_issued.created_at.strftime('%d %b %Y, %H:%M') if new_issued.created_at else ""
             }
         }), 201
-        
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@scme_bp.route('/api/issue-item/<int:item_id>', methods=['PUT'])
+def api_update_issued_item(item_id):
+    if "user_id" not in session or session.get("role") != "scme":
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        record = ScmeIssuedItems.query.get(item_id)
+        if not record:
+            return jsonify({"success": False, "message": "Record not found."}), 404
+
+        data = request.get_json()
+
+        unit_name = (data.get("unit_name") or "").strip()
+        new_item_id = data.get("item_id")
+        a_u = (data.get("a_u") or "").strip()
+        scale = (data.get("scale") or "").strip()
+        unit_authorized = data.get("unit_authorized")
+        held = data.get("held")
+        issue_count = data.get("issue_count")
+
+        if not unit_name or not new_item_id:
+            return jsonify({"success": False, "message": "Unit Name and Item are required."}), 400
+        if a_u not in ("Nos", "Prs"):
+            return jsonify({"success": False, "message": "A/U must be Nos or Prs."}), 400
+
+        scale_digits = scale.replace("%", "").strip()
+        if not scale_digits.isdigit() or not (1 <= int(scale_digits) <= 100):
+            return jsonify({"success": False, "message": "Scale must be a percentage between 1% and 100%."}), 400
+        scale_val = f"{int(scale_digits)}%"
+
+        try:
+            unit_authorized_val = int(unit_authorized)
+            held_val = int(held)
+            issue_count_val = int(issue_count)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Unit Authorized, Held and Issue Count must be numbers."}), 400
+
+        if unit_authorized_val < 0 or held_val < 0 or issue_count_val < 0:
+            return jsonify({"success": False, "message": "Values cannot be negative."}), 400
+
+        deficiency_val = unit_authorized_val - held_val - issue_count_val
+
+        unit_exists = Units.query.filter_by(name=unit_name).first()
+        item_exists = ScmeItems.query.get(new_item_id)
+
+        if not unit_exists:
+            return jsonify({"success": False, "message": "Selected Unit does not exist."}), 400
+        if not item_exists:
+            return jsonify({"success": False, "message": "Selected Item does not exist."}), 400
+
+        record.unit_name = unit_name
+        record.item_id = new_item_id
+        record.a_u = a_u
+        record.unit_authorized = unit_authorized_val
+        record.scale = scale_val
+        record.held = held_val
+        record.issue_count = issue_count_val
+        record.deficiency = deficiency_val
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "SCME issued item updated successfully.",
+            "issued_item": {
+                "id": record.id,
+                "unit_name": record.unit_name,
+                "item_name": item_exists.item_name,
+                "category": item_exists.category,
+                "a_u": record.a_u,
+                "unit_authorized": record.unit_authorized,
+                "scale": record.scale,
+                "held": record.held,
+                "issue_count": record.issue_count,
+                "deficiency": record.deficiency,
+                "created_at": record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else ""
+            }
+        }), 200
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@scme_bp.route('/api/issue-item/<int:item_id>', methods=['DELETE'])
+def api_delete_issued_item(item_id):
+    if "user_id" not in session or session.get("role") != "scme":
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        record = ScmeIssuedItems.query.get(item_id)
+        if not record:
+            return jsonify({"success": False, "message": "Record not found."}), 404
+
+        db.session.delete(record)
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "Record deleted successfully."}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500

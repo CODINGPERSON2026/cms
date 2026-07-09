@@ -1,6 +1,6 @@
 {% extends '/base.html' %}
 
-{% block page_title %}SCME Overview Dashboard{% endblock %}
+{% block page_title %}Overview Dashboard{% endblock %}
 
 {% block sidebar_nav %}
 <a href="/scme/" class="nav-item active">
@@ -60,6 +60,10 @@
 
     .metric-card:hover::after {
         transform: scale(1.5);
+    }
+
+    .metric-card-clickable {
+        cursor: pointer;
     }
 
     .metric-icon-box {
@@ -162,13 +166,59 @@
     .highcharts-credits {
         display: none !important;
     }
-    
+
     .deficiency-high {
         color: var(--danger) !important;
     }
-    
+
     .deficiency-ok {
         color: #10b981 !important;
+    }
+
+    /* ── Ledger Table Filter Bar ── */
+    .ledger-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        padding: 14px 24px;
+        border-bottom: 1px solid var(--border-dim);
+        background: var(--bg-surface);
+    }
+
+    .ledger-filter-bar select {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border-dim);
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        outline: none;
+        min-width: 160px;
+    }
+
+    .ledger-filter-bar .ledger-clear-btn {
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--border-dim);
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .ledger-filter-bar .ledger-clear-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .ledger-filter-bar .ledger-result-count {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-left: auto;
+        font-weight: 600;
     }
 </style>
 {% endblock %}
@@ -178,7 +228,7 @@
     <!-- Top metrics grid -->
     <div class="metric-grid">
         <!-- 1. Catalog Items -->
-        <div class="metric-card">
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredItems">
             <div class="metric-icon-box icon-box-primary">
                 <i class="fa-solid fa-boxes-stacked"></i>
             </div>
@@ -188,8 +238,9 @@
             </div>
         </div>
 
+
         <!-- 2. Active Units -->
-        <div class="metric-card">
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveUnits">
             <div class="metric-icon-box icon-box-primary">
                 <i class="fa-solid fa-sitemap"></i>
             </div>
@@ -211,18 +262,18 @@
         </div>
 
         <!-- 4. Global Deficiency -->
-        <div class="metric-card">
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalGlobalDeficiency">
             <div class="metric-icon-box icon-box-danger">
                 <i class="fa-solid fa-arrow-trend-down"></i>
             </div>
             <div class="metric-content">
-                <span class="metric-label">Deficiency (Deafy)</span>
+                <span class="metric-label">Deficiency</span>
                 <span class="metric-value" style="color: var(--danger);">{{ global_deficiency }}</span>
             </div>
         </div>
 
         <!-- 5. Critical Alerts -->
-        <div class="metric-card">
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalCriticalAlerts">
             <div class="metric-icon-box {% if critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
                 <i class="fa-solid fa-bell"></i>
             </div>
@@ -294,13 +345,13 @@
                         <span><i class="fa-solid fa-file-signature me-2"></i>Record New Issued Item</span>
                         <i class="fa-solid fa-chevron-right"></i>
                     </a>
-                    
+
                     <!-- View Table Format Popup Button -->
                     <button type="button" class="btn btn-outline-info w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#ledgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
                         <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
-                    
+
                     <a href="/mgt" class="btn btn-outline-secondary w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--border-dim); color: var(--text-primary); font-weight:600;">
                         <span><i class="fa-solid fa-sitemap me-2"></i>View Management Tree</span>
                         <i class="fa-solid fa-chevron-right"></i>
@@ -321,6 +372,21 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
                 </div>
+
+                <!-- ── Filter Bar (Unit + Category) ── -->
+                <div class="ledger-filter-bar">
+                    <select id="ledgerUnitFilter" aria-label="Filter by unit">
+                        <option value="">All Units</option>
+                    </select>
+                    <select id="ledgerCategoryFilter" aria-label="Filter by category">
+                        <option value="">All Categories</option>
+                    </select>
+                    <button type="button" id="ledgerClearFilters" class="ledger-clear-btn">
+                        <i class="fa-solid fa-rotate-left me-1"></i>Clear
+                    </button>
+                    <span id="ledgerResultCount" class="ledger-result-count"></span>
+                </div>
+
                 <div class="modal-body" style="padding: 0;">
                     <table class="table-custom" style="width: 100%; border-collapse: collapse; margin: 0;">
                         <thead style="position: sticky; top: 0; z-index: 10;">
@@ -338,7 +404,10 @@
                         <tbody>
                             {% if issued_items %}
                                 {% for record in issued_items %}
-                                <tr style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
+                                <tr class="ledger-row"
+                                    data-unit="{{ record.unit_name.replace('_', ' ').upper() }}"
+                                    data-category="{{ record.item.category }}"
+                                    style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
                                     <td style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">{{ record.unit_name.replace('_', ' ').upper() }}</td>
                                     <td style="padding: 14px 20px; font-size: 0.85rem; color: var(--text-primary);">{{ record.item.item_name }}</td>
                                     <td style="padding: 14px 20px; font-size: 0.85rem;"><span class="badge-category">{{ record.item.category }}</span></td>
@@ -361,6 +430,14 @@
                                     </td>
                                 </tr>
                             {% endif %}
+
+                            <!-- Shown only when active filters match nothing -->
+                            <tr id="ledgerNoResults" style="display:none;">
+                                <td colspan="8" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                    <i class="fa-solid fa-filter-circle-xmark" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                    No records match your filters.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -370,6 +447,7 @@
             </div>
         </div>
     </div>
+    {% include 'modals/modals.html' %}
 </div>
 {% endblock %}
 
@@ -638,6 +716,57 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         credits: { enabled: false }
     });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEDGER TABLE FILTERS (Unit + Category) — client-side
+    // ─────────────────────────────────────────────────────────────────────────
+    const unitSel   = document.getElementById('ledgerUnitFilter');
+    const catSel    = document.getElementById('ledgerCategoryFilter');
+
+    if (unitSel && catSel) {
+        const clearBtn  = document.getElementById('ledgerClearFilters');
+        const countEl   = document.getElementById('ledgerResultCount');
+        const noResults = document.getElementById('ledgerNoResults');
+        const rows      = Array.from(document.querySelectorAll('.ledger-row'));
+
+        // Populate dropdowns from the rows themselves (only values that exist, sorted, de-duped)
+        [...new Set(rows.map(r => r.dataset.unit).filter(Boolean))].sort()
+            .forEach(u => unitSel.insertAdjacentHTML('beforeend', `<option value="${u}">${u}</option>`));
+        [...new Set(rows.map(r => r.dataset.category).filter(Boolean))].sort()
+            .forEach(c => catSel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
+
+        function applyLedgerFilters() {
+            const unit = unitSel.value;
+            const cat  = catSel.value;
+            let visible = 0;
+
+            rows.forEach(row => {
+                const show = (!unit || row.dataset.unit === unit) &&
+                             (!cat  || row.dataset.category === cat);
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            if (noResults) {
+                noResults.style.display = (rows.length > 0 && visible === 0) ? '' : 'none';
+            }
+            if (countEl) {
+                countEl.textContent = rows.length ? (visible + ' of ' + rows.length + ' shown') : '';
+            }
+        }
+
+        unitSel.addEventListener('change', applyLedgerFilters);
+        catSel.addEventListener('change', applyLedgerFilters);
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                unitSel.value = '';
+                catSel.value = '';
+                applyLedgerFilters();
+            });
+        }
+
+        applyLedgerFilters();
+    }
 });
 </script>
 {% endblock %}

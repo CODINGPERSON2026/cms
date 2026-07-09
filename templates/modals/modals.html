@@ -1,0 +1,424 @@
+{# ============================================================================
+   SCME Dashboard — Metric Card Drill-Down Modals
+   Included into scme.html via:  {% include 'modals/modals.html' %}
+
+   Data sources (already available in the scme_home() context):
+     - total_items          (int)
+     - active_units         (int)
+     - global_deficiency    (number)
+     - critical_alerts      (int)
+     - unit_chart_data      (list of {unit_name, a_u, held, issue_count})
+                             NOTE: 'a_u' here is the summed unit_authorized total.
+     - item_chart_data      (list of {item_name, deficiency})  [top 5]
+     - issued_items         (list of ScmeIssuedItems: .unit_name, .item, .item_id,
+                             .record_type, .a_u ('Nos'/'Prs'), .unit_authorized,
+                             .scale ('50%'), .held, .issue_count, .deficiency,
+                             .created_at)
+     - catalog_items        (OPTIONAL – full ScmeItems list; see route snippet.
+                             Falls back to distinct issued items if not passed.)
+
+   IMPORTANT: after the schema change, `a_u` on a record is a STRING ('Nos'/'Prs')
+   and `scale` is a STRING ('50%'). Never do math/comparisons on those. The
+   authorised COUNT now lives in `unit_authorized`.
+   ============================================================================ #}
+
+   <style>
+    /* ── Shared styling for all metric drill-down modals ── */
+    .metric-card-clickable { cursor: pointer; }
+
+    .metric-modal .modal-content {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .metric-modal .modal-header {
+        border-bottom: 1px solid var(--border-dim);
+        padding: 20px 24px;
+    }
+    .metric-modal .modal-title {
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1rem;
+    }
+    .metric-modal .modal-body { padding: 0; }
+    .metric-modal .modal-footer {
+        border-top: 1px solid var(--border-dim);
+        padding: 16px 24px;
+    }
+    .metric-modal .btn-close { filter: opacity(0.7); }
+
+    /* Summary strip at the top of a modal body */
+    .mm-summary {
+        display: flex;
+        gap: 32px;
+        flex-wrap: wrap;
+        padding: 16px 24px;
+        background: var(--bg-raised);
+        border-bottom: 1px solid var(--border-dim);
+    }
+    .mm-stat { display: flex; flex-direction: column; gap: 2px; }
+    .mm-stat-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+    .mm-stat-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    /* Shared table look */
+    .mm-table { width: 100%; border-collapse: collapse; margin: 0; }
+    .mm-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 13px 20px;
+        background-color: var(--bg-raised);
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-dim);
+    }
+    .mm-table tbody td {
+        padding: 13px 20px;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-dim);
+    }
+    .mm-table tbody tr { transition: background-color 0.15s; }
+    .mm-table tbody tr:hover { background-color: var(--accent-muted); }
+
+    .mm-num { text-align: center; font-variant-numeric: tabular-nums; }
+    .mm-strong { font-weight: 600; }
+    .mm-def-high { color: var(--danger); font-weight: 700; }
+    .mm-def-ok   { color: #10b981; font-weight: 700; }
+
+    .mm-empty {
+        padding: 50px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    .mm-empty i {
+        font-size: 2rem;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    /* Header icon accents (match the card colours) */
+    .mm-ic-primary { color: var(--accent); }
+    .mm-ic-success { color: #10b981; }
+    .mm-ic-danger  { color: var(--danger); }
+    .mm-ic-warning { color: var(--warning); }
+
+    .metric-modal .modal-footer .btn-close-x {
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: var(--bg-raised);
+        border-color: var(--border-dim);
+        color: var(--text-primary);
+    }
+</style>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 1 — REGISTERED ITEMS  (card: "Registered Items")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalRegisteredItems" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-boxes-stacked mm-ic-primary"></i>
+                    Registered Catalog Items
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            {% set item_list = catalog_items if catalog_items is defined
+                               else (issued_items | map(attribute='item') | unique(attribute='id') | list) %}
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Registered</span>
+                    <span class="mm-stat-value">{{ total_items }}</span>
+                </div>
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Shown Here</span>
+                    <span class="mm-stat-value">{{ item_list | length }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th class="mm-num">Issued Records</th>
+                            <th class="mm-num">Total Deficiency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in item_list %}
+                            {% set recs = issued_items | selectattr('item_id', 'equalto', it.id) | list %}
+                            {% set def_total = recs | sum(attribute='deficiency') %}
+                            <tr>
+                                <td class="mm-strong">{{ it.item_name }}</td>
+                                <td><span class="badge-category">{{ it.category }}</span></td>
+                                <td class="mm-num">{{ recs | length }}</td>
+                                <td class="mm-num {% if def_total > 0 %}mm-def-high{% else %}mm-def-ok{% endif %}">{{ def_total }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="mm-empty">
+                                    <i class="fa-solid fa-box-open"></i>
+                                    No registered items found.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 2 — ACTIVE UNITS  (card: "Active Units")
+     unit_chart_data.a_u is the summed unit_authorized total (an int) — safe math.
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalActiveUnits" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-sitemap mm-ic-primary"></i>
+                    Active Units — Ledger Rollup
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Units Tracked</span>
+                    <span class="mm-stat-value">{{ active_units }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th class="mm-num">Issue Count</th>
+                            <th class="mm-num">Unit Auth</th>
+                            <th class="mm-num">Held</th>
+                            <th class="mm-num">Deficiency</th>
+                            <th class="mm-num">Fulfillment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in unit_chart_data %}
+                            {% set u_def = u.a_u - u.held %}
+                            {% set u_ful = ((u.held / u.a_u * 100) | round(1)) if u.a_u > 0 else 0 %}
+                            <tr>
+                                <td class="mm-strong">{{ u.unit_name.replace('_', ' ').upper() }}</td>
+                                <td class="mm-num">{{ u.issue_count }}</td>
+                                <td class="mm-num">{{ u.a_u }}</td>
+                                <td class="mm-num">{{ u.held }}</td>
+                                <td class="mm-num {% if u_def > 0 %}mm-def-high{% else %}mm-def-ok{% endif %}">{{ u_def }}</td>
+                                <td class="mm-num">{{ u_ful }}%</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="mm-empty">
+                                    <i class="fa-solid fa-sitemap"></i>
+                                    No active units found.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 3 — GLOBAL DEFICIENCY  (card: "Deficiency (Deafy)")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalGlobalDeficiency" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-arrow-trend-down mm-ic-danger"></i>
+                    Global Deficiency Breakdown
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            {% set def_records = issued_items | sort(attribute='deficiency', reverse=True) | list %}
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Deficiency</span>
+                    <span class="mm-stat-value" style="color: var(--danger);">{{ global_deficiency }}</span>
+                </div>
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Records</span>
+                    <span class="mm-stat-value">{{ issued_items | length }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th class="mm-num">A/U</th>
+                            <th class="mm-num">Unit Auth</th>
+                            <th class="mm-num">Held</th>
+                            <th class="mm-num">Deficiency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in def_records if r.deficiency > 0 %}
+                            <tr>
+                                <td class="mm-strong">{{ r.unit_name.replace('_', ' ').upper() }}</td>
+                                <td>{{ r.item.item_name }}</td>
+                                <td><span class="badge-category">{{ r.item.category }}</span></td>
+                                <td class="mm-num">{{ r.a_u }}</td>
+                                <td class="mm-num">{{ r.unit_authorized }}</td>
+                                <td class="mm-num">{{ r.held }}</td>
+                                <td class="mm-num mm-def-high">{{ r.deficiency }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="mm-empty">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    No deficiencies recorded — everything is fulfilled.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 4 — CRITICAL ALERTS  (card: "Critical Alerts")
+     Rule mirrors the backend: held < unit_authorized / 2
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalCriticalAlerts" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-bell mm-ic-warning"></i>
+                    Critical Alerts &nbsp;<span style="font-weight:500; font-size:0.8rem; color: var(--text-secondary);">(Held below 50% of Unit Auth)</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Critical Records</span>
+                    <span class="mm-stat-value" style="color: var(--warning);">{{ critical_alerts }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Item</th>
+                            <th class="mm-num">Unit Auth</th>
+                            <th class="mm-num">Held</th>
+                            <th class="mm-num">Held %</th>
+                            <th class="mm-num">Deficiency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in issued_items if r.unit_authorized > 0 and r.held < (r.unit_authorized / 2) %}
+                            {% set held_pct = (r.held / r.unit_authorized * 100) | round(1) %}
+                            <tr>
+                                <td class="mm-strong">{{ r.unit_name.replace('_', ' ').upper() }}</td>
+                                <td>{{ r.item.item_name }}</td>
+                                <td class="mm-num">{{ r.unit_authorized }}</td>
+                                <td class="mm-num">{{ r.held }}</td>
+                                <td class="mm-num mm-def-high">{{ held_pct }}%</td>
+                                <td class="mm-num mm-def-high">{{ r.deficiency }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="mm-empty">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    No critical alerts — all units above 50% stock.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    /* Move drill-down modals to <body> so the sidebar layout's stacking context
+       / z-index can't trap them — same trick already used for #ledgerTableModal. */
+    (function () {
+        function relocateMetricModals() {
+            document.querySelectorAll('.metric-modal').forEach(function (m) {
+                if (m.parentElement !== document.body) {
+                    document.body.appendChild(m);
+                }
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', relocateMetricModals);
+        } else {
+            relocateMetricModals();
+        }
+    })();
+</script>

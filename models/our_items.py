@@ -68,7 +68,7 @@ class ItemRequestTable(db.Model):
 
 
 class ScmeItems(db.Model):
-    __tablename__ = "scme_items"
+    __tablename__ = "ecc_scme_items"
 
     id = db.Column(
         db.Integer,
@@ -101,10 +101,10 @@ class Units(db.Model):
         db.String(255),
         nullable=False
     )
+    
 
     def __init__(self, name):
         self.name = name
-
 
 class ScmeIssuedItems(db.Model):
     __tablename__ = "scme_issued_items"
@@ -114,28 +114,38 @@ class ScmeIssuedItems(db.Model):
         primary_key=True,
         autoincrement=True
     )
+
+    
     unit_name = db.Column(
         db.String(255),
         nullable=False
     )
     item_id = db.Column(
         db.Integer,
-        db.ForeignKey("scme_items.id"),
+        db.ForeignKey("ecc_scme_items.id"),
         nullable=False
     )
-    scale = db.Column(
+    a_u = db.Column(                  # CHANGED: Integer -> String ('Nos' / 'Prs')
+        db.String(10),
+        nullable=False
+    )
+    unit_authorized = db.Column(      # NEW: max count allowed for the unit
         db.Integer,
         nullable=False
     )
-    a_u = db.Column(
-        db.Integer,
+    scale = db.Column(                # CHANGED: Integer -> String ('50%')
+        db.String(10),
         nullable=False
     )
     held = db.Column(
         db.Integer,
         nullable=False
     )
-    deficiency = db.Column(
+    issue_count = db.Column(          # NEW
+        db.Integer,
+        nullable=False
+    )
+    deficiency = db.Column(           # now = unit_authorized - held
         db.Integer,
         nullable=False
     )
@@ -146,12 +156,16 @@ class ScmeIssuedItems(db.Model):
 
     item = db.relationship("ScmeItems", backref="issued_items")
 
-    def __init__(self, unit_name, item_id, scale, a_u, held, deficiency):
+    def __init__(self,unit_name, item_id, a_u,
+                 unit_authorized, scale, held, issue_count, deficiency):
+        
         self.unit_name = unit_name
         self.item_id = item_id
-        self.scale = scale
         self.a_u = a_u
+        self.unit_authorized = unit_authorized
+        self.scale = scale
         self.held = held
+        self.issue_count = issue_count
         self.deficiency = deficiency
 
 
