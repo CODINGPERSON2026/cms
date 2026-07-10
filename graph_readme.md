@@ -4,7 +4,6 @@ Welcome! This guide is designed to explain the **6 interactive 3D charts** on th
 1. **What** each graph is about.
 2. **How** it works under the hood.
 3. **A simple everyday analogy** to help it click.
-4. **An example** using the system data.
 
 ---
 
@@ -22,12 +21,6 @@ Imagine you are packing your backpack for school:
 *   This means you are missing **3 Notebooks** (Deficiency).
 This chart displays these 3 values side-by-side for each unit.
 
-### Example
-*   **Unit**: `15 CESR`
-*   **Authorized**: 600 items
-*   **Held**: 380 items
-*   **Deficiency**: 220 items ($600 - 380 = 220$)
-
 ---
 
 ## 2. Global Fulfillment (3D Donut Chart)
@@ -41,11 +34,6 @@ Imagine a giant pizza:
 *   The red slices represent the missing pieces we still need to get (Deficiency).
 *   The percentage in the center tells you how much of the pizza is ready.
 
-### Example
-*   **Total Authorized items globally**: 1,800
-*   **Total Held items globally**: 880
-*   **Fulfillment Rate**: $\frac{880}{1800} \times 100 = \mathbf{48.9\%}$ (less than half of our total needed gear is in stock).
-
 ---
 
 ## 3. Top 5 Deficient Items (3D Horizontal Bar Chart)
@@ -54,12 +42,6 @@ This chart ranks the **5 specific items** that have the highest total shortages 
 
 ### Everyday Analogy 📚
 If you are running a school bookstore, you want to know which books are out of stock the most so you can order them first. This horizontal chart ranks the top 5 items that have the largest shortages. It helps managers prioritize what to buy first.
-
-### Example
-*   **Item 1**: *Avalanche Air Bag with Backpack* (Short by 120 units)
-*   **Item 2**: *Thermal Insoles* (Short by 95 units)
-*   **Item 3**: *Hammer Piton* (Short by 80 units)
-The chart shows these items as bars ordered from the largest shortage to the smallest.
 
 ---
 
@@ -72,11 +54,6 @@ Imagine a group project where the team is missing \$100 total to buy supplies:
 *   If **Student A** forgot \$50, **Student B** forgot \$30, and **Student C** forgot \$20.
 *   Student A is responsible for **50% of the team's shortage**.
 This chart shows which unit is responsible for the largest share of the overall deficiency.
-
-### Example
-*   **Total system deficiency (shortage)**: 920 items
-*   **19 INF DIV deficiency**: 460 items
-*   **Deficiency Share for 19 INF DIV**: $\frac{460}{920} \times 100 = \mathbf{50.0\%}$ (they hold exactly half of the total system shortage).
 
 ---
 
@@ -92,10 +69,6 @@ If you count your clothes:
 *   You count socks in pairs (e.g., 3 pairs of socks = 3 **Prs**).
 This chart displays how much of the held inventory is counted in single pieces versus pairs.
 
-### Example
-*   **Held in Numbers (Nos)**: 500 items (e.g., backpacks, jackets).
-*   **Held in Pairs (Prs)**: 380 items (e.g., boots, gloves).
-
 ---
 
 ## 6. Supply Readiness by Unit (3D Color-Coded Column Chart)
@@ -110,8 +83,3 @@ Think of this as report card grades for readiness:
 *   An **A** grade (85%) gets a **Green** label (Passed/Ready).
 *   A **C** grade (60%) gets a **Yellow** label (Warning/Needs work).
 *   An **F** grade (30%) gets a **Red** label (Fail/Critical).
-
-### Example
-*   **15 CESR**: 600 authorized, 480 held = **80% Readiness** (colored Green 🟢).
-*   **19 INF DIV**: 600 authorized, 300 held = **50% Readiness** (colored Amber 🟡).
-*   **V FSR**: 600 authorized, 120 held = **20% Readiness** (colored Red 🔴).
