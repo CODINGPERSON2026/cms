@@ -20,6 +20,7 @@ def create_app():
     app.register_blueprint(bde_bp)
     app.register_blueprint(mgt_bp)
     app.register_blueprint(scme_bp)
+    app.register_blueprint(logs_bp)
     
         
 

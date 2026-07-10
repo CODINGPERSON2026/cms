@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.41, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cms
 -- ------------------------------------------------------
--- Server version	8.0.40
+-- Server version	8.0.46
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -14,6 +14,36 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `action_logs`
+--
+
+DROP TABLE IF EXISTS `action_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `action_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `username` varchar(255) NOT NULL,
+  `role` varchar(50) NOT NULL,
+  `action_type` varchar(50) NOT NULL,
+  `module` varchar(50) NOT NULL,
+  `details` text NOT NULL,
+  `created_at` datetime DEFAULT (now()),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `action_logs`
+--
+
+LOCK TABLES `action_logs` WRITE;
+/*!40000 ALTER TABLE `action_logs` DISABLE KEYS */;
+INSERT INTO `action_logs` VALUES (1,1,'scme','scme','CREATE','SCME','Recorded new SCME item: \'Altimeter\' (Unit: 19 INF DIV, Unit Auth: 500, Held: 300)','2026-07-10 11:26:25'),(2,1,'scme','scme','CREATE','SCME','Recorded new SCME item: \'Hammer Piton\' (Unit: 28 INF DIV, Unit Auth: 600, Held: 100)','2026-07-10 11:26:42'),(3,1,'scme','scme','CREATE','SCME','Recorded new SCME item: \'Thermal Insoles\' (Unit: VFSR, Unit Auth: 600, Held: 300)','2026-07-10 11:26:59'),(4,1,'scme','scme','CREATE','SCME','Recorded new SCME item: \'Avalanche Air Bag with Backpack, Flask & Snow Shoe Flak (Trigger)\' (Unit: 19 INF DIV, Unit Auth: 100, Held: 80)','2026-07-10 11:27:22'),(5,1,'scme','scme','UPDATE','SCME','Issued 100 of \'Hammer Piton\' for unit 28 INF DIV. (New Held: 200)','2026-07-10 11:27:47');
+/*!40000 ALTER TABLE `action_logs` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `alembic_version`
@@ -34,7 +64,7 @@ CREATE TABLE `alembic_version` (
 
 LOCK TABLES `alembic_version` WRITE;
 /*!40000 ALTER TABLE `alembic_version` DISABLE KEYS */;
-INSERT INTO `alembic_version` VALUES ('ddef8ff8d849');
+INSERT INTO `alembic_version` VALUES ('4c35deb1ea1b');
 /*!40000 ALTER TABLE `alembic_version` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -194,7 +224,6 @@ CREATE TABLE `scme_issued_items` (
   `deficiency` int NOT NULL,
   `created_at` datetime DEFAULT (now()),
   `unit_authorized` int NOT NULL,
-  `issue_count` int NOT NULL,
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`),
   CONSTRAINT `scme_issued_items_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`)
@@ -207,7 +236,7 @@ CREATE TABLE `scme_issued_items` (
 
 LOCK TABLES `scme_issued_items` WRITE;
 /*!40000 ALTER TABLE `scme_issued_items` DISABLE KEYS */;
-INSERT INTO `scme_issued_items` VALUES (1,'15 CESR',17,'50%','Nos',300,100,'2026-07-09 14:20:33',500,100),(2,'8 INF DIV',17,'50%','Nos',600,0,'2026-07-09 14:39:15',700,100),(4,'28 INF DIV',6,'50%','Nos',300,150,'2026-07-09 15:26:45',500,50);
+INSERT INTO `scme_issued_items` VALUES (1,'19 INF DIV',17,'50%','Nos',300,200,'2026-07-10 11:26:25',500),(2,'28 INF DIV',28,'60%','Prs',200,400,'2026-07-10 11:26:42',600),(3,'VFSR',9,'40%','Nos',300,300,'2026-07-10 11:26:59',600),(4,'19 INF DIV',36,'100%','Nos',80,20,'2026-07-10 11:27:21',100);
 /*!40000 ALTER TABLE `scme_issued_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -231,7 +260,7 @@ CREATE TABLE `units` (
 
 LOCK TABLES `units` WRITE;
 /*!40000 ALTER TABLE `units` DISABLE KEYS */;
-INSERT INTO `units` VALUES (1,'19 INF DIV'),(2,'28 INF DIV'),(3,'8 INF DIV'),(4,'15 CESR');
+INSERT INTO `units` VALUES (1,'19 INF DIV'),(2,'28 INF DIV'),(3,'KFSR'),(4,'VFSR');
 /*!40000 ALTER TABLE `units` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -271,4 +300,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-09 15:35:16
+-- Dump completed on 2026-07-10 11:28:54

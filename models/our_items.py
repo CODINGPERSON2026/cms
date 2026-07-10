@@ -141,10 +141,6 @@ class ScmeIssuedItems(db.Model):
         db.Integer,
         nullable=False
     )
-    issue_count = db.Column(          # NEW
-        db.Integer,
-        nullable=False
-    )
     deficiency = db.Column(           # now = unit_authorized - held
         db.Integer,
         nullable=False
@@ -157,7 +153,7 @@ class ScmeIssuedItems(db.Model):
     item = db.relationship("ScmeItems", backref="issued_items")
 
     def __init__(self,unit_name, item_id, a_u,
-                 unit_authorized, scale, held, issue_count, deficiency):
+                 unit_authorized, scale, held, deficiency):
         
         self.unit_name = unit_name
         self.item_id = item_id
@@ -165,7 +161,6 @@ class ScmeIssuedItems(db.Model):
         self.unit_authorized = unit_authorized
         self.scale = scale
         self.held = held
-        self.issue_count = issue_count
         self.deficiency = deficiency
 
 

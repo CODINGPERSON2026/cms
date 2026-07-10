@@ -11,6 +11,10 @@
     <i class="fa-solid fa-file-signature"></i>
     <span class="nav-tooltip">Enter Ledgers</span>
 </a>
+<a href="/logs/" class="nav-item">
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <span class="nav-tooltip">Activity Logs</span>
+</a>
 {% endblock %}
 
 {% block head %}
@@ -539,7 +543,7 @@
                     <div class="row">
                         <!-- Unit dropdown -->
                         <div class="col-md-4 form-group-custom">
-                            <label class="form-label-custom" for="unitName">Select Unit</label>
+                            <label class="form-label-custom" for="unitName">Select Div</label>
                             <select id="unitName" name="unit_name" class="form-select-custom" required>
                                 <option value="">-- Choose Unit --</option>
                                 {% for u in units %}
@@ -612,7 +616,7 @@
 
                     <div class="row">
                         <!-- Held Field -->
-                        <div class="col-md-4 form-group-custom">
+                        <div class="col-md-6 form-group-custom">
                             <label class="form-label-custom" for="heldField">Held Quantity</label>
                             <input type="text" id="heldField" name="held" class="form-input-custom" placeholder="Held qty (e.g. 85)" required>
                             <span class="field-error-msg" id="errHeld">
@@ -620,19 +624,10 @@
                             </span>
                         </div>
 
-                        <!-- Issue Count Field -->
-                        <div class="col-md-4 form-group-custom">
-                            <label class="form-label-custom" for="issueCountField">Issue Count</label>
-                            <input type="text" id="issueCountField" name="issue_count" class="form-input-custom" placeholder="Qty issued (e.g. 15)" required>
-                            <span class="field-error-msg" id="errIssueCount">
-                                <i class="fa-solid fa-circle-exclamation"></i> Issue Count must be a positive integer.
-                            </span>
-                        </div>
-
                         <!-- Deficiency (Deafy) Field -->
-                        <div class="col-md-4 form-group-custom">
+                        <div class="col-md-6 form-group-custom">
                             <label class="form-label-custom" for="deafyField">Deficiency (Deafy)</label>
-                            <input type="text" id="deafyField" class="form-input-custom" placeholder="Auto (Unit Auth - Held - Issue)" disabled>
+                            <input type="text" id="deafyField" class="form-input-custom" placeholder="Auto (Unit Auth - Held)" disabled>
                         </div>
                     </div>
 
@@ -690,7 +685,6 @@
                             <th style="text-align: center;">Unit Auth</th>
                             <th style="text-align: center;">Scale</th>
                             <th style="text-align: center;">Held</th>
-                            <th style="text-align: center;">Issue Count</th>
                             <th style="text-align: center; color: var(--danger);">Deficiency</th>
                             <th>Created At</th>
                         </tr>
@@ -709,7 +703,6 @@
                                         data-unit-auth="{{ record.unit_authorized }}"
                                         data-scale="{{ record.scale }}"
                                         data-held="{{ record.held }}"
-                                        data-issue-count="{{ record.issue_count }}"
                                         title="Edit">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
@@ -724,7 +717,6 @@
                                 <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.unit_authorized }}</td>
                                 <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.scale }}</td>
                                 <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.held }}</td>
-                                <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.issue_count }}</td>
                                 <td style="text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--danger);">
                                     {{ record.deficiency }}
                                 </td>
@@ -735,7 +727,7 @@
                             {% endfor %}
                         {% else %}
                             <tr id="noRecordsRow">
-                                <td colspan="11" class="empty-state">
+                                <td colspan="10" class="empty-state">
                                     <i class="fa-solid fa-receipt"></i>
                                     No ledger items recorded yet. Fill out the form above to record SCME issued items.
                                 </td>
@@ -769,7 +761,7 @@
 
                     <div class="row">
                         <div class="col-md-6 form-group-custom">
-                            <label class="form-label-custom" for="editUnitName">Select Unit</label>
+                            <label class="form-label-custom" for="editUnitName">Select Div</label>
                             <select id="editUnitName" class="form-select-custom" required>
                                 <option value="">-- Choose Unit --</option>
                                 {% for u in units %}
@@ -818,24 +810,35 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4 form-group-custom">
+                        <div class="col-md-6 form-group-custom">
                             <label class="form-label-custom" for="editUnitAuthField">Unit Authorized</label>
                             <input type="text" id="editUnitAuthField" class="form-input-custom" required>
                             <span class="field-error-msg" id="editErrUnitAuth">
                                 <i class="fa-solid fa-circle-exclamation"></i> Must be a positive integer.
                             </span>
                         </div>
-                        <div class="col-md-4 form-group-custom">
+                        <div class="col-md-6 form-group-custom">
                             <label class="form-label-custom" for="editScaleField">Scale (%)</label>
                             <input type="text" id="editScaleField" class="form-input-custom" required>
                             <span class="field-error-msg" id="editErrScale">
                                 <i class="fa-solid fa-circle-exclamation"></i> 1% to 100%.
                             </span>
                         </div>
-                        <div class="col-md-4 form-group-custom">
-                            <label class="form-label-custom" for="editHeldField">Held Quantity</label>
-                            <input type="text" id="editHeldField" class="form-input-custom" required>
-                            <span class="field-error-msg" id="editErrHeld">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editTxType">Transaction Action</label>
+                            <select id="editTxType" class="form-select-custom">
+                                <option value="None">-- Select Action (Optional) --</option>
+                                <option value="Issue">Issue</option>
+                                <option value="Return">Return</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editTxQty">Transaction Quantity</label>
+                            <input type="text" id="editTxQty" class="form-input-custom" placeholder="e.g. 10">
+                            <span class="field-error-msg" id="editErrTxQty">
                                 <i class="fa-solid fa-circle-exclamation"></i> Must be a positive integer.
                             </span>
                         </div>
@@ -843,9 +846,9 @@
 
                     <div class="row">
                         <div class="col-md-6 form-group-custom">
-                            <label class="form-label-custom" for="editIssueCountField">Issue Count</label>
-                            <input type="text" id="editIssueCountField" class="form-input-custom" required>
-                            <span class="field-error-msg" id="editErrIssueCount">
+                            <label class="form-label-custom" for="editHeldField">Held Quantity</label>
+                            <input type="text" id="editHeldField" class="form-input-custom" required>
+                            <span class="field-error-msg" id="editErrHeld">
                                 <i class="fa-solid fa-circle-exclamation"></i> Must be a positive integer.
                             </span>
                         </div>
@@ -910,7 +913,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const unitAuthInput = document.getElementById("unitAuthField");
     const scaleInput = document.getElementById("scaleField");
     const heldInput = document.getElementById("heldField");
-    const issueCountInput = document.getElementById("issueCountField");
     const deafyInput = document.getElementById("deafyField");
 
     const errUnitName = document.getElementById("errUnitName");
@@ -920,7 +922,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const errUnitAuth = document.getElementById("errUnitAuth");
     const errScale = document.getElementById("errScale");
     const errHeld = document.getElementById("errHeld");
-    const errIssueCount = document.getElementById("errIssueCount");
 
     function showError(inputEl, msgEl) {
         inputEl.classList.add("input-error");
@@ -991,23 +992,14 @@ document.addEventListener("DOMContentLoaded", function () {
             clearError(heldInput, errHeld);
         }
 
-        const issueValStr = issueCountInput.value.trim();
-        const issueValid = issueValStr !== "" && /^\d+$/.test(issueValStr);
-        if (issueValStr && !issueValid) {
-            showError(issueCountInput, errIssueCount);
-        } else {
-            clearError(issueCountInput, errIssueCount);
-        }
-
         if (uaValid && heldValid) {
-            const issueNum = issueValid ? parseInt(issueValStr, 10) : 0;
-            deafyInput.value = parseInt(uaValStr, 10) - parseInt(heldValStr, 10) - issueNum;
+            deafyInput.value = parseInt(uaValStr, 10) - parseInt(heldValStr, 10);
         } else {
             deafyInput.value = "";
         }
     }
 
-    [unitAuthInput, heldInput, issueCountInput].forEach(input => {
+    [unitAuthInput, heldInput].forEach(input => {
         input.addEventListener("keypress", function (e) {
             const char = String.fromCharCode(e.which || e.keyCode);
             if (!/^\d$/.test(char)) {
@@ -1051,7 +1043,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     data-unit-auth="${it.unit_authorized}"
                     data-scale="${it.scale}"
                     data-held="${it.held}"
-                    data-issue-count="${it.issue_count}"
                     title="Edit">
                     <i class="fa-solid fa-pen"></i>
                 </button>
@@ -1066,7 +1057,6 @@ document.addEventListener("DOMContentLoaded", function () {
             <td style="text-align: center; font-variant-numeric: tabular-nums;">${it.unit_authorized}</td>
             <td style="text-align: center; font-variant-numeric: tabular-nums;">${it.scale}</td>
             <td style="text-align: center; font-variant-numeric: tabular-nums;">${it.held}</td>
-            <td style="text-align: center; font-variant-numeric: tabular-nums;">${it.issue_count}</td>
             <td style="text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--danger);">${it.deficiency}</td>
             <td style="font-size: 0.82rem; color: var(--text-secondary);">${it.created_at}</td>
         `;
@@ -1082,7 +1072,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const aU = auSelect.value;
         const unitAuthStr = unitAuthInput.value.trim();
         const heldStr = heldInput.value.trim();
-        const issueStr = issueCountInput.value.trim();
 
         let scaleStr = scaleInput.value.trim().replace("%", "");
 
@@ -1095,7 +1084,6 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!unitAuthStr || !/^\d+$/.test(unitAuthStr)) { showError(unitAuthInput, errUnitAuth); isValid = false; }
         if (!isScaleValid(scaleInput.value.trim())) { showError(scaleInput, errScale); isValid = false; }
         if (!heldStr || !/^\d+$/.test(heldStr)) { showError(heldInput, errHeld); isValid = false; }
-        if (!issueStr || !/^\d+$/.test(issueStr)) { showError(issueCountInput, errIssueCount); isValid = false; }
 
         if (!isValid) {
             Notify.warning("Please fix the highlighted fields before submitting.");
@@ -1117,8 +1105,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 a_u: aU,
                 unit_authorized: unitAuthStr,
                 scale: scaleStr,
-                held: heldStr,
-                issue_count: issueStr
+                held: heldStr
             })
         })
         .then(res => res.json())
@@ -1198,8 +1185,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const editUnitAuthField = document.getElementById("editUnitAuthField");
     const editScaleField = document.getElementById("editScaleField");
     const editHeldField = document.getElementById("editHeldField");
-    const editIssueCountField = document.getElementById("editIssueCountField");
     const editDeafyField = document.getElementById("editDeafyField");
+
+    const editTxType = document.getElementById("editTxType");
+    const editTxQty = document.getElementById("editTxQty");
 
     const editErrUnitName = document.getElementById("editErrUnitName");
     const editErrCategory = document.getElementById("editErrCategory");
@@ -1208,12 +1197,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const editErrUnitAuth = document.getElementById("editErrUnitAuth");
     const editErrScale = document.getElementById("editErrScale");
     const editErrHeld = document.getElementById("editErrHeld");
-    const editErrIssueCount = document.getElementById("editErrIssueCount");
+    const editErrTxQty = document.getElementById("editErrTxQty");
 
     function openEditModal(btn) {
         editItemForm.reset();
-        [editUnitName, editCategorySelect, editItemId, editAuField, editUnitAuthField, editScaleField, editHeldField, editIssueCountField].forEach(el => el.classList.remove("input-error"));
-        [editErrUnitName, editErrCategory, editErrItemId, editErrAu, editErrUnitAuth, editErrScale, editErrHeld, editErrIssueCount].forEach(el => el.classList.remove("show"));
+        [editUnitName, editCategorySelect, editItemId, editAuField, editUnitAuthField, editScaleField, editHeldField, editTxQty].forEach(el => el.classList.remove("input-error"));
+        [editErrUnitName, editErrCategory, editErrItemId, editErrAu, editErrUnitAuth, editErrScale, editErrHeld, editErrTxQty].forEach(el => el.classList.remove("show"));
 
         editRecordId.value = btn.dataset.id;
         editUnitName.value = btn.dataset.unit;
@@ -1224,8 +1213,11 @@ document.addEventListener("DOMContentLoaded", function () {
         editUnitAuthField.value = btn.dataset.unitAuth;
         editScaleField.value = btn.dataset.scale.replace("%", "");
         editHeldField.value = btn.dataset.held;
-        editIssueCountField.value = btn.dataset.issueCount;
-        editDeafyField.value = parseInt(btn.dataset.unitAuth, 10) - parseInt(btn.dataset.held, 10) - parseInt(btn.dataset.issueCount, 10);
+        editHeldField.dataset.original = btn.dataset.held;
+        editDeafyField.value = parseInt(btn.dataset.unitAuth, 10) - parseInt(btn.dataset.held, 10);
+
+        editTxType.value = "None";
+        editTxQty.value = "";
 
         editModalOverlay.classList.add("show");
     }
@@ -1245,18 +1237,55 @@ document.addEventListener("DOMContentLoaded", function () {
         clearError(editItemId, editErrItemId);
     });
 
-    [editUnitAuthField, editHeldField, editIssueCountField].forEach(input => {
+    function calculateTransaction() {
+        const originalHeld = parseInt(editHeldField.dataset.original, 10) || 0;
+        const txType = editTxType.value;
+        const txQtyStr = editTxQty.value.trim();
+        const txQty = parseInt(txQtyStr, 10) || 0;
+        
+        let newHeld = originalHeld;
+        if (txType === "Issue") {
+            newHeld = originalHeld + txQty;
+        } else if (txType === "Return") {
+            newHeld = originalHeld - txQty;
+        }
+
+        editHeldField.value = newHeld;
+
+        const ua = parseInt(editUnitAuthField.value.trim(), 10) || 0;
+        editDeafyField.value = ua - newHeld;
+    }
+
+    [editTxQty].forEach(input => {
+        input.addEventListener("keypress", function (e) {
+            const char = String.fromCharCode(e.which || e.keyCode);
+            if (!/^\d$/.test(char)) e.preventDefault();
+        });
+        input.addEventListener("input", function() {
+            clearError(editTxQty, editErrTxQty);
+            calculateTransaction();
+        });
+    });
+
+    editTxType.addEventListener("change", function() {
+        calculateTransaction();
+    });
+
+    [editUnitAuthField, editHeldField].forEach(input => {
         input.addEventListener("keypress", function (e) {
             const char = String.fromCharCode(e.which || e.keyCode);
             if (!/^\d$/.test(char)) e.preventDefault();
         });
         input.addEventListener("input", function () {
+            if (this === editHeldField) {
+                editHeldField.dataset.original = editHeldField.value;
+                editTxType.value = "None";
+                editTxQty.value = "";
+            }
             const ua = editUnitAuthField.value.trim();
             const held = editHeldField.value.trim();
-            const issue = editIssueCountField.value.trim();
             if (/^\d+$/.test(ua) && /^\d+$/.test(held)) {
-                const issueNum = /^\d+$/.test(issue) ? parseInt(issue, 10) : 0;
-                editDeafyField.value = parseInt(ua, 10) - parseInt(held, 10) - issueNum;
+                editDeafyField.value = parseInt(ua, 10) - parseInt(held, 10);
             } else {
                 editDeafyField.value = "";
             }
@@ -1278,8 +1307,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const aU = editAuField.value;
         const unitAuthStr = editUnitAuthField.value.trim();
         const heldStr = editHeldField.value.trim();
-        const issueStr = editIssueCountField.value.trim();
         let scaleStr = editScaleField.value.trim().replace("%", "");
+
+        const txType = editTxType.value;
+        const txQtyStr = editTxQty.value.trim();
 
         let isValid = true;
         if (!unitName) { showError(editUnitName, editErrUnitName); isValid = false; }
@@ -1289,7 +1320,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!unitAuthStr || !/^\d+$/.test(unitAuthStr)) { showError(editUnitAuthField, editErrUnitAuth); isValid = false; }
         if (!isScaleValid(editScaleField.value.trim())) { showError(editScaleField, editErrScale); isValid = false; }
         if (!heldStr || !/^\d+$/.test(heldStr)) { showError(editHeldField, editErrHeld); isValid = false; }
-        if (!issueStr || !/^\d+$/.test(issueStr)) { showError(editIssueCountField, editErrIssueCount); isValid = false; }
+
+        if (txType !== "None") {
+            if (!txQtyStr || !/^\d+$/.test(txQtyStr) || parseInt(txQtyStr, 10) <= 0) {
+                showError(editTxQty, editErrTxQty);
+                isValid = false;
+            }
+        }
 
         if (!isValid) {
             Notify.warning("Please fix the highlighted fields before submitting.");
@@ -1298,21 +1335,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
         scaleStr = scaleStr + "%";
 
+        const requestBody = {
+            unit_name: unitName,
+            item_id: itemId,
+            a_u: aU,
+            unit_authorized: unitAuthStr,
+            scale: scaleStr,
+            held: heldStr
+        };
+
+        if (txType !== "None") {
+            requestBody.transaction_type = txType;
+            requestBody.transaction_qty = parseInt(txQtyStr, 10);
+        }
+
         fetch(`/scme/api/issue-item/${id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRFToken": csrfToken
             },
-            body: JSON.stringify({
-                unit_name: unitName,
-                item_id: itemId,
-                a_u: aU,
-                unit_authorized: unitAuthStr,
-                scale: scaleStr,
-                held: heldStr,
-                issue_count: issueStr
-            })
+            body: JSON.stringify(requestBody)
         })
         .then(res => res.json())
         .then(data => {
@@ -1361,7 +1404,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (!issuedTableBody.querySelector("tr[data-unit]")) {
                     issuedTableBody.innerHTML = `
                         <tr id="noRecordsRow">
-                            <td colspan="11" class="empty-state">
+                            <td colspan="10" class="empty-state">
                                 <i class="fa-solid fa-receipt"></i>
                                 No ledger items recorded yet. Fill out the form above to record SCME issued items.
                             </td>

@@ -1,6 +1,6 @@
 from imports import *
 from extensions import db
-from models import LoginUser
+from models import LoginUser, ActionLog
 from models.our_items import OurItems, ItemRequestTable, ScmeItems, Units, ScmeIssuedItems
 from models.org_ladder import OrgLadder
 from validation import has_special_characters
@@ -37,7 +37,7 @@ def scme_home():
         ScmeIssuedItems.held < (ScmeIssuedItems.unit_authorized / 2)
     ).count()
 
-    # Chart 1: Unit x Item breakdown (authorised / held / issue count / deficiency)
+    # Chart 1: Unit x Item breakdown (authorised / held / deficiency)
     # Kept granular (unit, item, category) instead of unit-only, so the dashboard
     # can filter the chart by unit, item, and/or category on the client side.
     # NOTE: scale is now a percentage string ("50%") and can't be summed — removed from this aggregate.
@@ -47,7 +47,6 @@ def scme_home():
         ScmeItems.category,
         func.sum(ScmeIssuedItems.unit_authorized).label('unit_authorized'),
         func.sum(ScmeIssuedItems.held).label('held'),
-        func.sum(ScmeIssuedItems.issue_count).label('issue_count'),
         func.sum(ScmeIssuedItems.deficiency).label('deficiency')
     ).join(ScmeItems, ScmeItems.id == ScmeIssuedItems.item_id)\
      .group_by(ScmeIssuedItems.unit_name, ScmeItems.item_name, ScmeItems.category)\
@@ -60,8 +59,7 @@ def scme_home():
             "category": row[2],
             "a_u": int(row[3] or 0),          # authorised total (kept key 'a_u' for the chart template)
             "held": int(row[4] or 0),
-            "issue_count": int(row[5] or 0),
-            "deficiency": int(row[6] or 0)
+            "deficiency": int(row[5] or 0)
         } for row in unit_stats
     ]
 
@@ -189,7 +187,6 @@ def api_issue_item():
         scale = (data.get("scale") or "").strip()
         unit_authorized = data.get("unit_authorized")
         held = data.get("held")
-        issue_count = data.get("issue_count")
 
         
         if not unit_name or not item_id:
@@ -207,15 +204,14 @@ def api_issue_item():
         try:
             unit_authorized_val = int(unit_authorized)
             held_val = int(held)
-            issue_count_val = int(issue_count)
         except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Unit Authorized, Held and Issue Count must be numbers."}), 400
+            return jsonify({"success": False, "message": "Unit Authorized and Held must be numbers."}), 400
 
-        if unit_authorized_val < 0 or held_val < 0 or issue_count_val < 0:
+        if unit_authorized_val < 0 or held_val < 0:
             return jsonify({"success": False, "message": "Values cannot be negative."}), 400
 
-        # Deficiency = Unit Authorized - Held - Issue Count
-        deficiency_val = unit_authorized_val - held_val - issue_count_val
+        # Deficiency = Unit Authorized - Held
+        deficiency_val = unit_authorized_val - held_val
 
         # ── Verify Unit and Item exist ──
         unit_exists = Units.query.filter_by(name=unit_name).first()
@@ -233,10 +229,21 @@ def api_issue_item():
             unit_authorized=unit_authorized_val,
             scale=scale_val,
             held=held_val,
-            issue_count=issue_count_val,
             deficiency=deficiency_val
         )
         db.session.add(new_issued)
+        db.session.commit()
+
+        # Log action
+        log_entry = ActionLog(
+            user_id=session.get("user_id"),
+            username=session.get("username", "Unknown"),
+            role=session.get("role", "scme"),
+            action_type="CREATE",
+            module="SCME",
+            details=f"Recorded new SCME item: '{item_exists.item_name}' (Unit: {new_issued.unit_name}, Unit Auth: {new_issued.unit_authorized}, Held: {new_issued.held})"
+        )
+        db.session.add(log_entry)
         db.session.commit()
 
         return jsonify({
@@ -251,7 +258,6 @@ def api_issue_item():
                 "unit_authorized": new_issued.unit_authorized,
                 "scale": new_issued.scale,
                 "held": new_issued.held,
-                "issue_count": new_issued.issue_count,
                 "deficiency": new_issued.deficiency,
                 "created_at": new_issued.created_at.strftime('%d %b %Y, %H:%M') if new_issued.created_at else ""
             }
@@ -279,7 +285,6 @@ def api_update_issued_item(item_id):
         scale = (data.get("scale") or "").strip()
         unit_authorized = data.get("unit_authorized")
         held = data.get("held")
-        issue_count = data.get("issue_count")
 
         if not unit_name or not new_item_id:
             return jsonify({"success": False, "message": "Unit Name and Item are required."}), 400
@@ -291,17 +296,29 @@ def api_update_issued_item(item_id):
             return jsonify({"success": False, "message": "Scale must be a percentage between 1% and 100%."}), 400
         scale_val = f"{int(scale_digits)}%"
 
+        tx_type = data.get("transaction_type")
+        tx_qty = data.get("transaction_qty")
+
         try:
             unit_authorized_val = int(unit_authorized)
-            held_val = int(held)
-            issue_count_val = int(issue_count)
+            if tx_type in ("Issue", "Return") and tx_qty is not None:
+                tx_qty_val = int(tx_qty)
+                if tx_qty_val < 0:
+                    return jsonify({"success": False, "message": "Transaction quantity cannot be negative."}), 400
+                
+                if tx_type == "Issue":
+                    held_val = record.held + tx_qty_val
+                else: # Return
+                    held_val = record.held - tx_qty_val
+            else:
+                held_val = int(held)
         except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Unit Authorized, Held and Issue Count must be numbers."}), 400
+            return jsonify({"success": False, "message": "Unit Authorized, Held, and Transaction Quantity must be numbers."}), 400
 
-        if unit_authorized_val < 0 or held_val < 0 or issue_count_val < 0:
-            return jsonify({"success": False, "message": "Values cannot be negative."}), 400
+        if unit_authorized_val < 0 or held_val < 0:
+            return jsonify({"success": False, "message": "Values cannot be negative. Held quantity cannot drop below 0."}), 400
 
-        deficiency_val = unit_authorized_val - held_val - issue_count_val
+        deficiency_val = unit_authorized_val - held_val
 
         unit_exists = Units.query.filter_by(name=unit_name).first()
         item_exists = ScmeItems.query.get(new_item_id)
@@ -317,9 +334,25 @@ def api_update_issued_item(item_id):
         record.unit_authorized = unit_authorized_val
         record.scale = scale_val
         record.held = held_val
-        record.issue_count = issue_count_val
         record.deficiency = deficiency_val
 
+        db.session.commit()
+
+        # Log action
+        if tx_type in ("Issue", "Return") and tx_qty is not None:
+            details_str = f"{tx_type}d {tx_qty} of '{item_exists.item_name}' for unit {record.unit_name}. (New Held: {record.held})"
+        else:
+            details_str = f"Updated SCME item: '{item_exists.item_name}' (Unit: {record.unit_name}, Unit Auth: {record.unit_authorized}, Held: {record.held})"
+
+        log_entry = ActionLog(
+            user_id=session.get("user_id"),
+            username=session.get("username", "Unknown"),
+            role=session.get("role", "scme"),
+            action_type="UPDATE",
+            module="SCME",
+            details=details_str
+        )
+        db.session.add(log_entry)
         db.session.commit()
 
         return jsonify({
@@ -334,7 +367,6 @@ def api_update_issued_item(item_id):
                 "unit_authorized": record.unit_authorized,
                 "scale": record.scale,
                 "held": record.held,
-                "issue_count": record.issue_count,
                 "deficiency": record.deficiency,
                 "created_at": record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else ""
             }
@@ -355,11 +387,48 @@ def api_delete_issued_item(item_id):
         if not record:
             return jsonify({"success": False, "message": "Record not found."}), 404
 
+        item_name = record.item.item_name if record.item else f"Item ID {record.item_id}"
+        unit_name = record.unit_name
+
         db.session.delete(record)
+        db.session.commit()
+
+        # Log action
+        log_entry = ActionLog(
+            user_id=session.get("user_id"),
+            username=session.get("username", "Unknown"),
+            role=session.get("role", "scme"),
+            action_type="DELETE",
+            module="SCME",
+            details=f"Deleted SCME item: '{item_name}' for unit {unit_name}"
+        )
+        db.session.add(log_entry)
         db.session.commit()
 
         return jsonify({"success": True, "message": "Record deleted successfully."}), 200
 
     except Exception as e:
         db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@scme_bp.route('/api/logs', methods=['GET'])
+def api_get_logs():
+    if "user_id" not in session or session.get("role") != "scme":
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        logs = ActionLog.query.filter_by(module="SCME").order_by(ActionLog.created_at.desc()).limit(50).all()
+        log_list = []
+        for log in logs:
+            log_list.append({
+                "id": log.id,
+                "username": log.username,
+                "role": log.role,
+                "action_type": log.action_type,
+                "details": log.details,
+                "created_at": log.created_at.strftime('%d %b %Y, %H:%M') if log.created_at else ""
+            })
+        return jsonify({"success": True, "logs": log_list}), 200
+    except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500

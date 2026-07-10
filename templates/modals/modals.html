@@ -7,12 +7,12 @@
      - active_units         (int)
      - global_deficiency    (number)
      - critical_alerts      (int)
-     - unit_chart_data      (list of {unit_name, a_u, held, issue_count})
+     - unit_chart_data      (list of {unit_name, a_u, held})
                              NOTE: 'a_u' here is the summed unit_authorized total.
      - item_chart_data      (list of {item_name, deficiency})  [top 5]
      - issued_items         (list of ScmeIssuedItems: .unit_name, .item, .item_id,
                              .record_type, .a_u ('Nos'/'Prs'), .unit_authorized,
-                             .scale ('50%'), .held, .issue_count, .deficiency,
+                             .scale ('50%'), .held, .deficiency,
                              .created_at)
      - catalog_items        (OPTIONAL – full ScmeItems list; see route snippet.
                              Falls back to distinct issued items if not passed.)
@@ -229,7 +229,6 @@
                     <thead>
                         <tr>
                             <th>Unit</th>
-                            <th class="mm-num">Issue Count</th>
                             <th class="mm-num">Unit Auth</th>
                             <th class="mm-num">Held</th>
                             <th class="mm-num">Deficiency</th>
@@ -242,7 +241,6 @@
                             {% set u_ful = ((u.held / u.a_u * 100) | round(1)) if u.a_u > 0 else 0 %}
                             <tr>
                                 <td class="mm-strong">{{ u.unit_name.replace('_', ' ').upper() }}</td>
-                                <td class="mm-num">{{ u.issue_count }}</td>
                                 <td class="mm-num">{{ u.a_u }}</td>
                                 <td class="mm-num">{{ u.held }}</td>
                                 <td class="mm-num {% if u_def > 0 %}mm-def-high{% else %}mm-def-ok{% endif %}">{{ u_def }}</td>
@@ -250,7 +248,7 @@
                             </tr>
                         {% else %}
                             <tr>
-                                <td colspan="6" class="mm-empty">
+                                <td colspan="5" class="mm-empty">
                                     <i class="fa-solid fa-sitemap"></i>
                                     No active units found.
                                 </td>
