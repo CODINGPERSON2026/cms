@@ -85,6 +85,46 @@ def scme_home():
         "deficiency": int(global_deficiency)
     }
 
+    # Chart 4: Deficiency Share by Unit
+    unit_def_stats = db.session.query(
+        ScmeIssuedItems.unit_name,
+        func.sum(ScmeIssuedItems.deficiency).label('total_def')
+    ).group_by(ScmeIssuedItems.unit_name).all()
+
+    unit_deficiency_share_data = [
+        {
+            "unit_name": row[0].replace('_', ' ').upper(),
+            "deficiency": int(row[1] or 0)
+        } for row in unit_def_stats if (row[1] or 0) > 0
+    ]
+
+    # Chart 5: Accounting Unit (A/U) Quantity Split
+    au_split_stats = db.session.query(
+        ScmeIssuedItems.a_u,
+        func.sum(ScmeIssuedItems.held).label('total_held')
+    ).group_by(ScmeIssuedItems.a_u).all()
+
+    au_split_data = [
+        {
+            "a_u": row[0],
+            "held": int(row[1] or 0)
+        } for row in au_split_stats if row[0]
+    ]
+
+    # Chart 6: Supply Readiness (Fulfillment Rate) by Unit
+    unit_readiness_stats = db.session.query(
+        ScmeIssuedItems.unit_name,
+        func.sum(ScmeIssuedItems.unit_authorized).label('total_auth'),
+        func.sum(ScmeIssuedItems.held).label('total_held')
+    ).group_by(ScmeIssuedItems.unit_name).all()
+
+    unit_readiness_data = [
+        {
+            "unit_name": row[0].replace('_', ' ').upper(),
+            "rate": round((float(row[2] or 0) / float(row[1]) * 100), 1) if (row[1] or 0) > 0 else 0
+        } for row in unit_readiness_stats
+    ]
+
     issued_items = ScmeIssuedItems.query.order_by(ScmeIssuedItems.created_at.desc()).all()
     # Full catalog list for the "Registered Items" drill-down modal
     catalog_items = ScmeItems.query.order_by(ScmeItems.item_name).all()
@@ -99,6 +139,9 @@ def scme_home():
         unit_chart_data=unit_chart_data,
         item_chart_data=item_chart_data,
         overall_chart_data=overall_chart_data,
+        unit_deficiency_share_data=unit_deficiency_share_data,
+        au_split_data=au_split_data,
+        unit_readiness_data=unit_readiness_data,
         issued_items=issued_items,
         catalog_items=catalog_items
     )

@@ -225,7 +225,23 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .chart-panel-header::-webkit-scrollbar {
+        height: 4px;
+    }
+    .chart-panel-header::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .chart-panel-header::-webkit-scrollbar-thumb {
+        background: var(--border-dim);
+        border-radius: 2px;
+    }
+    .chart-panel-header::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
     }
 
     .chart-panel-title {
@@ -236,6 +252,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        white-space: nowrap;
     }
 
     .chart-panel-title i {
@@ -252,7 +269,9 @@
         font-weight: 600;
         outline: none;
         min-width: 130px;
+        max-width: 180px;
         cursor: pointer;
+        text-overflow: ellipsis;
     }
 
     .chart-panel-filter:hover {
@@ -327,6 +346,44 @@
         color: var(--text-secondary);
         margin-left: auto;
         font-weight: 600;
+    }
+
+    /* Info Tooltips */
+    .info-tooltip-wrapper {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        margin-left: 8px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        transition: color 0.2s;
+    }
+    .info-tooltip-wrapper:hover {
+        color: var(--accent);
+    }
+
+    /* Style Bootstrap tooltips with white background and black text */
+    .tooltip .tooltip-inner {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid var(--border-dim) !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        font-weight: 500 !important;
+        font-size: 0.78rem !important;
+        padding: 8px 12px !important;
+    }
+
+    .tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+        border-bottom-color: #ffffff !important;
+    }
+    .tooltip.bs-tooltip-top .tooltip-arrow::before {
+        border-top-color: #ffffff !important;
+    }
+    .tooltip.bs-tooltip-start .tooltip-arrow::before {
+        border-left-color: #ffffff !important;
+    }
+    .tooltip.bs-tooltip-end .tooltip-arrow::before {
+        border-right-color: #ffffff !important;
     }
 </style>
 {% endblock %}
@@ -416,9 +473,12 @@
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-chart-bar"></i>
-                    Unit Ledger Comparison (3D Bar Chart)
+                    Productive Analysis
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares authorized scales, held stock levels, and deficiency count for each active unit.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
                 </h3>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
                     <select id="unitChartFilter" class="chart-panel-filter" aria-label="Filter chart by unit">
                         <option value="">All Units</option>
                     </select>
@@ -440,7 +500,10 @@
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-chart-pie"></i>
-                    Global Fulfillment (3D Donut)
+                    Global Fulfillment
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Percentage of aggregate stock held vs total deficiency across all registered items globally.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
                 </h3>
             </div>
             <div class="chart-canvas-wrapper">
@@ -456,7 +519,10 @@
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    Top 5 Deficient Items (3D Prism Chart)
+                    Top 5 Deficient Items
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Highlights the items with the highest overall shortage volume across all units.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
                 </h3>
             </div>
             <div class="chart-canvas-wrapper">
@@ -464,35 +530,86 @@
             </div>
         </div>
 
-        <!-- Quick actions / details panel -->
+        <!-- 3D Pie Chart: Deficiency Share by Unit -->
         <div class="chart-panel-card">
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
-                    <i class="fa-solid fa-list-check"></i>
-                    Quick Action Ledgers
+                    <i class="fa-solid fa-chart-pie"></i>
+                    Deficiency Share by Unit
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes the percentage share of the total global shortage contributed by each unit.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
                 </h3>
             </div>
-            <div class="chart-canvas-wrapper" style="align-items: flex-start; justify-content: flex-start; padding: 24px; overflow-y: auto; min-height: 350px; display: flex;">
-                <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
-                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">
-                        Manage supply levels, authorized scales, and deficiency records for units under command.
-                    </p>
-                    <a href="/scme/enter-items" class="btn btn-outline-success w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600;">
-                        <span><i class="fa-solid fa-file-signature me-2"></i>Record New Issued Item</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
+            <div class="chart-canvas-wrapper">
+                <div id="unitDeficiency3DPieChart" data-chart='{{ unit_deficiency_share_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- View Table Format Popup Button -->
-                    <button type="button" class="btn btn-outline-info w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#ledgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
-                        <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
+    <!-- Third Chart & Action Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px;" class="chart-row-tertiary animate-fade-in">
+        <!-- 3D Cylinder/Column Chart: A/U Split -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    A/U Quantity Split
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Breakdown of the total held stock quantity by accounting units (Nos vs Prs).">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="auSplit3DColumnChart" data-chart='{{ au_split_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
 
-                    <a href="/mgt" class="btn btn-outline-secondary w-100 text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--border-dim); color: var(--text-primary); font-weight:600;">
-                        <span><i class="fa-solid fa-sitemap me-2"></i>View Management Tree</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </div>
+        <!-- Quick actions / details panel (Replaced with Supply Readiness chart in Row 3) -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    Supply Readiness by Div
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Calculates the percentage of authorized items currently held for each unit.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="unitReadiness3DColumnChart" data-chart='{{ unit_readiness_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Banner Row (Row 4) -->
+    <div class="chart-panel-card" style="margin-top: 24px;">
+        <div class="chart-panel-header">
+            <h3 class="chart-panel-title">
+                <i class="fa-solid fa-list-check"></i>
+                Quick Action Ledgers
+            </h3>
+        </div>
+        <div class="chart-canvas-wrapper" style="padding: 24px; min-height: auto; display: block;">
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
+                Manage supply levels, authorized scales, and deficiency records for units under command.
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <a href="/scme/enter-items" class="btn btn-outline-success text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
+                    <span><i class="fa-solid fa-file-signature me-2"></i>Record New Issued Item</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+
+                <!-- View Table Format Popup Button -->
+                <button type="button" class="btn btn-outline-info text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#ledgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
+                    <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+
+                <a href="/mgt" class="btn btn-outline-secondary text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--border-dim); color: var(--text-primary); font-weight:600; text-decoration: none;">
+                    <span><i class="fa-solid fa-sitemap me-2"></i>View Management Tree</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
             </div>
         </div>
     </div>
@@ -607,6 +724,12 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
     // ── Tab switching ──
     const tabs = document.querySelectorAll(".ledger-tab");
     const panels = {
@@ -956,6 +1079,237 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         credits: { enabled: false }
     });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 4: DEFICIENCY SHARE BY UNIT (3D PIE CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const pieEl = document.getElementById('unitDeficiency3DPieChart');
+    const unitDefShareData = pieEl ? JSON.parse(pieEl.dataset.chart) : [];
+
+    if (pieEl) {
+        const pieSeriesData = unitDefShareData.map(d => ({
+            name: d.unit_name,
+            y: d.deficiency
+        }));
+
+        Highcharts.chart('unitDeficiency3DPieChart', {
+            chart: {
+                type: 'pie',
+                options3d: {
+                    enabled: true,
+                    alpha: 45,
+                    beta: 0
+                },
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    depth: 35,
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.percentage:.1f}%',
+                        connectorColor: 'var(--text-secondary)',
+                        connectorWidth: 1.5,
+                        distance: 20,
+                        style: {
+                            color: textPrimary,
+                            fontSize: '10px'
+                        }
+                    },
+                    showInLegend: true
+                }
+            },
+            series: [{
+                name: 'Deficiency Share',
+                data: pieSeriesData
+            }],
+            legend: {
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                backgroundColor: 'var(--bg-surface)',
+                borderWidth: 1,
+                borderColor: 'var(--border-dim)',
+                style: {
+                    color: 'var(--text-primary)'
+                },
+                pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)'
+            },
+            credits: { enabled: false }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 5: A/U QUANTITY SPLIT (3D COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const auEl = document.getElementById('auSplit3DColumnChart');
+    const auSplitData = auEl ? JSON.parse(auEl.dataset.chart) : [];
+
+    if (auEl) {
+        const auCategories = auSplitData.map(d => d.a_u);
+        const auHeldSeries = auSplitData.map(d => d.held);
+
+        Highcharts.chart('auSplit3DColumnChart', {
+            chart: {
+                type: 'column',
+                options3d: {
+                    enabled: true,
+                    alpha: 15,
+                    beta: 15,
+                    depth: 50,
+                    viewDistance: 25
+                },
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: auCategories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '10px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Total Held Quantity',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim
+            },
+            plotOptions: {
+                column: {
+                    depth: 35,
+                    colorByPoint: true,
+                    colors: ['#06b6d4', '#14b8a6'], // Nos = Cyan, Prs = Teal
+                    dataLabels: {
+                        enabled: true,
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '10px',
+                            textOutline: 'none',
+                            color: 'var(--text-primary)'
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Held Qty',
+                data: auHeldSeries,
+                showInLegend: false
+            }],
+            tooltip: {
+                backgroundColor: 'var(--bg-surface)',
+                borderWidth: 1,
+                borderColor: 'var(--border-dim)',
+                style: {
+                    color: 'var(--text-primary)'
+                }
+            },
+            credits: { enabled: false }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 6: SUPPLY READINESS BY UNIT (3D COLUMN/CYLINDER CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const readinessEl = document.getElementById('unitReadiness3DColumnChart');
+    const readinessData = readinessEl ? JSON.parse(readinessEl.dataset.chart) : [];
+
+    if (readinessEl) {
+        const readinessCategories = readinessData.map(d => d.unit_name);
+        const readinessRates = readinessData.map(d => d.rate);
+
+        Highcharts.chart('unitReadiness3DColumnChart', {
+            chart: {
+                type: 'column',
+                options3d: {
+                    enabled: true,
+                    alpha: 15,
+                    beta: 15,
+                    depth: 50,
+                    viewDistance: 25
+                },
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: readinessCategories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '9px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Readiness Rate (%)',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    format: '{value}%',
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim,
+                max: 100
+            },
+            plotOptions: {
+                column: {
+                    depth: 35,
+                    colorByPoint: true,
+                    colors: readinessRates.map(val => {
+                        if (val >= 80) return '#10b981'; // Emerald green
+                        if (val >= 50) return '#f59e0b'; // Amber
+                        return '#ef4444'; // Red
+                    }),
+                    dataLabels: {
+                        enabled: true,
+                        format: '{point.y:.1f}%',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            textOutline: 'none',
+                            color: 'var(--text-primary)'
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Readiness Rate',
+                data: readinessRates,
+                showInLegend: false
+            }],
+            tooltip: {
+                backgroundColor: 'var(--bg-surface)',
+                borderWidth: 1,
+                borderColor: 'var(--border-dim)',
+                style: {
+                    color: 'var(--text-primary)'
+                },
+                valueSuffix: '%'
+            },
+            credits: { enabled: false }
+        });
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // LEDGER TABLE FILTERS (Unit + Category) — client-side
