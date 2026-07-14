@@ -700,7 +700,7 @@
 
                         <!-- Deficiency (Deafy) Field -->
                         <div class="col-md-6 form-group-custom">
-                            <label class="form-label-custom" for="deafyField">Deficiency (Deafy)</label>
+                            <label class="form-label-custom" for="deafyField">Defi (Deafy)</label>
                             <input type="text" id="deafyField" class="form-input-custom" placeholder="Auto (Unit Auth - Held)" disabled>
                         </div>
                     </div>
@@ -759,7 +759,7 @@
                             <th style="text-align: center;">Unit Auth</th>
                             <th style="text-align: center;">Scale</th>
                             <th style="text-align: center;">Held</th>
-                            <th style="text-align: center; color: var(--danger);">Deficiency</th>
+                            <th style="text-align: center; color: var(--danger);">Defi</th>
                             <th>Created At</th>
                         </tr>
                     </thead>
@@ -855,8 +855,8 @@
                                 <input type="text" name="scale" id="ecc_scale" class="ecc-input" placeholder="e.g. 1 per indl">
                             </div>
                             <div class="ecc-field">
-                                <label for="ecc_deficiency">Deficiency</label>
-                                <input type="number" name="deficiency" id="ecc_deficiency" class="ecc-input" placeholder="e.g. 0" min="0" step="1">
+                                <label for="ecc_deficiency"><i class="fa-solid fa-calculator"></i> Defi (auto)</label>
+                                <input type="number" name="deficiency" id="ecc_deficiency" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
                             </div>
                         </div>
                     </div>
@@ -880,6 +880,10 @@
                             <div class="ecc-field">
                                 <label for="ecc_auth_total"><i class="fa-solid fa-calculator"></i> Total (auto)</label>
                                 <input type="number" name="auth_total" id="ecc_auth_total" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
+                            </div>
+                            <div class="ecc-field">
+                                <label for="ecc_unit_auth">Unit Auth</label>
+                                <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input" min="0" step="1" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -1084,21 +1088,22 @@
                             <th>Division</th>
                             <th>Item Name</th>
                             <th>Scale</th>
-                            <th style="text-align: center;">Deficiency</th>
+                            <th style="text-align: center;">Defi</th>
                             <th style="text-align: center;">Authorization</th>
                             <th style="text-align: center;">Auth Res</th>
                             <th style="text-align: center; font-weight: bold; color: var(--accent);">Auth Total</th>
+                            <th style="text-align: center;">Unit Auth</th>
                             <th style="text-align: center;">BBF SER</th>
                             <th style="text-align: center;">BBF PWS</th>
                             <th style="text-align: center; font-weight: bold; color: var(--accent);">BBF Total</th>
                             <th style="text-align: center;">Recd SER</th>
                             <th style="text-align: center;">Recd PWS</th>
                             <th style="text-align: center; font-weight: bold; color: var(--accent);">Recd Total</th>
-                            <th style="text-align: center;">Issd SER</th>
-                            <th style="text-align: center;">Issd PWS</th>
-                            <th style="text-align: center; font-weight: bold; color: var(--accent);">Issd Total</th>
-                            <th style="text-align: center;">Stock SER</th>
-                            <th style="text-align: center;">Stock PWS</th>
+                            <th style="text-align: center;">Issued SER</th>
+                            <th style="text-align: center;">Issued PWS</th>
+                            <th style="text-align: center; font-weight: bold; color: var(--accent);">Issued Total</th>
+                            <th style="text-align: center;"> SER</th>
+                            <th style="text-align: center;"> PWS</th>
                             <th style="text-align: center; font-weight: bold; color: var(--accent);">Stock Total</th>
                             <th style="text-align: center;">TPS</th>
                             <th style="text-align: center;">Remarks</th>
@@ -1121,6 +1126,7 @@
                                 <td style="text-align: center;">{{ state.auth_auth }}</td>
                                 <td style="text-align: center;">{{ state.auth_res }}</td>
                                 <td style="text-align: center; font-weight: bold; color: var(--accent);">{{ state.auth_total }}</td>
+                                <td style="text-align: center;">{{ state.unit_auth or 0 }}</td>
                                 <td style="text-align: center;">{{ state.bbf_ser }}</td>
                                 <td style="text-align: center;">{{ state.bbf_pws }}</td>
                                 <td style="text-align: center; font-weight: bold; color: var(--accent);">{{ state.bbf_total }}</td>
@@ -1259,7 +1265,7 @@
                             </span>
                         </div>
                         <div class="col-md-6 form-group-custom">
-                            <label class="form-label-custom" for="editDeafyField">Deficiency (Auto)</label>
+                            <label class="form-label-custom" for="editDeafyField">Defi (Auto)</label>
                             <input type="text" id="editDeafyField" class="form-input-custom" disabled>
                         </div>
                     </div>
@@ -1899,6 +1905,26 @@ document.addEventListener("DOMContentLoaded", function () {
     resInput.addEventListener("input", recalcTotal);
     recalcTotal();
 
+    // Auto-calculate Deficiency: unit_auth - (stock_ser + stock_pws)
+    const unitAuthInput = document.getElementById("ecc_unit_auth");
+    const stockSerInput = document.getElementById("ecc_stock_ser");
+    const stockPwsInput = document.getElementById("ecc_stock_pws");
+    const deficiencyInput = document.getElementById("ecc_deficiency");
+
+    function recalcDeficiency() {
+        const auth = parseFloat(unitAuthInput.value) || 0;
+        const ser = parseFloat(stockSerInput.value) || 0;
+        const pws = parseFloat(stockPwsInput.value) || 0;
+        const totalStock = ser + pws;
+        deficiencyInput.value = auth - totalStock;
+    }
+    if (unitAuthInput && stockSerInput && stockPwsInput && deficiencyInput) {
+        unitAuthInput.addEventListener("input", recalcDeficiency);
+        stockSerInput.addEventListener("input", recalcDeficiency);
+        stockPwsInput.addEventListener("input", recalcDeficiency);
+        recalcDeficiency();
+    }
+
     // ── 3. Section specific SER + PWS -> Total (auto-calc) ──
     function setupSectionTotal(serId, pwsId, totalId) {
         const ser = document.getElementById(serId);
@@ -1973,6 +1999,7 @@ document.addEventListener("DOMContentLoaded", function () {
             auth_auth:          g("ecc_auth_auth"),
             auth_res:           g("ecc_auth_res"),
             auth_total:         g("ecc_auth_total"),
+            unit_auth:          g("ecc_unit_auth"),
             bbf_division:       g("ecc_bbf_division"),
             bbf_ser:            g("ecc_bbf_ser"),
             bbf_pws:            g("ecc_bbf_pws"),
@@ -2041,6 +2068,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <td style="text-align: center;">${payload.auth_auth || 0}</td>
                     <td style="text-align: center;">${payload.auth_res || 0}</td>
                     <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.auth_total}</td>
+                    <td style="text-align: center;">${payload.unit_auth || 0}</td>
                     <td style="text-align: center;">${payload.bbf_ser || 0}</td>
                     <td style="text-align: center;">${payload.bbf_pws || 0}</td>
                     <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.bbf_total || 0}</td>

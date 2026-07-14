@@ -249,7 +249,7 @@
                             <th>Unit</th>
                             <th class="mm-num">Unit Auth</th>
                             <th class="mm-num">Held</th>
-                            <th class="mm-num">Deficiency</th>
+                            <th class="mm-num">Defi</th>
                             <th class="mm-num">Fulfillment</th>
                         </tr>
                     </thead>
@@ -293,7 +293,7 @@
             <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="fa-solid fa-arrow-trend-down mm-ic-danger"></i>
-                    Global Deficiency Breakdown
+                    Global Defi Breakdown
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -302,7 +302,7 @@
 
             <div class="mm-summary">
                 <div class="mm-stat">
-                    <span class="mm-stat-label">Total Deficiency</span>
+                    <span class="mm-stat-label">Total Defi</span>
                     <span class="mm-stat-value" style="color: var(--danger);">{{ global_deficiency }}</span>
                 </div>
                 <div class="mm-stat">
@@ -321,7 +321,7 @@
                             <th class="mm-num">A/U</th>
                             <th class="mm-num">Unit Auth</th>
                             <th class="mm-num">Held</th>
-                            <th class="mm-num">Deficiency</th>
+                            <th class="mm-num">Defi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -386,7 +386,7 @@
                             <th class="mm-num">Unit Auth</th>
                             <th class="mm-num">Held</th>
                             <th class="mm-num">Held %</th>
-                            <th class="mm-num">Deficiency</th>
+                            <th class="mm-num">Defi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -441,10 +441,7 @@
                     <span class="mm-stat-label">Total Registered</span>
                     <span class="mm-stat-value">{{ total_ecc_items }}</span>
                 </div>
-                <div class="mm-stat">
-                    <span class="mm-stat-label">Shown Here</span>
-                    <span class="mm-stat-value">{{ ecc_item_list | length }}</span>
-                </div>
+                
             </div>
 
             <div class="modal-body">
@@ -495,14 +492,14 @@
             <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="fa-solid fa-sitemap mm-ic-primary"></i>
-                    Active Divisions & Strengths
+                    Active DIV & Strengths
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="mm-summary">
                 <div class="mm-stat">
-                    <span class="mm-stat-label">Divisions Tracked</span>
+                    <span class="mm-stat-label">DIV Tracked</span>
                     <span class="mm-stat-value">{{ db_units | length }}</span>
                 </div>
             </div>
@@ -511,7 +508,7 @@
                 <table class="mm-table">
                     <thead>
                         <tr>
-                            <th style="padding-left: 24px;">Division</th>
+                            <th style="padding-left: 24px;">Div</th>
                             <th class="mm-num">Authorized Strength</th>
                             <th class="mm-num">Posted Strength</th>
                         </tr>
@@ -533,6 +530,71 @@
                                 </td>
                             </tr>
                         {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 4B — ECC CRITICAL ALERTS  (card: "Critical Alerts" in ECC Tab)
+     Rule mirrors the backend: stock_total < unit_auth / 2
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalEccCriticalAlerts" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-bell mm-ic-warning"></i>
+                    ECC Critical Alerts &nbsp;<span style="font-weight:500; font-size:0.8rem; color: var(--text-secondary);">(Held below 50% of Unit Auth)</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Critical Records</span>
+                    <span class="mm-stat-value" style="color: var(--warning);">{{ ecc_critical_alerts }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Item</th>
+                            <th class="mm-num">Auth</th>
+                            <th class="mm-num">Held</th>
+                            <th class="mm-num">Held %</th>
+                            <th class="mm-num">Defi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in ecc_states if r.unit_auth > 0 and r.stock_total < (r.unit_auth / 2) %}
+                            {% set held_pct = (r.stock_total / r.unit_auth * 100) | round(1) %}
+                            <tr>
+                                <td class="mm-strong">{{ r.bbf_division.replace('_', ' ').upper() }}</td>
+                                <td>{{ r.item.item_name if r.item else 'Unknown' }}</td>
+                                <td class="mm-num">{{ r.unit_auth }}</td>
+                                <td class="mm-num">{{ r.stock_total }}</td>
+                                <td class="mm-num mm-def-high">{{ held_pct }}%</td>
+                                <td class="mm-num mm-def-high">{{ r.deficiency }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="mm-empty">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    No critical alerts — all divisions above 50% stock.
+                                </td>
+                            </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>

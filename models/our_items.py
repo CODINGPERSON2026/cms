@@ -190,6 +190,7 @@ class EccMonthlyState(db.Model):
     auth_auth = db.Column(db.Integer, default=0)
     auth_res = db.Column(db.Integer, default=0)
     auth_total = db.Column(db.Integer, default=0)
+    unit_auth = db.Column(db.Integer, default=0)
     
     bbf_division = db.Column(db.String(255), nullable=False)
     bbf_ser = db.Column(db.Integer, default=0)
@@ -231,7 +232,7 @@ class EccMonthlyState(db.Model):
                  issd_ser, issd_pws, issd_total,
                  stock_ser, stock_pws, stock_total, stock_comd, stock_ihq,
                  add_knd, add_tn_model, add_n_area_otg, add_idt_ict, add_remarks_ro_bal,
-                 tps, deficiency=0):
+                 tps, deficiency=0, unit_auth=0):
         self.item_id = item_id
         self.scale = scale
         self.auth_auth = auth_auth
@@ -261,6 +262,7 @@ class EccMonthlyState(db.Model):
         self.add_remarks_ro_bal = add_remarks_ro_bal
         self.tps = tps
         self.deficiency = deficiency
+        self.unit_auth = unit_auth
 
 
 

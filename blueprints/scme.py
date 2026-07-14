@@ -152,9 +152,12 @@ def scme_home():
             "category": state.item.category if state.item else "Unknown",
             "scale": state.scale,
             "auth_total": state.auth_total or 0,
+            "unit_auth": state.unit_auth or 0,
             "bbf_total": state.bbf_total or 0,
             "recd_total": state.recd_total or 0,
             "issd_total": state.issd_total or 0,
+            "stock_ser": state.stock_ser or 0,
+            "stock_pws": state.stock_pws or 0,
             "stock_total": state.stock_total or 0,
             "tps": state.tps or 0,
             "deficiency": state.deficiency or 0
@@ -176,7 +179,19 @@ def scme_home():
         } for div, totals in ecc_div_readiness.items()
     ]
 
+    ecc_critical_alerts = EccMonthlyState.query.filter(
+        EccMonthlyState.unit_auth > 0,
+        EccMonthlyState.stock_total < (EccMonthlyState.unit_auth / 2)
+    ).count()
+
     db_units = Units.query.order_by(Units.name).all()
+    db_units_data = [
+        {
+            "name": u.name.replace('_', ' ').upper(),
+            "authorized_strength": u.authorized_strength or 0,
+            "posted_strength": u.posted_strength or 0
+        } for u in db_units
+    ]
 
     return render_template(
         '/scme_dashboard/scme.html',
@@ -202,7 +217,9 @@ def scme_home():
         global_ecc_deficiency=global_ecc_deficiency,
         active_ecc_divisions=active_ecc_divisions,
         ecc_readiness_data=ecc_readiness_data,
-        db_units=db_units
+        db_units=db_units,
+        ecc_critical_alerts=ecc_critical_alerts,
+        db_units_data=db_units_data
     )
 @scme_bp.route('/enter-items')
 def enter_items():
@@ -562,6 +579,7 @@ def api_add_ecc_state():
         # Section 2: Auth
         auth_auth = data.get("auth_auth")
         auth_res = data.get("auth_res")
+        unit_auth = data.get("unit_auth")
         
         # Section 3: BBF Last Month
         bbf_division = (data.get("bbf_division") or "").strip()
@@ -605,6 +623,7 @@ def api_add_ecc_state():
             auth_auth_val = int(auth_auth or 0)
             auth_res_val = int(auth_res or 0)
             auth_total_val = auth_auth_val + auth_res_val
+            unit_auth_val = int(unit_auth or 0)
             
             bbf_ser_val = int(bbf_ser or 0)
             bbf_pws_val = int(bbf_pws or 0)
@@ -633,7 +652,7 @@ def api_add_ecc_state():
             add_remarks_ro_bal_val = int(add_remarks_ro_bal or 0)
             
             tps_val = int(tps or 0)
-            deficiency_val = int(deficiency or 0)
+            deficiency_val = unit_auth_val - stock_total_val
         except (ValueError, TypeError):
             return jsonify({"success": False, "message": "All input values (except scale) must be numbers."}), 400
             
@@ -672,7 +691,8 @@ def api_add_ecc_state():
             add_idt_ict=add_idt_ict_val,
             add_remarks_ro_bal=add_remarks_ro_bal_val,
             tps=tps_val,
-            deficiency=deficiency_val
+            deficiency=deficiency_val,
+            unit_auth=unit_auth_val
         )
         
         db.session.add(new_state)
@@ -754,6 +774,7 @@ def api_ecc_state_actions(state_id):
             # Section 2: Auth
             auth_auth = data.get("auth_auth")
             auth_res = data.get("auth_res")
+            unit_auth = data.get("unit_auth")
             
             # Section 3: BBF Last Month
             bbf_division = (data.get("bbf_division") or "").strip()
@@ -796,6 +817,7 @@ def api_ecc_state_actions(state_id):
                 auth_auth_val = int(auth_auth or 0)
                 auth_res_val = int(auth_res or 0)
                 auth_total_val = auth_auth_val + auth_res_val
+                unit_auth_val = int(unit_auth or 0)
                 
                 bbf_ser_val = int(bbf_ser or 0)
                 bbf_pws_val = int(bbf_pws or 0)
@@ -860,6 +882,8 @@ def api_ecc_state_actions(state_id):
             record.add_idt_ict = add_idt_ict_val
             record.add_remarks_ro_bal = add_remarks_ro_bal_val
             record.tps = tps_val
+            record.unit_auth = unit_auth_val
+            record.deficiency = unit_auth_val - stock_total_val
             
             # Log action
             log_entry = ActionLog(

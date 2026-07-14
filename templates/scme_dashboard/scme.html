@@ -1,6 +1,6 @@
 {% extends '/base.html' %}
 
-{% block page_title %}Overview Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block sidebar_nav %}
 <a href="/scme/" class="nav-item active">
@@ -385,6 +385,266 @@
     .tooltip.bs-tooltip-end .tooltip-arrow::before {
         border-right-color: #ffffff !important;
     }
+
+    /* ── Excel View Modal Custom Styles ── */
+    #eccExcelViewModal .modal-fullscreen {
+        max-width: 98% !important;
+        width: 98% !important;
+        margin: 10px auto;
+    }
+    
+    #eccExcelViewModal .modal-content {
+        height: calc(100vh - 20px) !important;
+    }
+
+    /* Print styles */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #excelTableContainer, #excelTableContainer * {
+            visibility: visible;
+        }
+        #excelTableContainer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            max-height: none !important;
+        }
+        #eccExcelViewModal {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+        }
+        .modal-dialog {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            height: auto !important;
+        }
+        .modal-header, .modal-footer, .btn, input[type="range"] {
+            display: none !important;
+        }
+        @page {
+            size: landscape;
+            margin: 0.5cm;
+        }
+    }
+
+    /* Excel Table Style */
+    .excel-table {
+        border-collapse: collapse;
+        font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+        font-size: 11px;
+        width: max-content;
+        min-width: 100%;
+        background-color: #ffffff;
+        color: #333333;
+    }
+
+    .excel-table th, .excel-table td {
+        border: 1px solid #999b9e;
+        padding: 5px 8px;
+        vertical-align: middle;
+        line-height: 1.3;
+    }
+
+    .excel-table th {
+        font-weight: bold;
+        text-align: center;
+        text-transform: none;
+        letter-spacing: 0;
+        background-color: #f3f4f6;
+        color: #1f2937;
+    }
+
+    .excel-table tbody tr:hover {
+        background-color: rgba(243, 244, 246, 0.6) !important;
+    }
+
+    /* Excel Header Colors (inspired by screenshot) */
+    .excel-header-title {
+        font-size: 14px;
+        font-weight: 800;
+        text-align: center;
+        padding: 12px;
+        background-color: #ffffff;
+        border-bottom: 2px solid #000000 !important;
+        color: #000000;
+        text-transform: uppercase;
+    }
+    
+    .excel-header-sno, .excel-header-item, .excel-header-scale {
+        background-color: #f2f2f2 !important;
+        color: #000000 !important;
+    }
+
+    .excel-header-auth {
+        background-color: #fae8ff !important; /* Soft Pastel Purple */
+        color: #701a75 !important;
+    }
+
+    .excel-header-ob {
+        background-color: #ffedd5 !important; /* Soft Pastel Orange/Peach */
+        color: #9a3412 !important;
+    }
+
+    .excel-header-recd {
+        background-color: #ccfbf1 !important; /* Soft Pastel Teal */
+        color: #115e59 !important;
+    }
+
+    .excel-header-issd {
+        background-color: #fef3c7 !important; /* Soft Pastel Amber/Yellow */
+        color: #92400e !important;
+    }
+
+    .excel-header-stk {
+        background-color: #ede9fe !important; /* Soft Pastel Indigo */
+        color: #3730a3 !important;
+    }
+
+    .excel-header-totalstk {
+        background-color: #e0f2fe !important; /* Soft Pastel Blue */
+        color: #075985 !important;
+    }
+
+    .excel-header-add {
+        background-color: #fef08a !important; /* Soft Pastel Yellow */
+        color: #854d0e !important;
+    }
+
+    .excel-header-net {
+        background-color: #22d3ee !important; /* Soft Cyan */
+        color: #0891b2 !important;
+    }
+
+    .excel-header-remarks {
+        background-color: #fae8ff !important; /* Soft Violet/Pink */
+        color: #86198f !important;
+    }
+
+    .excel-header-tps {
+        background-color: #ffe4e6 !important; /* Soft Rose */
+        color: #9f1239 !important;
+    }
+
+    /* Column alignment & formatting */
+    .excel-cell-num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .excel-cell-center {
+        text-align: center;
+    }
+
+    .excel-cell-bold {
+        font-weight: bold;
+    }
+
+    /* Excel Cell Background Colors matching headers */
+    .excel-bg-auth {
+        background-color: #faf5ff;
+    }
+    
+    .excel-bg-ob-free {
+        background-color: #fffaf0;
+    }
+    
+    .excel-bg-ob-res {
+        background-color: #fcf6f5;
+    }
+
+    .excel-bg-recd {
+        background-color: #f0fdfa;
+    }
+
+    .excel-bg-issd {
+        background-color: #fffdf5;
+    }
+
+    .excel-bg-stk-free {
+        background-color: #f5f3ff;
+    }
+    
+    .excel-bg-stk-res {
+        background-color: #f3f0ff;
+    }
+
+    .excel-bg-totalstk {
+        background-color: #f0f9ff;
+    }
+
+    .excel-bg-add {
+        background-color: #fefce8;
+    }
+
+    .excel-bg-net {
+        background-color: #ecfeff;
+        font-weight: bold;
+    }
+
+    .excel-bg-remarks {
+        background-color: #faf5ff;
+    }
+
+    .excel-bg-tps {
+        background-color: #fff1f2;
+    }
+
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .print-active, .print-active * {
+            visibility: visible;
+        }
+        .print-active {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: auto;
+            overflow: visible !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .print-active .modal-footer,
+        .print-active .btn-close,
+        .print-active button,
+        .print-active input,
+        .print-active select,
+        .print-active .excel-zoom-controls,
+        .print-active #eccLedgerClearFilters,
+        .print-active .ledger-result-count {
+            display: none !important;
+        }
+        .print-active table {
+            width: 100% !important;
+            min-width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        .print-active th, .print-active td {
+            border: 1px solid #999 !important;
+            padding: 8px 12px !important;
+            font-size: 10px !important;
+            color: #000 !important;
+            background: transparent !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -439,7 +699,7 @@
                 <i class="fa-solid fa-arrow-trend-down"></i>
             </div>
             <div class="metric-content">
-                <span class="metric-label">Deficiency</span>
+                <span class="metric-label">Defi</span>
                 <span class="metric-value" style="color: var(--danger);">{{ global_deficiency }}</span>
             </div>
         </div>
@@ -465,7 +725,7 @@
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-chart-bar"></i>
                     Productive Analysis
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares authorized scales, held stock levels, and deficiency count for each active unit.">
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares authorized scales, held stock levels, and defi count for each active unit.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
                 </h3>
@@ -490,7 +750,7 @@
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    Top 5 Deficient Items
+                    Top 5 Defi Items
                     <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Highlights the items with the highest overall shortage volume across all units.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
@@ -517,12 +777,12 @@
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-chart-pie"></i>
                     Item-based Share by Units
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes the percentage share of the deficiency of the selected item contributed by each unit.">
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes the percentage share of the defi of the selected item contributed by each unit.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
                 </h3>
                 <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
-                    <select id="defPieItemFilter" class="chart-panel-filter" aria-label="Select item for deficiency share">
+                    <select id="defPieItemFilter" class="chart-panel-filter" aria-label="Select item for defi share">
                     </select>
                 </div>
             </div>
@@ -558,7 +818,7 @@
         </div>
         <div class="chart-canvas-wrapper" style="padding: 24px; min-height: auto; display: block;">
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
-                Manage supply levels, authorized scales, and deficiency records for units under command.
+                Manage supply levels, authorized scales, and defi records for units under command.
             </p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
                 <a href="/scme/enter-items" class="btn btn-outline-success text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
@@ -612,11 +872,11 @@
                             <tr>
                                 <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Unit</th>
                                 <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Item</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Category</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Cat</th>
                                 <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Scale</th>
                                 <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">A/U</th>
                                 <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Held</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Deficiency</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Defi</th>
                                 <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Created At</th>
                             </tr>
                         </thead>
@@ -694,8 +954,19 @@
                 <i class="fa-solid fa-sitemap"></i>
             </div>
             <div class="metric-content">
-                <span class="metric-label">Active Divisions</span>
+                <span class="metric-label">Active DIV</span>
                 <span class="metric-value">{{ active_ecc_divisions }}</span>
+            </div>
+        </div>
+
+        <!-- 3. Critical Alerts -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalEccCriticalAlerts">
+            <div class="metric-icon-box {% if ecc_critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Critical Alerts</span>
+                <span class="metric-value" {% if ecc_critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ ecc_critical_alerts }}</span>
             </div>
         </div>
 
@@ -719,7 +990,7 @@
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-chart-bar"></i>
                     Item Analysis
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares scales, stock, and deficiency levels for each reporting division.">
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares scales, stock, and defi levels for each reporting division.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
                 </h3>
@@ -740,7 +1011,7 @@
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    Top 5 Deficient ECC Items
+                    Top 5 Defi ECC Items
                     <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Highlights the ECC items with highest shortage quantity.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
@@ -766,13 +1037,13 @@
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-chart-pie"></i>
-                    ECC Share by Divisions
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes deficiency percentage breakdown by division for a chosen item.">
+                    ECC SHARE
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes stock held percentage breakdown by division for a chosen item.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
                 </h3>
                 <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
-                    <select id="eccDefPieItemFilter" class="chart-panel-filter" aria-label="Select item for deficiency share">
+                    <select id="eccDefPieItemFilter" class="chart-panel-filter" aria-label="Select item for defi share">
                     </select>
                 </div>
             </div>
@@ -781,46 +1052,77 @@
             </div>
         </div>
 
-        <!-- Supply Readiness -->
+        <!-- SER vs PWS Stock -->
         <div class="chart-panel-card">
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
-                    <i class="fa-solid fa-gauge-high"></i>
-                    Supply Readiness by Div
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Calculates the percentage of authorized items currently held for each division.">
+                    <i class="fa-solid fa-chart-column"></i>
+                    SER vs PWS Stock
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares SER stock vs PWS stock levels for the selected division.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
                 </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0; align-items: center;">
+                    <!-- Pagination controls -->
+                    <button type="button" id="eccSerPwsPrevBtn" class="chart-panel-filter" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; background:var(--accent-muted); color:var(--accent); border:1px solid var(--border-dim); border-radius:8px;">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span id="eccSerPwsPageIndicator" style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); min-width:48px; text-align:center;">1 / 3</span>
+                    <button type="button" id="eccSerPwsNextBtn" class="chart-panel-filter" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; background:var(--accent-muted); color:var(--accent); border:1px solid var(--border-dim); border-radius:8px;">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <select id="eccSerPwsUnitFilter" class="chart-panel-filter" aria-label="Filter by unit/division">
+                    </select>
+                </div>
             </div>
             <div class="chart-canvas-wrapper">
-                <div id="eccUnitReadinessColumnChart" data-chart='{{ ecc_readiness_data | tojson }}' style="width: 100%; height: 350px;"></div>
+                <div id="eccSerPwsColumnChart" style="width: 100%; height: 350px;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions Banner Row -->
-    <div class="chart-panel-card" style="margin-top: 24px;">
-        <div class="chart-panel-header">
-            <h3 class="chart-panel-title">
-                <i class="fa-solid fa-list-check"></i>
-                Quick Action Ledgers
-            </h3>
+    <!-- Third Row: Line Chart + Quick Actions side-by-side -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px;" class="animate-fade-in">
+        <!-- Line Chart showing Posted Strength -->
+        <div class="chart-panel-card" style="margin: 0;">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Posted Strength by Unit
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Line trend showing posted strength levels across reporting units from the database.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper" style="min-height: 280px;">
+                <div id="eccUnitStrengthLineChart" data-chart='{{ db_units_data | tojson }}' style="width: 100%; height: 280px;"></div>
+            </div>
         </div>
-        <div class="chart-canvas-wrapper" style="padding: 24px; min-height: auto; display: block;">
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
-                Enter monthly states for ECC inventory, track assets, and manage deficiency logs.
-            </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-                <a href="/scme/enter-items" class="btn btn-outline-success text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
-                    <span><i class="fa-solid fa-clipboard-list me-2"></i>Enter ECC Monthly State</span>
-                    <i class="fa-solid fa-chevron-right"></i>
-                </a>
 
-                <!-- View Table Format Popup Button -->
-                <button type="button" class="btn btn-outline-info text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
-                    <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
-                    <i class="fa-solid fa-chevron-right"></i>
-                </button>
+        <!-- Quick Actions Banner Card -->
+        <div class="chart-panel-card" style="margin: 0;">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-list-check"></i>
+                    Quick Action Ledgers
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper" style="padding: 24px; min-height: 280px; display: flex; flex-direction: column; justify-content: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
+                    Enter monthly states for ECC inventory, track assets, and manage deficiency logs.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <a href="/scme/enter-items" class="btn btn-outline-success text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
+                        <span><i class="fa-solid fa-clipboard-list me-2"></i>Enter ECC Monthly State</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+
+                    <!-- View Table Format Popup Button -->
+                    <button type="button" class="btn btn-outline-info text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
+                        <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -832,7 +1134,7 @@
                 <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 20px 24px;">
                     <h5 class="modal-title" id="eccLedgerTableModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
                         <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent);"></i>
-                        ECC Monthly State Summary Table
+                        ECC Monthly Summary 
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
                 </div>
@@ -840,7 +1142,7 @@
                 <!-- ── Filter Bar (Division + Category) ── -->
                 <div class="ledger-filter-bar">
                     <select id="eccLedgerDivisionFilter" aria-label="Filter by division">
-                        <option value="">All Divisions</option>
+                        <option value="">All </option>
                     </select>
                     <select id="eccLedgerCategoryFilter" aria-label="Filter by category">
                         <option value="">All Categories</option>
@@ -864,14 +1166,16 @@
                     <table class="table-custom" style="width: 100%; min-width: 1600px; border-collapse: collapse; margin: 0;">
                         <thead style="position: sticky; top: 0; z-index: 10;">
                             <tr>
-                                <th class="ecc-col-division" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Division</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap; width: 60px;">S.No.</th>
+                                <th class="ecc-col-division" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Unit</th>
                                 <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Item</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Category</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">CAT</th>
                                 <th class="ecc-col-scale" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Scale</th>
                                 
-                                <th class="ecc-col-auth-auth" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth Auth</th>
-                                <th class="ecc-col-auth-res" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth Res</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth Total</th>
+                                <th class="ecc-col-auth-auth" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Auth</th>
+                                <th class="ecc-col-auth-res" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Res</th>
+                                <th class="ecc-col-auth-total-header" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth  </th>
+                                <th class="ecc-col-auth-unit" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Unit Auth</th>
                                 
                                 <th class="ecc-col-bbf-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F Ser</th>
                                 <th class="ecc-col-bbf-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F PWS</th>
@@ -881,16 +1185,16 @@
                                 <th class="ecc-col-recd-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd PWS</th>
                                 <th class="ecc-col-recd-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd Total</th>
                                 
-                                <th class="ecc-col-issd-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issd Ser</th>
-                                <th class="ecc-col-issd-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issd PWS</th>
-                                <th class="ecc-col-issd-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issd Total</th>
+                                <th class="ecc-col-issd-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issued Ser</th>
+                                <th class="ecc-col-issd-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issued PWS</th>
+                                <th class="ecc-col-issd-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issued Total</th>
                                 
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Stock Held</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Stock Ser</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Stock PWS</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Held</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Ser</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> PWS</th>
                                 
-                                <th class="ecc-col-tps" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">TPS</th>
-                                <th class="ecc-col-deficiency" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Deficiency</th>
+                                <th class="ecc-col-tps" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Held with Tps</th>
+                                <th class="ecc-col-deficiency" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Defi</th>
                                 <th class="ecc-col-created-at" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Created At</th>
                             </tr>
                         </thead>
@@ -901,6 +1205,7 @@
                                     data-division="{{ record.bbf_division.replace('_', ' ').upper() if record.bbf_division else '' }}"
                                     data-category="{{ record.item.category if record.item else '' }}"
                                     style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
+                                    <td class="ecc-col-sno" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap;">{{ loop.index }}</td>
                                     <td class="ecc-col-division" style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ record.bbf_division.replace('_', ' ').upper() if record.bbf_division else '' }}</td>
                                     <td style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ record.item.item_name if record.item else '' }}</td>
                                     <td style="padding: 14px 20px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">{{ record.item.category if record.item else '' }}</td>
@@ -908,7 +1213,8 @@
                                     
                                     <td class="ecc-col-auth-auth" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.auth_auth or 0 }}</td>
                                     <td class="ecc-col-auth-res" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.auth_res or 0 }}</td>
-                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--accent); font-weight:700; white-space: nowrap;">{{ record.auth_total or 0 }}</td>
+                                    <td class="ecc-col-auth-total-cell" data-auth-total="{{ record.auth_total or 0 }}" data-unit-auth="{{ record.unit_auth or 0 }}" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--accent); font-weight:700; white-space: nowrap;">{{ record.auth_total or 0 }}</td>
+                                    <td class="ecc-col-auth-unit" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.unit_auth or 0 }}</td>
                                     
                                     <td class="ecc-col-bbf-ser" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_ser or 0 }}</td>
                                     <td class="ecc-col-bbf-pws" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_pws or 0 }}</td>
@@ -927,7 +1233,7 @@
                                     <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.stock_pws or 0 }}</td>
                                     
                                     <td class="ecc-col-tps" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.tps or 0 }}</td>
-                                    <td class="ecc-col-deficiency" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; color: var(--accent);">{{ record.deficiency or 0 }}</td>
+                                    <td class="ecc-col-deficiency" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; color: {% if record.deficiency < 0 %}#10b981{% else %}#ef4444{% endif %};">{{ record.deficiency or 0 }}</td>
                                     <td class="ecc-col-created-at" style="padding: 14px 20px; font-size: 0.82rem; color: var(--text-secondary); white-space: nowrap;">
                                         {{ record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else '' }}
                                     </td>
@@ -953,7 +1259,63 @@
                     </table>
                 </div>
                 <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 16px 24px;">
-                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: var(--bg-raised); border-color: var(--border-dim); color: var(--text-primary);">Close</button>
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #dc3545; border-color: #dc3545; color: #fff;">Close</button>
+                 
+                    <button type="button" class="btn btn-secondary px-4" id="btnPrintLedgerTable" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #198754; border-color: #198754; color: #fff;">Print</button>
+                    
+                    <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#eccExcelViewModal" id="btnOpenExcelView" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #107c41; border-color: #107c41; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-file-excel"></i> Excel View
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Modal for ECC Excel View -->
+    <div class="modal fade" id="eccExcelViewModal" tabindex="-1" aria-labelledby="eccExcelViewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen modal-dialog-centered" style="max-width: 98%; width: 98%;">
+            <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); height: 95vh; display: flex; flex-direction: column;">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-raised);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h5 class="modal-title" id="eccExcelViewModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px; margin: 0;">
+                            <i class="fa-solid fa-file-excel" style="color: #107c41; font-size: 1.4rem;"></i>
+                            ECC Monthly Summary (Excel Spreadsheet View)
+                        </h5>
+                    </div>
+                    
+                    <!-- Controls block -->
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <!-- Zoom Slider -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-magnifying-glass-plus me-1"></i>Zoom:</span>
+                            <input type="range" id="eccExcelZoomRange" min="50" max="100" value="80" style="width: 100px; cursor: pointer; accent-color: #107c41;">
+                            <span id="eccExcelZoomVal" style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); width: 35px;">80%</span>
+                        </div>
+                        
+                        <!-- Action buttons -->
+                        <button type="button" class="btn btn-success" id="btnExportToExcel" style="background: #107c41; border-color: #107c41; border-radius: 10px; font-weight: 600; font-size: 0.85rem; padding: 8px 16px; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-download"></i> Export Excel
+                        </button>
+                        
+                        <button type="button" class="btn btn-info" id="btnPrintExcelView" style="background: #0284c7; border-color: #0284c7; border-radius: 10px; font-weight: 600; font-size: 0.85rem; padding: 8px 16px; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-print"></i> Print Sheet
+                        </button>
+                        
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
+                    </div>
+                </div>
+
+                <div class="modal-body" style="padding: 20px; overflow: auto; flex-grow: 1; background: #f8fafc;">
+                    <div id="excelTableContainer" style="overflow: auto; max-height: 100%; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #ffffff;">
+                        <!-- The pivoted spreadsheet table will be dynamically generated here -->
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 12px 24px; background: var(--bg-raised); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); font-style: italic;">
+                        * Note: This view combines records from all divisions and formats them side-by-side. 2 FOD data includes Reserve stock.
+                    </span>
+                    <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #dc3545; border-color: #dc3545; color: #fff;">Close</button>
                 </div>
             </div>
         </div>
@@ -969,12 +1331,443 @@
 <script src="{{ url_for('static', filename='highcharts.js') }}"></script>
 
 <script>
+    // Serialize ECC monthly states for JavaScript pivot table
+    const eccStatesData = [
+        {% for s in ecc_states %}
+        {
+            id: {{ s.id }},
+            item_id: {{ s.item_id }},
+            item_name: "{{ s.item.item_name if s.item else 'Unknown Item' }}",
+            category: "{{ s.item.category if s.item else '' }}",
+            scale: "{{ s.scale or '1 per indl' }}",
+            auth_auth: {{ s.auth_auth or 0 }},
+            auth_res: {{ s.auth_res or 0 }},
+            auth_total: {{ s.auth_total or 0 }},
+            unit_auth: {{ s.unit_auth or 0 }},
+            bbf_division: "{{ s.bbf_division or '' }}",
+            bbf_ser: {{ s.bbf_ser or 0 }},
+            bbf_pws: {{ s.bbf_pws or 0 }},
+            bbf_total: {{ s.bbf_total or 0 }},
+            bbf_comd: {{ s.bbf_comd or 0 }},
+            bbf_ihq: {{ s.bbf_ihq or 0 }},
+            recd_ser: {{ s.recd_ser or 0 }},
+            recd_pws: {{ s.recd_pws or 0 }},
+            recd_total: {{ s.recd_total or 0 }},
+            issd_ser: {{ s.issd_ser or 0 }},
+            issd_pws: {{ s.issd_pws or 0 }},
+            issd_total: {{ s.issd_total or 0 }},
+            stock_ser: {{ s.stock_ser or 0 }},
+            stock_pws: {{ s.stock_pws or 0 }},
+            stock_total: {{ s.stock_total or 0 }},
+            stock_comd: {{ s.stock_comd or 0 }},
+            stock_ihq: {{ s.stock_ihq or 0 }},
+            add_knd: {{ s.add_knd or 0 }},
+            add_tn_model: {{ s.add_tn_model or 0 }},
+            add_n_area_otg: {{ s.add_n_area_otg or 0 }},
+            add_idt_ict: {{ s.add_idt_ict or 0 }},
+            add_remarks_ro_bal: {{ s.add_remarks_ro_bal or 0 }},
+            tps: {{ s.tps or 0 }},
+            deficiency: {{ s.deficiency or 0 }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    function exportToExcel(tableId, filename) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const html = table.outerHTML;
+        
+        // Add XML Excel template wrapper to preserve styles and formatting
+        const template = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <!--[if gte mso 9]>
+                <xml>
+                    <x:ExcelWorkbook>
+                        <x:ExcelWorksheets>
+                            <x:Name>ECC Monthly Summary</x:Name>
+                            <x:WorksheetOptions>
+                                <x:DisplayGridlines/>
+                            </x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <style>
+                table { border-collapse: collapse; }
+                th, td { border: 1px solid #999b9e; font-family: Calibri, sans-serif; font-size: 11px; }
+                .excel-header-title { font-size: 14px; font-weight: bold; background-color: #ffffff; text-align: center; }
+                .excel-header-sno, .excel-header-item, .excel-header-scale { background-color: #f2f2f2; }
+                .excel-header-auth { background-color: #fae8ff; color: #701a75; }
+                .excel-header-ob { background-color: #ffedd5; color: #9a3412; }
+                .excel-header-recd { background-color: #ccfbf1; color: #115e59; }
+                .excel-header-issd { background-color: #fef3c7; color: #92400e; }
+                .excel-header-stk { background-color: #ede9fe; color: #3730a3; }
+                .excel-header-totalstk { background-color: #e0f2fe; color: #075985; }
+                .excel-header-add { background-color: #fef08a; color: #854d0e; }
+                .excel-header-net { background-color: #22d3ee; color: #0891b2; }
+                .excel-header-remarks { background-color: #fae8ff; color: #86198f; }
+                .excel-header-tps { background-color: #ffe4e6; color: #9f1239; }
+                .excel-cell-num { text-align: right; }
+                .excel-cell-center { text-align: center; }
+                .excel-cell-bold { font-weight: bold; }
+                .excel-bg-auth { background-color: #faf5ff; }
+                .excel-bg-ob-free { background-color: #fffaf0; }
+                .excel-bg-ob-res { background-color: #fcf6f5; }
+                .excel-bg-recd { background-color: #f0fdfa; }
+                .excel-bg-issd { background-color: #fffdf5; }
+                .excel-bg-stk-free { background-color: #f5f3ff; }
+                .excel-bg-stk-res { background-color: #f3f0ff; }
+                .excel-bg-totalstk { background-color: #f0f9ff; }
+                .excel-bg-add { background-color: #fefce8; }
+                .excel-bg-net { background-color: #ecfeff; }
+                .excel-bg-remarks { background-color: #faf5ff; }
+                .excel-bg-tps { background-color: #fff1f2; }
+            </style>
+        </head>
+        <body>
+            ${html}
+        </body>
+        </html>
+    `;
+    
+    const blob = new Blob([template], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'ECC_Monthly_Summary.xls';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function renderExcelViewTable() {
+    // 1. Group records by unique (item_name, bbf_division) and take the latest one (since eccStatesData is desc-ordered, first is latest)
+    const latestRecordsMap = new Map();
+    eccStatesData.forEach(record => {
+        const key = `${record.item_name}||${record.bbf_division}`;
+        if (!latestRecordsMap.has(key)) {
+            latestRecordsMap.set(key, record);
+        }
+    });
+    const activeStates = Array.from(latestRecordsMap.values());
+
+    // 2. Identify divisions
+    const allDivisions = Array.from(new Set(activeStates.map(r => r.bbf_division).filter(Boolean)));
+    const has2Fod = allDivisions.includes('2 FOD');
+    const otherDivisions = allDivisions.filter(d => d !== '2 FOD').sort();
+    const divisionsOrder = has2Fod ? ['2 FOD', ...otherDivisions] : otherDivisions;
+
+    // 3. Identify unique items
+    const itemNames = Array.from(new Set(activeStates.map(r => r.item_name).filter(Boolean))).sort();
+
+    // 4. Calculate colspans
+    const obColspan = (has2Fod ? 4 : 0) + (otherDivisions.length * 2) + 2;
+    const recdColspan = (divisionsOrder.length * 2) + 2;
+    const issdColspan = (divisionsOrder.length * 2) + 2;
+    const stkHeldColspan = (has2Fod ? 4 : 0) + (otherDivisions.length * 2);
+    const tpsColspan = divisionsOrder.length + 1;
+
+    // 5. Generate Table HTML
+    let html = `
+        <table class="excel-table" id="eccExcelTable">
+            <thead>
+                <!-- Sheet Title Row -->
+                <tr>
+                    <th colspan="${3 + 3 + obColspan + recdColspan + issdColspan + stkHeldColspan + 2 + 5 + 2 + tpsColspan}" class="excel-header-title">
+                        MONTHLY REPORT ECC & S FOR THE MONTH OF ${new Date().toLocaleString('default', { month: 'long' }).toUpperCase()} ${new Date().getFullYear()}
+                    </th>
+                </tr>
+                <!-- Header Row 1 -->
+                <tr>
+                    <th rowspan="3" class="excel-header-sno">S.No</th>
+                    <th rowspan="3" class="excel-header-item">Item</th>
+                    <th rowspan="3" class="excel-header-scale">Scale</th>
+                    <th colspan="3" class="excel-header-auth">Auth</th>
+                    <th colspan="${obColspan}" class="excel-header-ob">OB (of last month)</th>
+                    <th colspan="${recdColspan}" class="excel-header-recd">Qty Recd during the month</th>
+                    <th colspan="${issdColspan}" class="excel-header-issd">Qty Issued/Rtn during the month</th>
+                    <th colspan="${stkHeldColspan}" class="excel-header-stk">Stk Held</th>
+                    <th colspan="2" class="excel-header-totalstk">Total Stk Held (net Res)</th>
+                    <th colspan="5" class="excel-header-add">Additional Assets / Liabilities</th>
+                    <th rowspan="3" class="excel-header-net">Net Assets</th>
+                    <th rowspan="3" class="excel-header-remarks">Remarks (OB Bal issue)</th>
+                    <th colspan="${tpsColspan}" class="excel-header-tps">Stk Held with Trps</th>
+                </tr>
+                <!-- Header Row 2 -->
+                <tr>
+                    <th rowspan="2" class="excel-header-auth">Auth</th>
+                    <th rowspan="2" class="excel-header-auth">Res</th>
+                    <th rowspan="2" class="excel-header-auth">Total</th>
+                    
+                    <!-- OB divisions -->
+                    ${has2Fod ? `<th colspan="4" class="excel-header-ob">2 FOD</th>` : ''}
+                    ${otherDivisions.map(d => `<th colspan="2" class="excel-header-ob">${d}</th>`).join('')}
+                    <th colspan="2" class="excel-header-ob">Total Stk (net Res)</th>
+                    
+                    <!-- Recd divisions -->
+                    ${divisionsOrder.map(d => `<th colspan="2" class="excel-header-recd">${d}</th>`).join('')}
+                    <th colspan="2" class="excel-header-recd">Total</th>
+                    
+                    <!-- Issued divisions -->
+                    ${divisionsOrder.map(d => `<th colspan="2" class="excel-header-issd">${d}</th>`).join('')}
+                    <th colspan="2" class="excel-header-issd">Total</th>
+                    
+                    <!-- Stk Held divisions -->
+                    ${has2Fod ? `<th colspan="4" class="excel-header-stk">2 FOD</th>` : ''}
+                    ${otherDivisions.map(d => `<th colspan="2" class="excel-header-stk">${d}</th>`).join('')}
+                    
+                    <!-- Total Stk Held sub-headers -->
+                    <th rowspan="2" class="excel-header-totalstk">Ser</th>
+                    <th rowspan="2" class="excel-header-totalstk">PWS</th>
+                    
+                    <!-- Additional sub-headers -->
+                    <th rowspan="2" class="excel-header-add">K&G</th>
+                    <th rowspan="2" class="excel-header-add">TH Model</th>
+                    <th rowspan="2" class="excel-header-add">N-Area OTG</th>
+                    <th rowspan="2" class="excel-header-add">ISTACT</th>
+                    <th rowspan="2" class="excel-header-add">Total Dynamic</th>
+                    
+                    <!-- TPS sub-headers -->
+                    ${divisionsOrder.map(d => `<th rowspan="2" class="excel-header-tps">${d}</th>`).join('')}
+                    <th rowspan="2" class="excel-header-tps">Total</th>
+                </tr>
+                <!-- Header Row 3 -->
+                <tr>
+                    <!-- OB columns -->
+                    ${has2Fod ? `
+                        <th class="excel-header-ob">Ser</th>
+                        <th class="excel-header-ob">PWS</th>
+                        <th class="excel-header-ob">Comd</th>
+                        <th class="excel-header-ob">IHQ</th>
+                    ` : ''}
+                    ${otherDivisions.map(() => `
+                        <th class="excel-header-ob">Ser</th>
+                        <th class="excel-header-ob">PWS</th>
+                    `).join('')}
+                    <th class="excel-header-ob">Ser</th>
+                    <th class="excel-header-ob">PWS</th>
+                    
+                    <!-- Recd columns -->
+                    ${divisionsOrder.map(() => `
+                        <th class="excel-header-recd">Ser</th>
+                        <th class="excel-header-recd">PWS</th>
+                    `).join('')}
+                    <th class="excel-header-recd">Ser</th>
+                    <th class="excel-header-recd">PWS</th>
+                    
+                    <!-- Issued columns -->
+                    ${divisionsOrder.map(() => `
+                        <th class="excel-header-issd">Ser</th>
+                        <th class="excel-header-issd">PWS</th>
+                    `).join('')}
+                    <th class="excel-header-issd">Ser</th>
+                    <th class="excel-header-issd">PWS</th>
+                    
+                    <!-- Stk Held columns -->
+                    ${has2Fod ? `
+                        <th class="excel-header-stk">Ser</th>
+                        <th class="excel-header-stk">PWS</th>
+                        <th class="excel-header-stk">Comd</th>
+                        <th class="excel-header-stk">IHQ</th>
+                    ` : ''}
+                    ${otherDivisions.map(() => `
+                        <th class="excel-header-stk">Ser</th>
+                        <th class="excel-header-stk">PWS</th>
+                    `).join('')}
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // 6. Generate Rows
+    itemNames.forEach((itemName, index) => {
+        const itemStates = activeStates.filter(r => r.item_name === itemName);
+        
+        // Find state for each division
+        const rec2Fod = itemStates.find(r => r.bbf_division === '2 FOD');
+        const recsOther = otherDivisions.map(d => itemStates.find(r => r.bbf_division === d));
+        const recsAll = divisionsOrder.map(d => itemStates.find(r => r.bbf_division === d));
+
+        // Scale
+        const scaleVal = itemStates[0] ? itemStates[0].scale : '-';
+
+        // Auth
+        const auth_auth = itemStates.reduce((sum, r) => sum + (r.auth_auth || 0), 0);
+        const auth_res = itemStates.reduce((sum, r) => sum + (r.auth_res || 0), 0);
+        const auth_total = auth_auth + auth_res;
+
+        // OB Calculations
+        const ob_2fod_ser = rec2Fod ? rec2Fod.bbf_ser : 0;
+        const ob_2fod_pws = rec2Fod ? rec2Fod.bbf_pws : 0;
+        const ob_2fod_comd = rec2Fod ? (rec2Fod.bbf_comd || 0) : 0;
+        const ob_2fod_ihq = rec2Fod ? (rec2Fod.bbf_ihq || 0) : 0;
+
+        let ob_other_ser_sum = 0;
+        let ob_other_pws_sum = 0;
+        recsOther.forEach(r => {
+            if (r) {
+                ob_other_ser_sum += (r.bbf_ser || 0);
+                ob_other_pws_sum += (r.bbf_pws || 0);
+            }
+        });
+
+        const ob_total_ser = ob_2fod_ser + ob_2fod_comd + ob_2fod_ihq + ob_other_ser_sum;
+        const ob_total_pws = ob_2fod_pws + ob_other_pws_sum;
+
+        // Recd Calculations
+        let recd_ser_sum = 0;
+        let recd_pws_sum = 0;
+        recsAll.forEach(r => {
+            if (r) {
+                recd_ser_sum += (r.recd_ser || 0);
+                recd_pws_sum += (r.recd_pws || 0);
+            }
+        });
+
+        // Issued Calculations
+        let issd_ser_sum = 0;
+        let issd_pws_sum = 0;
+        recsAll.forEach(r => {
+            if (r) {
+                issd_ser_sum += (r.issd_ser || 0);
+                issd_pws_sum += (r.issd_pws || 0);
+            }
+        });
+
+        // Stk Held Calculations
+        const stock_2fod_ser = rec2Fod ? rec2Fod.stock_ser : 0;
+        const stock_2fod_pws = rec2Fod ? rec2Fod.stock_pws : 0;
+        const stock_2fod_comd = rec2Fod ? (rec2Fod.stock_comd || 0) : 0;
+        const stock_2fod_ihq = rec2Fod ? (rec2Fod.stock_ihq || 0) : 0;
+
+        let stock_other_ser_sum = 0;
+        let stock_other_pws_sum = 0;
+        recsOther.forEach(r => {
+            if (r) {
+                stock_other_ser_sum += (r.stock_ser || 0);
+                stock_other_pws_sum += (r.stock_pws || 0);
+            }
+        });
+
+        const stock_total_ser = stock_2fod_ser + stock_2fod_comd + stock_2fod_ihq + stock_other_ser_sum;
+        const stock_total_pws = stock_2fod_pws + stock_other_pws_sum;
+
+        // Additional fields
+        const add_knd = itemStates.reduce((sum, r) => sum + (r.add_knd || 0), 0);
+        const add_tn_model = itemStates.reduce((sum, r) => sum + (r.add_tn_model || 0), 0);
+        const add_n_area_otg = itemStates.reduce((sum, r) => sum + (r.add_n_area_otg || 0), 0);
+        const add_idt_ict = itemStates.reduce((sum, r) => sum + (r.add_idt_ict || 0), 0);
+        const add_remarks_ro_bal = itemStates.reduce((sum, r) => sum + (r.add_remarks_ro_bal || 0), 0);
+        const total_dynamic = add_knd + add_tn_model + add_n_area_otg + add_idt_ict;
+
+        // Net Assets calculation
+        const net_assets = stock_total_ser + total_dynamic - auth_total;
+
+        // TPS calculations
+        let tps_sum = 0;
+        const tps_values = recsAll.map(r => {
+            const val = r ? (r.tps || 0) : 0;
+            tps_sum += val;
+            return val;
+        });
+
+        html += `
+            <tr style="border-bottom: 1px solid #999b9e;">
+                <td class="excel-cell-center">${index + 1}</td>
+                <td class="excel-cell-bold">${itemName}</td>
+                <td class="excel-cell-center">${scaleVal}</td>
+                
+                <!-- Auth -->
+                <td class="excel-cell-num excel-bg-auth">${auth_auth}</td>
+                <td class="excel-cell-num excel-bg-auth">${auth_res}</td>
+                <td class="excel-cell-num excel-bg-auth excel-cell-bold">${auth_total}</td>
+                
+                <!-- OB -->
+                ${has2Fod ? `
+                    <td class="excel-cell-num excel-bg-ob-free">${ob_2fod_ser}</td>
+                    <td class="excel-cell-num excel-bg-ob-free">${ob_2fod_pws}</td>
+                    <td class="excel-cell-num excel-bg-ob-res">${ob_2fod_comd}</td>
+                    <td class="excel-cell-num excel-bg-ob-res">${ob_2fod_ihq}</td>
+                ` : ''}
+                ${recsOther.map(r => `
+                    <td class="excel-cell-num excel-bg-ob-free">${r ? r.bbf_ser : 0}</td>
+                    <td class="excel-cell-num excel-bg-ob-free">${r ? r.bbf_pws : 0}</td>
+                `).join('')}
+                <td class="excel-cell-num excel-bg-ob-free excel-cell-bold">${ob_total_ser}</td>
+                <td class="excel-cell-num excel-bg-ob-free excel-cell-bold">${ob_total_pws}</td>
+                
+                <!-- Recd -->
+                ${recsAll.map(r => `
+                    <td class="excel-cell-num excel-bg-recd">${r ? r.recd_ser : 0}</td>
+                    <td class="excel-cell-num excel-bg-recd">${r ? r.recd_pws : 0}</td>
+                `).join('')}
+                <td class="excel-cell-num excel-bg-recd excel-cell-bold">${recd_ser_sum}</td>
+                <td class="excel-cell-num excel-bg-recd excel-cell-bold">${recd_pws_sum}</td>
+                
+                <!-- Issued -->
+                ${recsAll.map(r => `
+                    <td class="excel-cell-num excel-bg-issd">${r ? r.issd_ser : 0}</td>
+                    <td class="excel-cell-num excel-bg-issd">${r ? r.issd_pws : 0}</td>
+                `).join('')}
+                <td class="excel-cell-num excel-bg-issd excel-cell-bold">${issd_ser_sum}</td>
+                <td class="excel-cell-num excel-bg-issd excel-cell-bold">${issd_pws_sum}</td>
+                
+                <!-- Stk Held -->
+                ${has2Fod ? `
+                    <td class="excel-cell-num excel-bg-stk-free">${stock_2fod_ser}</td>
+                    <td class="excel-cell-num excel-bg-stk-free">${stock_2fod_pws}</td>
+                    <td class="excel-cell-num excel-bg-stk-res">${stock_2fod_comd}</td>
+                    <td class="excel-cell-num excel-bg-stk-res">${stock_2fod_ihq}</td>
+                ` : ''}
+                ${recsOther.map(r => `
+                    <td class="excel-cell-num excel-bg-stk-free">${r ? r.stock_ser : 0}</td>
+                    <td class="excel-cell-num excel-bg-stk-free">${r ? r.stock_pws : 0}</td>
+                `).join('')}
+                
+                <!-- Total Stk Held -->
+                <td class="excel-cell-num excel-bg-totalstk excel-cell-bold">${stock_total_ser}</td>
+                <td class="excel-cell-num excel-bg-totalstk excel-cell-bold">${stock_total_pws}</td>
+                
+                <!-- Add Columns -->
+                <td class="excel-cell-num excel-bg-add">${add_knd}</td>
+                <td class="excel-cell-num excel-bg-add">${add_tn_model}</td>
+                <td class="excel-cell-num excel-bg-add">${add_n_area_otg}</td>
+                <td class="excel-cell-num excel-bg-add">${add_idt_ict}</td>
+                <td class="excel-cell-num excel-bg-add excel-cell-bold">${total_dynamic}</td>
+                
+                <!-- Net Assets -->
+                <td class="excel-cell-num excel-bg-net" style="color: ${net_assets < 0 ? '#b91c1c' : '#047857'}">${net_assets}</td>
+                
+                <!-- Remarks -->
+                <td class="excel-cell-num excel-bg-remarks">${add_remarks_ro_bal}</td>
+                
+                <!-- TPS -->
+                ${tps_values.map(val => `
+                    <td class="excel-cell-num excel-bg-tps">${val}</td>
+                `).join('')}
+                <td class="excel-cell-num excel-bg-tps excel-cell-bold">${tps_sum}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById('excelTableContainer').innerHTML = html;
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     // Initialize Bootstrap tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
 
     // ── Tab switching ──
     const tabs = document.querySelectorAll(".ledger-tab");
@@ -1005,10 +1798,78 @@ document.addEventListener("DOMContentLoaded", function () {
     if (eccModalEl) {
         document.body.appendChild(eccModalEl);
     }
+    const eccExcelModalEl = document.getElementById('eccExcelViewModal');
+    if (eccExcelModalEl) {
+        document.body.appendChild(eccExcelModalEl);
+    }
+
+    // Zoom control
+    const zoomRange = document.getElementById('eccExcelZoomRange');
+    const zoomVal = document.getElementById('eccExcelZoomVal');
+    if (zoomRange && zoomVal) {
+        zoomRange.addEventListener('input', function() {
+            const val = this.value;
+            zoomVal.textContent = val + '%';
+            const table = document.getElementById('eccExcelTable');
+            if (table) {
+                table.style.fontSize = (11 * val / 100) + 'px';
+            }
+        });
+    }
+
+    // Export to Excel control
+    const btnExport = document.getElementById('btnExportToExcel');
+    if (btnExport) {
+        btnExport.addEventListener('click', function() {
+            exportToExcel('eccExcelTable', 'ECC_Monthly_Summary_Report.xls');
+        });
+    }
+
+    // Print sheet control for Excel View
+    const btnPrintExcel = document.getElementById('btnPrintExcelView');
+    if (btnPrintExcel) {
+        btnPrintExcel.addEventListener('click', function() {
+            const modalContent = document.querySelector('#eccExcelViewModal .modal-content');
+            if (modalContent) {
+                modalContent.classList.add('print-active');
+                window.print();
+                modalContent.classList.remove('print-active');
+            }
+        });
+    }
+
+    // Print control for standard Ledger table
+    const btnPrintLedger = document.getElementById('btnPrintLedgerTable');
+    if (btnPrintLedger) {
+        btnPrintLedger.addEventListener('click', function() {
+            const modalContent = document.querySelector('#eccLedgerTableModal .modal-content');
+            if (modalContent) {
+                modalContent.classList.add('print-active');
+                window.print();
+                modalContent.classList.remove('print-active');
+            }
+        });
+    }
+
+    // Open Excel View modal handler
+    const btnOpenExcel = document.getElementById('btnOpenExcelView');
+    if (btnOpenExcel) {
+        btnOpenExcel.addEventListener('click', function() {
+            // First render the table
+            renderExcelViewTable();
+            // Default zoom style
+            const table = document.getElementById('eccExcelTable');
+            if (table && zoomRange) {
+                table.style.fontSize = (11 * zoomRange.value / 100) + 'px';
+            }
+        });
+    }
 
     // Inject backend data (read from HTML5 data attributes to keep Javascript syntax clean and warnings-free)
     const unitChartData = JSON.parse(document.getElementById('unitBarChart').dataset.chart);
     const itemChartData = JSON.parse(document.getElementById('itemPrismChart').dataset.chart);
+    const eccChartDom = document.getElementById('eccUnitBarChart');
+    const eccChartData = eccChartDom ? JSON.parse(eccChartDom.dataset.chart) : [];
 
     // Global theme variables mapped from CSS
     const computedStyles = getComputedStyle(document.documentElement);
@@ -1019,9 +1880,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ─────────────────────────────────────────────────────────────────────────
     // ECC CHARTS INITIALIZATION
     // ─────────────────────────────────────────────────────────────────────────
-    const eccChartDom = document.getElementById('eccUnitBarChart');
     if (eccChartDom) {
-        const eccChartData = JSON.parse(eccChartDom.dataset.chart);
 
         const allEccDivs = [...new Set(eccChartData.map(d => d.division))];
         const allEccItems = [...new Set(eccChartData.map(d => d.item_name))].sort();
@@ -1036,17 +1895,22 @@ document.addEventListener("DOMContentLoaded", function () {
             const found2Fod = allEccDivs.find(d => d.replace(/_/g, ' ').toUpperCase() === '2 FOD');
             defaultEccDiv = found2Fod || allEccDivs[0];
         }
-        const defaultEccItem = '';
+        let defaultEccItem = '';
+        if (allEccItems.length > 0) {
+            defaultEccItem = allEccItems[0];
+        }
 
         function aggregateEccUnitChart(divisionFilter, itemFilter) {
             const rows = eccChartData.filter(d =>
                 d.division === divisionFilter &&
                 (!itemFilter || d.item_name === itemFilter)
             );
-            const totalAuth = rows.reduce((sum, r) => sum + (r.auth_total || 0), 0);
-            const totalDef = rows.reduce((sum, r) => sum + (r.deficiency || 0), 0);
+            const totalAuth = rows.reduce((sum, r) => sum + (r.unit_auth || 0), 0);
+            const totalHeld = rows.reduce((sum, r) => sum + (r.stock_ser || 0) + (r.stock_pws || 0), 0);
+            const totalDef = rows.reduce((sum, r) => sum + Math.max(0, r.deficiency || 0), 0);
             return {
                 auth: totalAuth,
+                held: totalHeld,
                 def: totalDef
             };
         }
@@ -1118,11 +1982,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             series: [{
-                name: 'Authorized Scale',
+                name: 'Authorized',
                 data: [initialEccAgg.auth],
                 color: '#38bdf8'
             }, {
-                name: 'Deficiency',
+                name: 'Held',
+                data: [initialEccAgg.held],
+                color: '#10b981'
+            }, {
+                name: 'Defi',
                 data: [initialEccAgg.def],
                 color: '#f59e0b'
             }],
@@ -1165,7 +2033,8 @@ document.addEventListener("DOMContentLoaded", function () {
             function refreshEccUnitChart() {
                 const agg = aggregateEccUnitChart(eccDivFilterSel.value, eccItemFilterSel.value);
                 eccUnitBarChart.series[0].setData([agg.auth]);
-                eccUnitBarChart.series[1].setData([agg.def]);
+                eccUnitBarChart.series[1].setData([agg.held]);
+                eccUnitBarChart.series[2].setData([agg.def]);
             }
 
             eccDivFilterSel.addEventListener('change', refreshEccUnitChart);
@@ -1193,7 +2062,7 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             yAxis: {
                 title: {
-                    text: 'Deficiency Quantity',
+                    text: 'Defi Quantity',
                     style: { color: textSecondary, fontWeight: 'bold' }
                 },
                 labels: {
@@ -1217,7 +2086,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             series: [{
-                name: 'Deficiency',
+                name: 'Defi',
                 data: initialEccTopDef.data,
                 color: '#f59e0b',
                 showInLegend: false
@@ -1244,20 +2113,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const eccPieItemFilter = document.getElementById('eccDefPieItemFilter');
         if (eccPieItemFilter) {
-            const eccItemShortages = {};
-            eccChartData.forEach(d => {
-                eccItemShortages[d.item_name] = (eccItemShortages[d.item_name] || 0) + d.deficiency;
-            });
-
-            const eccItemsWithShortage = Object.entries(eccItemShortages)
-                .filter(([name, def]) => def > 0)
-                .map(([name, def]) => name)
-                .sort();
-            const eccItemsWithoutShortage = Object.entries(eccItemShortages)
-                .filter(([name, def]) => def <= 0)
-                .map(([name, def]) => name)
-                .sort();
-            const allEccPieItems = [...eccItemsWithShortage, ...eccItemsWithoutShortage];
+            const allEccPieItems = [...new Set(eccChartData.map(d => d.item_name))].sort();
 
             allEccPieItems.forEach(i => {
                 eccPieItemFilter.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
@@ -1268,7 +2124,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 return rows
                     .map(d => ({
                         name: formatEccDivLabel(d.division),
-                        y: d.deficiency
+                        y: d.stock_total
                     }))
                     .filter(pt => pt.y > 0);
             }
@@ -1310,7 +2166,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 },
                 series: [{
-                    name: 'Deficiency Share',
+                    name: 'Stock Held',
                     colorByPoint: true,
                     data: initialEccPieData
                 }],
@@ -1447,7 +2303,7 @@ document.addEventListener("DOMContentLoaded", function () {
             data: heldSeries,
             color: '#f43f5e' // Soft red
         }, {
-            name: 'Deficiency',
+            name: 'Defi',
             data: defSeries,
             color: '#f59e0b' // Amber
         }],
@@ -1532,7 +2388,7 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         yAxis: {
             title: {
-                text: 'Deficiency Quantity',
+                text: 'Defi Quantity',
                 style: { color: textSecondary, fontWeight: 'bold' }
             },
             labels: {
@@ -1557,7 +2413,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         },
         series: [{
-            name: 'Deficiency',
+            name: 'Defi',
             data: itemDeficiencies,
             color: '#f59e0b', // Amber
             showInLegend: false
@@ -1654,7 +2510,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             series: [{
-                name: 'Deficiency Qty',
+                name: 'Defi Qty',
                 data: initialPieData
             }],
             legend: {
@@ -1765,21 +2621,98 @@ document.addEventListener("DOMContentLoaded", function () {
     // ─────────────────────────────────────────────────────────────────────────
     // CHART 5: SUPPLY READINESS BY DIV FOR ECC (2D COLUMN CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    const eccReadinessEl = document.getElementById('eccUnitReadinessColumnChart');
-    const eccReadinessData = eccReadinessEl ? JSON.parse(eccReadinessEl.dataset.chart) : [];
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 5: SER VS PWS STOCK FOR ECC (2D GROUPED COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const eccSerPwsFilter = document.getElementById('eccSerPwsUnitFilter');
+    const eccSerPwsChartEl = document.getElementById('eccSerPwsColumnChart');
 
-    if (eccReadinessEl) {
-        const eccReadinessCategories = eccReadinessData.map(d => d.division.replace(/_/g, ' ').toUpperCase());
-        const eccReadinessRates = eccReadinessData.map(d => d.rate);
+    if (eccSerPwsChartEl && eccSerPwsFilter) {
+        // 1. Populate Unit Filter dropdown
+        const distinctDivisions = [...new Set(eccChartData.map(d => d.division).filter(Boolean))].sort();
+        eccSerPwsFilter.insertAdjacentHTML('beforeend', '<option value="">All DIV</option>');
+        distinctDivisions.forEach(div => {
+            eccSerPwsFilter.insertAdjacentHTML('beforeend', `<option value="${div}">${formatEccDivLabel(div)}</option>`);
+        });
 
-        Highcharts.chart('eccUnitReadinessColumnChart', {
+        // Pagination variables
+        let currentPage = 0;
+        const pageSize = 5;
+
+        // 2. Helper to fetch aggregate data
+        function getEccSerPwsChartData(divisionFilter) {
+            const itemTotals = {};
+            eccChartData.forEach(d => {
+                if (!divisionFilter || d.division === divisionFilter) {
+                    if (!itemTotals[d.item_name]) {
+                        itemTotals[d.item_name] = { ser: 0, pws: 0 };
+                    }
+                    itemTotals[d.item_name].ser += (d.stock_ser || 0);
+                    itemTotals[d.item_name].pws += (d.stock_pws || 0);
+                }
+            });
+            const categories = Object.keys(itemTotals).sort();
+            const serData = categories.map(name => itemTotals[name].ser);
+            const pwsData = categories.map(name => itemTotals[name].pws);
+            return {
+                categories: categories,
+                ser: serData,
+                pws: pwsData
+            };
+        }
+
+        // 3. Render function for the paginated chart view
+        function renderPaginatedSerPwsChart() {
+            const fullData = getEccSerPwsChartData(eccSerPwsFilter.value);
+            const totalItems = fullData.categories.length;
+            const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+            // Constrain currentPage range
+            if (currentPage >= totalPages) currentPage = totalPages - 1;
+            if (currentPage < 0) currentPage = 0;
+
+            // Get slice for the current page
+            const categoriesPage = fullData.categories.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+            const serPage = fullData.ser.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+            const pwsPage = fullData.pws.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+
+            // Update chart data
+            eccSerPwsChart.xAxis[0].setCategories(categoriesPage, false);
+            eccSerPwsChart.series[0].setData(serPage, false);
+            eccSerPwsChart.series[1].setData(pwsPage, true);
+
+            // Update navigation label
+            const pageIndicator = document.getElementById('eccSerPwsPageIndicator');
+            if (pageIndicator) {
+                pageIndicator.textContent = (currentPage + 1) + " / " + totalPages;
+            }
+
+            // Enable/disable navigation buttons
+            const prevBtn = document.getElementById('eccSerPwsPrevBtn');
+            const nextBtn = document.getElementById('eccSerPwsNextBtn');
+            if (prevBtn) {
+                prevBtn.style.opacity = currentPage === 0 ? "0.4" : "1";
+                prevBtn.style.pointerEvents = currentPage === 0 ? "none" : "auto";
+            }
+            if (nextBtn) {
+                nextBtn.style.opacity = currentPage === totalPages - 1 ? "0.4" : "1";
+                nextBtn.style.pointerEvents = currentPage === totalPages - 1 ? "none" : "auto";
+            }
+        }
+
+        const initialSerPwsAgg = getEccSerPwsChartData('');
+        const initialCategories = initialSerPwsAgg.categories.slice(0, pageSize);
+        const initialSer = initialSerPwsAgg.ser.slice(0, pageSize);
+        const initialPws = initialSerPwsAgg.pws.slice(0, pageSize);
+
+        const eccSerPwsChart = Highcharts.chart('eccSerPwsColumnChart', {
             chart: {
                 type: 'column',
                 backgroundColor: 'transparent'
             },
             title: { text: null },
             xAxis: {
-                categories: eccReadinessCategories,
+                categories: initialCategories,
                 labels: {
                     style: {
                         color: textSecondary,
@@ -1792,27 +2725,22 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             yAxis: {
                 title: {
-                    text: 'Readiness Rate (%)',
+                    text: 'Stock Quantity',
                     style: { color: textSecondary, fontWeight: 'bold' }
                 },
                 labels: {
-                    format: '{value}%',
                     style: { color: textSecondary }
                 },
-                gridLineColor: borderDim,
-                max: 100
+                gridLineColor: borderDim
             },
             plotOptions: {
                 column: {
-                    colorByPoint: true,
-                    colors: eccReadinessRates.map(val => {
-                        if (val >= 80) return '#10b981'; // Emerald green
-                        if (val >= 50) return '#f59e0b'; // Amber
-                        return '#ef4444'; // Red
-                    }),
+                    grouping: true,
+                    shadow: false,
                     dataLabels: {
                         enabled: true,
-                        format: '{point.y:.1f}%',
+                        crop: false,
+                        overflow: 'none',
                         style: {
                             fontWeight: 'bold',
                             fontSize: '9px',
@@ -1823,18 +2751,134 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             series: [{
-                name: 'Readiness Rate',
-                data: eccReadinessRates,
-                showInLegend: false
+                name: 'SER Stock',
+                data: initialSer,
+                color: '#3b82f6'
+            }, {
+                name: 'PWS Stock',
+                data: initialPws,
+                color: '#ec4899'
             }],
+            legend: {
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                }
+            },
             tooltip: {
                 backgroundColor: 'var(--bg-surface)',
                 borderWidth: 1,
                 borderColor: 'var(--border-dim)',
                 style: {
                     color: 'var(--text-primary)'
+                }
+            },
+            credits: { enabled: false }
+        });
+
+        // Initialize buttons & listeners
+        const prevBtn = document.getElementById('eccSerPwsPrevBtn');
+        const nextBtn = document.getElementById('eccSerPwsNextBtn');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 0) {
+                    currentPage--;
+                    renderPaginatedSerPwsChart();
+                }
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                currentPage++;
+                renderPaginatedSerPwsChart();
+            });
+        }
+
+        // Initialize page indicator styling state
+        renderPaginatedSerPwsChart();
+
+        // 3. Bind Filter event listener
+        eccSerPwsFilter.addEventListener('change', function () {
+            currentPage = 0; // Reset to first page
+            renderPaginatedSerPwsChart();
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 6: POSTED STRENGTH BY UNIT (LINE CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const eccStrengthEl = document.getElementById('eccUnitStrengthLineChart');
+    if (eccStrengthEl) {
+        const strengthData = JSON.parse(eccStrengthEl.dataset.chart || "[]");
+        const categories = strengthData.map(d => d.name);
+        const postedStrengths = strengthData.map(d => d.posted_strength);
+
+        Highcharts.chart('eccUnitStrengthLineChart', {
+            chart: {
+                type: 'line',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: categories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '9px'
+                    }
                 },
-                valueSuffix: '%'
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Personnel Strength',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim
+            },
+            plotOptions: {
+                line: {
+                    dataLabels: {
+                        enabled: true,
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            textOutline: 'none',
+                            color: 'var(--text-primary)'
+                        }
+                    },
+                    enableMouseTracking: true
+                }
+            },
+            series: [{
+                name: 'Posted Strength',
+                data: postedStrengths,
+                color: '#6366f1'
+            }],
+            legend: {
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                backgroundColor: 'var(--bg-surface)',
+                borderWidth: 1,
+                borderColor: 'var(--border-dim)',
+                style: {
+                    color: 'var(--text-primary)'
+                }
             },
             credits: { enabled: false }
         });
@@ -1926,10 +2970,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const hideableSelectors = [
                 '.ecc-col-division', '.ecc-col-scale', '.ecc-col-auth-auth', 
-                '.ecc-col-auth-res', '.ecc-col-bbf-ser', '.ecc-col-bbf-pws', 
+                '.ecc-col-auth-res', '.ecc-col-auth-unit', '.ecc-col-bbf-ser', '.ecc-col-bbf-pws', 
                 '.ecc-col-bbf-total', '.ecc-col-recd-ser', '.ecc-col-recd-pws', 
                 '.ecc-col-recd-total', '.ecc-col-issd-ser', '.ecc-col-issd-pws', 
-                '.ecc-col-issd-total', '.ecc-col-tps', '.ecc-col-deficiency', 
+                '.ecc-col-issd-total', '.ecc-col-tps', 
                 '.ecc-col-created-at'
             ];
 
@@ -1938,6 +2982,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 elements.forEach(el => {
                     el.style.display = div ? 'none' : '';
                 });
+            });
+
+            // Dynamically switch AUTH column values: unit_auth when filtered by unit, otherwise auth_total
+            const authTotalCells = document.querySelectorAll('.ecc-col-auth-total-cell');
+            authTotalCells.forEach(cell => {
+                cell.textContent = div ? cell.dataset.unitAuth : cell.dataset.authTotal;
             });
 
             // Dynamically remove horizontal scroll when filter is selected by setting min-width to 100%
@@ -1953,11 +3003,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
+            let visibleIdx = 1;
             eccRows.forEach(row => {
                 const show = (!div || row.dataset.division === div) &&
                              (!cat || row.dataset.category === cat);
                 row.style.display = show ? '' : 'none';
-                if (show) visible++;
+                if (show) {
+                    const snoCell = row.querySelector('.ecc-col-sno');
+                    if (snoCell) {
+                        snoCell.textContent = visibleIdx++;
+                    }
+                    visible++;
+                }
             });
 
             if (eccNoResults) {
