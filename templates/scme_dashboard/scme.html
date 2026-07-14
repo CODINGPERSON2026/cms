@@ -197,7 +197,7 @@
     /* ── Chart Panels Grid ── */
     .chart-row {
         display: grid;
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 24px;
         margin-bottom: 24px;
     }
@@ -432,16 +432,7 @@
             </div>
         </div>
 
-        <!-- 3. Fulfillment Rate -->
-        <div class="metric-card">
-            <div class="metric-icon-box icon-box-success">
-                <i class="fa-solid fa-circle-check"></i>
-            </div>
-            <div class="metric-content">
-                <span class="metric-label">Fulfillment</span>
-                <span class="metric-value">{{ fulfillment_rate }}%</span>
-            </div>
-        </div>
+
 
         <!-- 4. Global Deficiency -->
         <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalGlobalDeficiency">
@@ -468,7 +459,7 @@
 
     <!-- Main Chart Row -->
     <div class="chart-row">
-        <!-- 3D Grouped Bar Chart -->
+        <!-- Grouped Bar Chart -->
         <div class="chart-panel-card">
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
@@ -491,30 +482,11 @@
                 </div>
             </div>
             <div class="chart-canvas-wrapper">
-                <div id="unit3DBarChart" data-chart='{{ unit_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
+                <div id="unitBarChart" data-chart='{{ unit_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
             </div>
         </div>
 
-        <!-- 3D Donut Chart -->
-        <div class="chart-panel-card">
-            <div class="chart-panel-header">
-                <h3 class="chart-panel-title">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    Global Fulfillment
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Percentage of aggregate stock held vs total deficiency across all registered items globally.">
-                        <i class="fa-solid fa-circle-info"></i>
-                    </span>
-                </h3>
-            </div>
-            <div class="chart-canvas-wrapper">
-                <div id="global3DDonutChart" data-chart='{{ overall_chart_data | tojson }}' data-rate="{{ fulfillment_rate }}" style="width: 100%; height: 350px;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Secondary Chart Row -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="chart-row-secondary animate-fade-in">
-        <!-- 3D Horizontal Bar Chart -->
+        <!-- Horizontal Bar Chart -->
         <div class="chart-panel-card">
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
@@ -526,11 +498,14 @@
                 </h3>
             </div>
             <div class="chart-canvas-wrapper">
-                <div id="item3DPrismChart" data-chart='{{ item_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
+                <div id="itemPrismChart" data-chart='{{ item_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
             </div>
         </div>
+    </div>
 
-        <!-- 3D Pie Chart: Deficiency Share by Unit -->
+    <!-- Secondary Chart Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="chart-row-secondary animate-fade-in">
+        <!-- Pie Chart: Deficiency Share by Unit -->
         <div class="chart-panel-card">
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
@@ -542,30 +517,11 @@
                 </h3>
             </div>
             <div class="chart-canvas-wrapper">
-                <div id="unitDeficiency3DPieChart" data-chart='{{ unit_deficiency_share_data | tojson }}' style="width: 100%; height: 350px;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Third Chart & Action Row -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px;" class="chart-row-tertiary animate-fade-in">
-        <!-- 3D Cylinder/Column Chart: A/U Split -->
-        <div class="chart-panel-card">
-            <div class="chart-panel-header">
-                <h3 class="chart-panel-title">
-                    <i class="fa-solid fa-chart-bar"></i>
-                    A/U Quantity Split
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Breakdown of the total held stock quantity by accounting units (Nos vs Prs).">
-                        <i class="fa-solid fa-circle-info"></i>
-                    </span>
-                </h3>
-            </div>
-            <div class="chart-canvas-wrapper">
-                <div id="auSplit3DColumnChart" data-chart='{{ au_split_data | tojson }}' style="width: 100%; height: 350px;"></div>
+                <div id="unitDeficiencyPieChart" data-chart='{{ unit_deficiency_share_data | tojson }}' style="width: 100%; height: 350px;"></div>
             </div>
         </div>
 
-        <!-- Quick actions / details panel (Replaced with Supply Readiness chart in Row 3) -->
+        <!-- Supply Readiness -->
         <div class="chart-panel-card">
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
@@ -577,7 +533,7 @@
                 </h3>
             </div>
             <div class="chart-canvas-wrapper">
-                <div id="unitReadiness3DColumnChart" data-chart='{{ unit_readiness_data | tojson }}' style="width: 100%; height: 350px;"></div>
+                <div id="unitReadinessColumnChart" data-chart='{{ unit_readiness_data | tojson }}' style="width: 100%; height: 350px;"></div>
             </div>
         </div>
     </div>
@@ -606,10 +562,10 @@
                     <i class="fa-solid fa-chevron-right"></i>
                 </button>
 
-                <a href="/mgt" class="btn btn-outline-secondary text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--border-dim); color: var(--text-primary); font-weight:600; text-decoration: none;">
+                <!-- <a href="/mgt" class="btn btn-outline-secondary text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--border-dim); color: var(--text-primary); font-weight:600; text-decoration: none;">
                     <span><i class="fa-solid fa-sitemap me-2"></i>View Management Tree</span>
                     <i class="fa-solid fa-chevron-right"></i>
-                </a>
+                </a> -->
             </div>
         </div>
     </div>
@@ -718,9 +674,8 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Offline Local Highcharts & 3D modules -->
+<!-- Offline Local Highcharts (2D — no 3D module needed) -->
 <script src="{{ url_for('static', filename='highcharts.js') }}"></script>
-<script src="{{ url_for('static', filename='highcharts-3d.js') }}"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -757,10 +712,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Inject backend data (read from HTML5 data attributes to keep Javascript syntax clean and warnings-free)
-    const unitChartData = JSON.parse(document.getElementById('unit3DBarChart').dataset.chart);
-    const itemChartData = JSON.parse(document.getElementById('item3DPrismChart').dataset.chart);
-    const overallChartData = JSON.parse(document.getElementById('global3DDonutChart').dataset.chart);
-    const fulfillmentRate = parseFloat(document.getElementById('global3DDonutChart').dataset.rate);
+    const unitChartData = JSON.parse(document.getElementById('unitBarChart').dataset.chart);
+    const itemChartData = JSON.parse(document.getElementById('itemPrismChart').dataset.chart);
 
     // Global theme variables mapped from CSS
     const computedStyles = getComputedStyle(document.documentElement);
@@ -812,18 +765,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const itemDeficiencies = itemChartData.map(d => d.deficiency);
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CHART 1: UNIT LEDGER COMPARISON (3D GROUPED COLUMN CHART)
+    // CHART 1: UNIT LEDGER COMPARISON (2D GROUPED COLUMN CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    const unitBarChart = Highcharts.chart('unit3DBarChart', {
+    const unitBarChart = Highcharts.chart('unitBarChart', {
         chart: {
             type: 'column',
-            options3d: {
-                enabled: true,
-                alpha: 12,
-                beta: 18,
-                depth: 60,
-                viewDistance: 25
-            },
             backgroundColor: 'transparent'
         },
         title: { text: null },
@@ -851,7 +797,6 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         plotOptions: {
             column: {
-                depth: 30,
                 grouping: true,
                 shadow: false,
                 dataLabels: {
@@ -933,94 +878,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CHART 2: GLOBAL FULFILLMENT (3D DONUT CHART)
+    // CHART 2: TOP 5 DEFICIENT ITEMS (2D HORIZONTAL BAR CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    const valHeld = overallChartData.held;
-    const valDeficiency = overallChartData.deficiency;
-
-    Highcharts.chart('global3DDonutChart', {
-        chart: {
-            type: 'pie',
-            options3d: {
-                enabled: true,
-                alpha: 45,
-                beta: 0
-            },
-            backgroundColor: 'transparent'
-        },
-        title: {
-            text: fulfillmentRate + '%',
-            align: 'center',
-            verticalAlign: 'middle',
-            y: 0,
-            style: {
-                color: textPrimary,
-                fontSize: '24px',
-                fontWeight: 'bold',
-                fontFamily: 'sans-serif'
-            }
-        },
-        subtitle: {
-            text: 'FULFILLED',
-            align: 'center',
-            verticalAlign: 'middle',
-            y: 18,
-            style: {
-                color: textSecondary,
-                fontSize: '9px',
-                fontWeight: 'bold',
-                letterSpacing: '1px'
-            }
-        },
-        plotOptions: {
-            pie: {
-                innerSize: '70%',
-                depth: 45,
-                dataLabels: {
-                    enabled: false
-                },
-                showInLegend: true
-            }
-        },
-        series: [{
-            name: 'Quantity',
-            data: [
-                { name: 'Held', y: valHeld, color: '#10b981' }, // Emerald green
-                { name: 'Deficiency', y: valDeficiency, color: '#ef4444' } // Red
-            ]
-        }],
-        legend: {
-            itemStyle: {
-                color: textPrimary,
-                textTransform: 'uppercase',
-                fontSize: '9px',
-                fontWeight: 'bold'
-            }
-        },
-        tooltip: {
-            backgroundColor: 'var(--bg-surface)',
-            borderWidth: 1,
-            borderColor: 'var(--border-dim)',
-            style: {
-                color: 'var(--text-primary)'
-            }
-        },
-        credits: { enabled: false }
-    });
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // CHART 3: TOP 5 DEFICIENT ITEMS (3D HORIZONTAL BAR CHART)
-    // ─────────────────────────────────────────────────────────────────────────
-    Highcharts.chart('item3DPrismChart', {
+    Highcharts.chart('itemPrismChart', {
         chart: {
             type: 'bar',
-            options3d: {
-                enabled: true,
-                alpha: 10,
-                beta: 15,
-                depth: 50,
-                viewDistance: 25
-            },
             backgroundColor: 'transparent'
         },
         title: { text: null },
@@ -1048,7 +910,6 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         plotOptions: {
             bar: {
-                depth: 25,
                 colorByPoint: false,
                 dataLabels: {
                     enabled: true,
@@ -1081,9 +942,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CHART 4: DEFICIENCY SHARE BY UNIT (3D PIE CHART)
+    // CHART 3: DEFICIENCY SHARE BY UNIT (2D PIE CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    const pieEl = document.getElementById('unitDeficiency3DPieChart');
+    const pieEl = document.getElementById('unitDeficiencyPieChart');
     const unitDefShareData = pieEl ? JSON.parse(pieEl.dataset.chart) : [];
 
     if (pieEl) {
@@ -1092,14 +953,9 @@ document.addEventListener("DOMContentLoaded", function () {
             y: d.deficiency
         }));
 
-        Highcharts.chart('unitDeficiency3DPieChart', {
+        Highcharts.chart('unitDeficiencyPieChart', {
             chart: {
                 type: 'pie',
-                options3d: {
-                    enabled: true,
-                    alpha: 45,
-                    beta: 0
-                },
                 backgroundColor: 'transparent'
             },
             title: { text: null },
@@ -1107,7 +963,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 pie: {
                     allowPointSelect: true,
                     cursor: 'pointer',
-                    depth: 35,
                     dataLabels: {
                         enabled: true,
                         format: '<b>{point.name}</b>: {point.percentage:.1f}%',
@@ -1148,103 +1003,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CHART 5: A/U QUANTITY SPLIT (3D COLUMN CHART)
+    // CHART 4: SUPPLY READINESS BY UNIT (2D COLUMN CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    const auEl = document.getElementById('auSplit3DColumnChart');
-    const auSplitData = auEl ? JSON.parse(auEl.dataset.chart) : [];
-
-    if (auEl) {
-        const auCategories = auSplitData.map(d => d.a_u);
-        const auHeldSeries = auSplitData.map(d => d.held);
-
-        Highcharts.chart('auSplit3DColumnChart', {
-            chart: {
-                type: 'column',
-                options3d: {
-                    enabled: true,
-                    alpha: 15,
-                    beta: 15,
-                    depth: 50,
-                    viewDistance: 25
-                },
-                backgroundColor: 'transparent'
-            },
-            title: { text: null },
-            xAxis: {
-                categories: auCategories,
-                labels: {
-                    style: {
-                        color: textSecondary,
-                        fontWeight: 'bold',
-                        fontSize: '10px'
-                    }
-                },
-                gridLineColor: borderDim,
-                lineColor: borderDim
-            },
-            yAxis: {
-                title: {
-                    text: 'Total Held Quantity',
-                    style: { color: textSecondary, fontWeight: 'bold' }
-                },
-                labels: {
-                    style: { color: textSecondary }
-                },
-                gridLineColor: borderDim
-            },
-            plotOptions: {
-                column: {
-                    depth: 35,
-                    colorByPoint: true,
-                    colors: ['#06b6d4', '#14b8a6'], // Nos = Cyan, Prs = Teal
-                    dataLabels: {
-                        enabled: true,
-                        style: {
-                            fontWeight: 'bold',
-                            fontSize: '10px',
-                            textOutline: 'none',
-                            color: 'var(--text-primary)'
-                        }
-                    }
-                }
-            },
-            series: [{
-                name: 'Held Qty',
-                data: auHeldSeries,
-                showInLegend: false
-            }],
-            tooltip: {
-                backgroundColor: 'var(--bg-surface)',
-                borderWidth: 1,
-                borderColor: 'var(--border-dim)',
-                style: {
-                    color: 'var(--text-primary)'
-                }
-            },
-            credits: { enabled: false }
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // CHART 6: SUPPLY READINESS BY UNIT (3D COLUMN/CYLINDER CHART)
-    // ─────────────────────────────────────────────────────────────────────────
-    const readinessEl = document.getElementById('unitReadiness3DColumnChart');
+    const readinessEl = document.getElementById('unitReadinessColumnChart');
     const readinessData = readinessEl ? JSON.parse(readinessEl.dataset.chart) : [];
 
     if (readinessEl) {
         const readinessCategories = readinessData.map(d => d.unit_name);
         const readinessRates = readinessData.map(d => d.rate);
 
-        Highcharts.chart('unitReadiness3DColumnChart', {
+        Highcharts.chart('unitReadinessColumnChart', {
             chart: {
                 type: 'column',
-                options3d: {
-                    enabled: true,
-                    alpha: 15,
-                    beta: 15,
-                    depth: 50,
-                    viewDistance: 25
-                },
                 backgroundColor: 'transparent'
             },
             title: { text: null },
@@ -1274,7 +1044,6 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             plotOptions: {
                 column: {
-                    depth: 35,
                     colorByPoint: true,
                     colors: readinessRates.map(val => {
                         if (val >= 80) return '#10b981'; // Emerald green
