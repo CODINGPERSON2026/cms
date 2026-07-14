@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  ECC — MONTHLY STATE ENTRY FORM  (standalone preview)
+  ============================================================================
+  This file is a WORKING PREVIEW so you can test:
+    • TOTAL = AUTH + RES  (auto-calculates)
+    • "2 FOD" division  ->  shows Comd / IHQ fields (BBF + Stock Held)
+    • numeric-only inputs
+    • section-based field names (see the naming table in chat)
+
+  To drop into your Flask/Jinja dashboard:
+    1. Remove the <link> to FontAwesome below (your base.html already loads it).
+    2. Remove the ":root{}" CSS block below (your app already defines these vars).
+    3. Paste the <style> (form styles) into your {% block head %}.
+    4. Paste the <form> markup into <div class="tab-panel" id="panelEcc"> ...
+    5. Swap the two MOCK dropdowns for the Jinja loops (marked "JINJA →").
+    6. Paste the <script> logic into your {% block scripts %} DOMContentLoaded.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECC — Monthly State Entry</title>
+
+<!-- PREVIEW ONLY — remove on integration (base.html already has FontAwesome) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+    /* PREVIEW ONLY — remove on integration (your app already defines these) */
+    :root {
+        --bg-base:        #eef2f0;
+        --bg-surface:     #ffffff;
+        --bg-raised:      #f5f7f6;
+        --border-dim:     #e2e7e4;
+        --text-primary:   #1a2420;
+        --text-secondary: #4d6358;
+        --text-muted:     #8a9a92;
+        --accent:         #16a34a;
+        --accent-muted:   rgba(22,163,74,0.08);
+        --accent-glow:    rgba(22,163,74,0.15);
+        --danger:         #c0392b;
+        --warning:        #b8860b;
+        --transition:     0.2s ease;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        background: var(--bg-base);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: var(--text-primary);
+        padding: 24px;
+    }
+
+    /* ══════════ FORM STYLES — paste this block into {% block head %} ══════════ */
+
+    .ecc-form { max-width: 1100px; margin: 0 auto; }
+
+    .ecc-form-head {
+        display: flex; align-items: center; gap: 12px;
+        margin-bottom: 22px;
+    }
+    .ecc-form-head h2 {
+        margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-primary);
+        display: flex; align-items: center; gap: 12px;
+    }
+    .ecc-form-head h2 i { color: var(--accent); }
+    .ecc-form-head p {
+        margin: 4px 0 0; font-size: 0.82rem; color: var(--text-secondary);
+    }
+
+    /* Section card */
+    .ecc-section {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 16px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+    }
+    .ecc-section-header {
+        padding: 14px 22px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex; align-items: center; gap: 10px;
+        background: var(--bg-raised);
+    }
+    .ecc-section-header i { color: var(--accent); font-size: 0.9rem; }
+    .ecc-section-header h3 {
+        margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--text-primary);
+        text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .ecc-section-header .ecc-step {
+        margin-left: auto;
+        font-size: 0.65rem; font-weight: 800; letter-spacing: 0.5px;
+        color: var(--text-muted);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        padding: 3px 9px; border-radius: 20px;
+    }
+    .ecc-section-body {
+        padding: 20px 22px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 16px;
+    }
+
+    /* Field */
+    .ecc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .ecc-field.ecc-field-wide { grid-column: 1 / -1; }
+    .ecc-field label {
+        font-size: 0.7rem; font-weight: 700; letter-spacing: 0.6px;
+        text-transform: uppercase; color: var(--text-secondary);
+        display: flex; align-items: center; gap: 6px;
+    }
+    .ecc-field label .req { color: var(--danger); }
+
+    .ecc-input {
+        width: 100%;
+        padding: 9px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border-dim);
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        font-size: 0.86rem;
+        font-weight: 500;
+        outline: none;
+        transition: border-color var(--transition), box-shadow var(--transition);
+        font-variant-numeric: tabular-nums;
+    }
+    .ecc-input:hover  { border-color: var(--accent); }
+    .ecc-input:focus  { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    select.ecc-input  { cursor: pointer; }
+    textarea.ecc-input { resize: vertical; min-height: 60px; font-family: inherit; }
+
+    /* Read-only auto-calculated field (TOTAL) */
+    .ecc-input.ecc-readonly {
+        background: var(--accent-muted);
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 800;
+        cursor: not-allowed;
+    }
+
+    /* FOD-only fields — hidden by default, revealed by JS when Division = 2 FOD */
+    .ecc-fod-only { display: none; }
+    .ecc-fod-only.ecc-show { display: flex; }
+    .ecc-fod-note {
+        grid-column: 1 / -1;
+        display: none;
+        align-items: center; gap: 8px;
+        font-size: 0.75rem; color: var(--accent); font-weight: 600;
+        background: var(--accent-muted);
+        border: 1px dashed var(--accent);
+        border-radius: 10px; padding: 8px 12px;
+    }
+    .ecc-fod-note.ecc-show { display: flex; }
+
+    /* Actions bar */
+    .ecc-actions {
+        display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;
+        padding-top: 4px;
+    }
+    .ecc-btn {
+        padding: 11px 22px; border-radius: 11px;
+        font-size: 0.85rem; font-weight: 700; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px;
+        border: 1px solid transparent; transition: all var(--transition);
+    }
+    .ecc-btn-primary {
+        background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    .ecc-btn-primary:hover { filter: brightness(1.08); box-shadow: 0 6px 18px var(--accent-glow); }
+    .ecc-btn-ghost {
+        background: transparent; color: var(--text-secondary); border-color: var(--border-dim);
+    }
+    .ecc-btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Payload preview (debug — confirms section-based names; remove if not needed) */
+    .ecc-payload {
+        margin-top: 18px; display: none;
+        background: #0f1613; color: #b7f5c4;
+        border-radius: 14px; padding: 18px 20px;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.78rem; line-height: 1.55;
+        white-space: pre; overflow-x: auto;
+        border: 1px solid var(--border-dim);
+    }
+    .ecc-payload.ecc-show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PASTE FROM HERE  →  into  <div class="tab-panel" id="panelEcc"> ... </div>
+     ══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- In Flask:  <form id="eccForm" method="POST" action="{{ url_for('ecc.enter_state') }}"> -->
+<form class="ecc-form" id="eccForm" method="POST" action="#" novalidate>
+
+    <div class="ecc-form-head">
+        <div>
+            <h2><i class="fa-solid fa-clipboard-list"></i> ECC — Monthly State Entry</h2>
+            <p>Digital replacement for the monthly state Excel sheet. Fill each section and submit.</p>
+        </div>
+    </div>
+
+    <!-- ══════════ 1. ITEM DETAILS ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <h3>Item Details</h3>
+            <span class="ecc-step">Section 1</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field ecc-field-wide">
+                <label for="item_id">Item <span class="req">*</span></label>
+                <!-- JINJA →
+                <select name="item_id" id="item_id" class="ecc-input" required>
+                    <option value="">— Select Item —</option>
+                    {% for item in items %}
+                        <option value="{{ item.id }}">{{ item.item_name }}</option>
+                    {% endfor %}
+                </select>
+                -->
+                <!-- MOCK (preview only) -->
+                <select name="item_id" id="item_id" class="ecc-input" required>
+                    <option value="">— Select Item —</option>
+                    <option value="1">7.62mm Rifle Assembly</option>
+                    <option value="2">Radio Set VHF</option>
+                    <option value="3">Night Vision Device</option>
+                    <option value="4">Field Telephone</option>
+                </select>
+            </div>
+            <div class="ecc-field">
+                <label for="scale">Scale</label>
+                <input type="text" name="scale" id="scale" class="ecc-input" placeholder="e.g. 01 per unit">
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 2. AUTHORIZATION ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-stamp"></i>
+            <h3>Authorization</h3>
+            <span class="ecc-step">Section 2</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field">
+                <label for="auth_auth">Auth</label>
+                <input type="number" name="auth_auth" id="auth_auth" class="ecc-input auth-calc" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="auth_res">Res</label>
+                <input type="number" name="auth_res" id="auth_res" class="ecc-input auth-calc" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="auth_total"><i class="fa-solid fa-calculator"></i> Total (auto)</label>
+                <input type="number" name="auth_total" id="auth_total" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 3. BBF (OF LAST MONTH) ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <h3>BBF (Of Last Month)</h3>
+            <span class="ecc-step">Section 3</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field ecc-field-wide">
+                <label for="bbf_division">Division <span class="req">*</span></label>
+                <!-- JINJA →
+                <select name="bbf_division" id="bbf_division" class="ecc-input" required>
+                    <option value="">— Select Division —</option>
+                    {% for div in divisions %}
+                        <option value="{{ div.id }}"
+                                data-fod="{{ 'true' if div.name == '2 FOD' else 'false' }}">
+                            {{ div.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                -->
+                <!-- MOCK (preview only). data-fod="true" marks the 2 FOD special case. -->
+                <select name="bbf_division" id="bbf_division" class="ecc-input" required>
+                    <option value="">— Select Division —</option>
+                    <option value="1" data-fod="true">2 FOD</option>
+                    <option value="2" data-fod="false">19 DIV</option>
+                    <option value="3" data-fod="false">28 MOU</option>
+                    <option value="4" data-fod="false">33 DIV</option>
+                </select>
+            </div>
+
+            <div class="ecc-field">
+                <label for="bbf_ser">SER</label>
+                <input type="number" name="bbf_ser" id="bbf_ser" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="bbf_pws">PWS</label>
+                <input type="number" name="bbf_pws" id="bbf_pws" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+
+            <!-- FOD-only -->
+            <div class="ecc-field ecc-fod-only" data-fod-group>
+                <label for="bbf_comd">Comd</label>
+                <input type="number" name="bbf_comd" id="bbf_comd" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field ecc-fod-only" data-fod-group>
+                <label for="bbf_ihq">IHQ</label>
+                <input type="number" name="bbf_ihq" id="bbf_ihq" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 4. QUANTITY RECEIVED THIS MONTH ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-arrow-down-to-bracket"></i>
+            <h3>Quantity Received During This Month</h3>
+            <span class="ecc-step">Section 4</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field">
+                <label for="recd_ser">SER</label>
+                <input type="number" name="recd_ser" id="recd_ser" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="recd_pws">PWS</label>
+                <input type="number" name="recd_pws" id="recd_pws" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 5. QUANTITY ISSUED THIS MONTH ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-arrow-up-from-bracket"></i>
+            <h3>Quantity Issued During This Month</h3>
+            <span class="ecc-step">Section 5</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field">
+                <label for="issd_ser">SER</label>
+                <input type="number" name="issd_ser" id="issd_ser" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="issd_pws">PWS</label>
+                <input type="number" name="issd_pws" id="issd_pws" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 6. STOCK HELD ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-warehouse"></i>
+            <h3>Stock Held</h3>
+            <span class="ecc-step">Section 6</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field">
+                <label for="stock_ser">SER</label>
+                <input type="number" name="stock_ser" id="stock_ser" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="stock_pws">PWS</label>
+                <input type="number" name="stock_pws" id="stock_pws" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+
+            <!-- FOD-only -->
+            <div class="ecc-field ecc-fod-only" data-fod-group>
+                <label for="stock_comd">Comd</label>
+                <input type="number" name="stock_comd" id="stock_comd" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field ecc-fod-only" data-fod-group>
+                <label for="stock_ihq">IHQ</label>
+                <input type="number" name="stock_ihq" id="stock_ihq" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- FOD reveal note (spans full width, sits under whichever section is nearest) -->
+    <!-- (kept as a subtle global banner; you can move it if you prefer) -->
+
+    <!-- ══════════ 7. ADDITIONAL FIELDS ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-list-ul"></i>
+            <h3>Additional Fields</h3>
+            <span class="ecc-step">Section 7</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field">
+                <label for="add_knd">KND</label>
+                <input type="number" name="add_knd" id="add_knd" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="add_tn_model">TN Model</label>
+                <input type="number" name="add_tn_model" id="add_tn_model" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="add_n_area_otg">N Area (OTG)</label>
+                <input type="number" name="add_n_area_otg" id="add_n_area_otg" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field">
+                <label for="add_idt_ict">IDT / ICT</label>
+                <input type="number" name="add_idt_ict" id="add_idt_ict" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+            <div class="ecc-field ecc-field-wide">
+                <label for="add_remarks_ro_bal">Remarks (RO Bal Issue)</label>
+                <textarea name="add_remarks_ro_bal" id="add_remarks_ro_bal" class="ecc-input" placeholder="Remarks…"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 8. STOCK HELD WITH TPS ══════════ -->
+    <div class="ecc-section">
+        <div class="ecc-section-header">
+            <i class="fa-solid fa-boxes-packing"></i>
+            <h3>Stock Held With TPS</h3>
+            <span class="ecc-step">Section 8</span>
+        </div>
+        <div class="ecc-section-body">
+            <div class="ecc-field">
+                <label for="tps">TPS</label>
+                <input type="number" name="tps" id="tps" class="ecc-input" min="0" step="1" placeholder="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="ecc-actions">
+        <button type="button" class="ecc-btn ecc-btn-ghost" id="eccPreviewBtn">
+            <i class="fa-solid fa-code"></i> Preview Payload
+        </button>
+        <button type="reset" class="ecc-btn ecc-btn-ghost">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+        </button>
+        <button type="submit" class="ecc-btn ecc-btn-primary">
+            <i class="fa-solid fa-floppy-disk"></i> Save Monthly State
+        </button>
+    </div>
+
+    <!-- Debug payload (shows the section-grouped names — remove when done) -->
+    <pre class="ecc-payload" id="eccPayload"></pre>
+</form>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PASTE UNTIL HERE
+     ══════════════════════════════════════════════════════════════════════════ -->
+
+
+<!-- ══════════ SCRIPT — paste inside your DOMContentLoaded in {% block scripts %} ══════════ -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("eccForm");
+    if (!form) return;
+
+    // ── 1. AUTH + RES  →  TOTAL (auto-calc) ──
+    const authInput  = document.getElementById("auth_auth");
+    const resInput   = document.getElementById("auth_res");
+    const totalInput = document.getElementById("auth_total");
+
+    function recalcTotal() {
+        const a = parseFloat(authInput.value) || 0;
+        const r = parseFloat(resInput.value)  || 0;
+        totalInput.value = a + r;
+    }
+    authInput.addEventListener("input", recalcTotal);
+    resInput.addEventListener("input", recalcTotal);
+    recalcTotal();
+
+    // ── 2. Division = "2 FOD"  →  show Comd / IHQ fields ──
+    const divisionSel = document.getElementById("bbf_division");
+    const fodGroups   = document.querySelectorAll("[data-fod-group]");
+
+    function toggleFodFields() {
+        const opt   = divisionSel.options[divisionSel.selectedIndex];
+        const isFod = opt && opt.dataset.fod === "true";
+        fodGroups.forEach(el => {
+            el.classList.toggle("ecc-show", isFod);
+            // clear hidden values so they don't get submitted / summed by mistake
+            if (!isFod) {
+                const input = el.querySelector("input");
+                if (input) input.value = "";
+            }
+        });
+    }
+    divisionSel.addEventListener("change", toggleFodFields);
+    toggleFodFields();
+
+    // ── 3. Numeric-only guard (belt-and-braces on top of type="number") ──
+    form.querySelectorAll('input[type="number"]').forEach(inp => {
+        inp.addEventListener("keydown", e => {
+            const allow = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","Home","End",".","-"];
+            if (allow.includes(e.key) || e.ctrlKey || e.metaKey) return;
+            if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+        });
+    });
+
+    // ── 4. Preview payload (grouped by section — confirms your naming scheme) ──
+    document.getElementById("eccPreviewBtn").addEventListener("click", function () {
+        const g = id => document.getElementById(id).value;
+        const payload = {
+            item:         { item_id: g("item_id"), scale: g("scale") },
+            authorization:{ auth_auth: g("auth_auth"), auth_res: g("auth_res"), auth_total: g("auth_total") },
+            bbf:          { bbf_division: g("bbf_division"), bbf_ser: g("bbf_ser"), bbf_pws: g("bbf_pws"),
+                            bbf_comd: g("bbf_comd"), bbf_ihq: g("bbf_ihq") },
+            received:     { recd_ser: g("recd_ser"), recd_pws: g("recd_pws") },
+            issued:       { issd_ser: g("issd_ser"), issd_pws: g("issd_pws") },
+            stock_held:   { stock_ser: g("stock_ser"), stock_pws: g("stock_pws"),
+                            stock_comd: g("stock_comd"), stock_ihq: g("stock_ihq") },
+            additional:   { add_knd: g("add_knd"), add_tn_model: g("add_tn_model"),
+                            add_n_area_otg: g("add_n_area_otg"), add_idt_ict: g("add_idt_ict"),
+                            add_remarks_ro_bal: g("add_remarks_ro_bal") },
+            tps:          { tps: g("tps") }
+        };
+        const out = document.getElementById("eccPayload");
+        out.textContent = JSON.stringify(payload, null, 2);
+        out.classList.add("ecc-show");
+    });
+
+    // Preview form: block real submit (remove this in Flask so POST goes through)
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        document.getElementById("eccPreviewBtn").click();
+        alert("Preview mode — in your Flask app this POSTs to the backend.");
+    });
+});
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 from imports import *
 from extensions import db
 from models import LoginUser, ActionLog
-from models.our_items import OurItems, ItemRequestTable, ScmeItems, Units, ScmeIssuedItems
+from models.our_items import OurItems, ItemRequestTable, ScmeItems, Units, ScmeIssuedItems, EccMonthlyState
 from models.org_ladder import OrgLadder
 from validation import has_special_characters
 
@@ -16,7 +16,7 @@ def scme_home():
     from sqlalchemy import func
 
     # 1. Total Catalog Items
-    total_items = ScmeItems.query.count()
+    total_items = ScmeItems.query.filter(ScmeItems.type == 'scme').count()
 
     # 2. Active Units Tracked
     active_units = db.session.query(ScmeIssuedItems.unit_name).distinct().count()
@@ -127,7 +127,56 @@ def scme_home():
 
     issued_items = ScmeIssuedItems.query.order_by(ScmeIssuedItems.created_at.desc()).all()
     # Full catalog list for the "Registered Items" drill-down modal
-    catalog_items = ScmeItems.query.order_by(ScmeItems.item_name).all()
+    catalog_items = ScmeItems.query.filter(ScmeItems.type == 'scme').order_by(ScmeItems.item_name).all()
+    ecc_states = EccMonthlyState.query.order_by(EccMonthlyState.created_at.desc()).all()
+
+    # ECC specific counts & datasets
+    total_ecc_items = ScmeItems.query.filter(ScmeItems.type == 'ecc').count()
+    ecc_catalog_items = ScmeItems.query.filter(ScmeItems.type == 'ecc').order_by(ScmeItems.item_name).all()
+    
+    ecc_chart_data = []
+    total_ecc_auth = 0
+    total_ecc_held = 0
+    global_ecc_deficiency = 0
+    ecc_divisions = set()
+    for state in ecc_states:
+        if state.bbf_division:
+            ecc_divisions.add(state.bbf_division)
+        total_ecc_auth += (state.auth_total or 0)
+        total_ecc_held += (state.stock_total or 0)
+        global_ecc_deficiency += (state.deficiency or 0)
+        ecc_chart_data.append({
+            "id": state.id,
+            "division": state.bbf_division,
+            "item_name": state.item.item_name if state.item else "Unknown",
+            "category": state.item.category if state.item else "Unknown",
+            "scale": state.scale,
+            "auth_total": state.auth_total or 0,
+            "bbf_total": state.bbf_total or 0,
+            "recd_total": state.recd_total or 0,
+            "issd_total": state.issd_total or 0,
+            "stock_total": state.stock_total or 0,
+            "tps": state.tps or 0,
+            "deficiency": state.deficiency or 0
+        })
+    active_ecc_divisions = len(ecc_divisions)
+
+    # Compute ECC Supply Readiness by Division
+    from collections import defaultdict
+    ecc_div_readiness = defaultdict(lambda: {"auth": 0, "held": 0})
+    for state in ecc_states:
+        if state.bbf_division:
+            ecc_div_readiness[state.bbf_division]["auth"] += (state.auth_total or 0)
+            ecc_div_readiness[state.bbf_division]["held"] += (state.stock_total or 0)
+
+    ecc_readiness_data = [
+        {
+            "division": div.replace('_', ' ').upper(),
+            "rate": round((float(totals["held"]) / float(totals["auth"]) * 100), 1) if (totals["auth"] or 0) > 0 else 0
+        } for div, totals in ecc_div_readiness.items()
+    ]
+
+    db_units = Units.query.order_by(Units.name).all()
 
     return render_template(
         '/scme_dashboard/scme.html',
@@ -143,7 +192,17 @@ def scme_home():
         au_split_data=au_split_data,
         unit_readiness_data=unit_readiness_data,
         issued_items=issued_items,
-        catalog_items=catalog_items
+        catalog_items=catalog_items,
+        ecc_states=ecc_states,
+        total_ecc_items=total_ecc_items,
+        ecc_catalog_items=ecc_catalog_items,
+        ecc_chart_data=ecc_chart_data,
+        total_ecc_auth=total_ecc_auth,
+        total_ecc_held=total_ecc_held,
+        global_ecc_deficiency=global_ecc_deficiency,
+        active_ecc_divisions=active_ecc_divisions,
+        ecc_readiness_data=ecc_readiness_data,
+        db_units=db_units
     )
 @scme_bp.route('/enter-items')
 def enter_items():
@@ -152,6 +211,8 @@ def enter_items():
     
     # Get distinct categories from scme_items
     categories = [r[0] for r in db.session.query(ScmeItems.category).distinct().all()]
+    scme_categories = [r[0] for r in db.session.query(ScmeItems.category).filter(ScmeItems.type == 'scme').distinct().all()]
+    ecc_categories = [r[0] for r in db.session.query(ScmeItems.category).filter(ScmeItems.type == 'ecc').distinct().all()]
     
     # Get all units
     units = Units.query.order_by(Units.name).all()
@@ -162,12 +223,18 @@ def enter_items():
     # Get already issued items history
     issued_items = ScmeIssuedItems.query.order_by(ScmeIssuedItems.created_at.desc()).all()
     
+    # Get previously entered monthly states
+    ecc_states = EccMonthlyState.query.order_by(EccMonthlyState.created_at.desc()).all()
+    
     return render_template(
         '/scme_dashboard/enter_scme_items.html',
         categories=categories,
+        scme_categories=scme_categories,
+        ecc_categories=ecc_categories,
         units=units,
         items=items,
-        issued_items=issued_items
+        issued_items=issued_items,
+        ecc_states=ecc_states
     )
 
 
@@ -180,6 +247,7 @@ def api_add_item():
         data = request.get_json()
         item_name = data.get("item_name", "").strip()
         category = data.get("category", "").strip()
+        item_type = data.get("type", "scme").strip().lower()
         
         if not item_name:
             return jsonify({"success": False, "message": "Item name is required"}), 400
@@ -187,6 +255,9 @@ def api_add_item():
         if not category:
             category = "CAT-II"
             
+        if item_type not in ["ecc", "scme"]:
+            item_type = "scme"
+
         if has_special_characters(item_name):
             return jsonify({"success": False, "message": "Item name contains invalid special characters."}), 400
             
@@ -198,7 +269,7 @@ def api_add_item():
         if existing:
             return jsonify({"success": False, "message": "An item with this name already exists."}), 400
             
-        new_item = ScmeItems(item_name=item_name, category=category)
+        new_item = ScmeItems(item_name=item_name, category=category, type=item_type)
         db.session.add(new_item)
         db.session.commit()
         
@@ -208,7 +279,8 @@ def api_add_item():
             "item": {
                 "id": new_item.id, 
                 "item_name": new_item.item_name,
-                "category": new_item.category
+                "category": new_item.category,
+                "type": new_item.type
             }
         }), 201
         
@@ -475,3 +547,345 @@ def api_get_logs():
         return jsonify({"success": True, "logs": log_list}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@scme_bp.route('/api/add-ecc-state', methods=['POST'])
+def api_add_ecc_state():
+    if "user_id" not in session or session.get("role") != "scme":
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+        
+    try:
+        data = request.get_json()
+        item_id = data.get("item_id")
+        scale = (data.get("scale") or "").strip()
+        
+        # Section 2: Auth
+        auth_auth = data.get("auth_auth")
+        auth_res = data.get("auth_res")
+        
+        # Section 3: BBF Last Month
+        bbf_division = (data.get("bbf_division") or "").strip()
+        bbf_ser = data.get("bbf_ser")
+        bbf_pws = data.get("bbf_pws")
+        bbf_comd = data.get("bbf_comd")
+        bbf_ihq = data.get("bbf_ihq")
+        
+        # Section 4: Received This Month
+        recd_ser = data.get("recd_ser")
+        recd_pws = data.get("recd_pws")
+        
+        # Section 5: Issued This Month
+        issd_ser = data.get("issd_ser")
+        issd_pws = data.get("issd_pws")
+        
+        # Section 6: Stock Held
+        stock_ser = data.get("stock_ser")
+        stock_pws = data.get("stock_pws")
+        stock_comd = data.get("stock_comd")
+        stock_ihq = data.get("stock_ihq")
+        
+        # Section 7: Additional Fields
+        add_knd = data.get("add_knd")
+        add_tn_model = data.get("add_tn_model")
+        add_n_area_otg = data.get("add_n_area_otg")
+        add_idt_ict = data.get("add_idt_ict")
+        add_remarks_ro_bal = data.get("add_remarks_ro_bal")
+        
+        # Section 8: Stock Held with TPS
+        tps = data.get("tps")
+        deficiency = data.get("deficiency")
+        
+        # Validate required fields
+        if not item_id or not bbf_division:
+            return jsonify({"success": False, "message": "Item and Division are required."}), 400
+            
+        # Parse integers
+        try:
+            item_id_val = int(item_id)
+            auth_auth_val = int(auth_auth or 0)
+            auth_res_val = int(auth_res or 0)
+            auth_total_val = auth_auth_val + auth_res_val
+            
+            bbf_ser_val = int(bbf_ser or 0)
+            bbf_pws_val = int(bbf_pws or 0)
+            bbf_total_val = bbf_ser_val + bbf_pws_val
+            bbf_comd_val = int(bbf_comd) if bbf_comd is not None and bbf_comd != "" else None
+            bbf_ihq_val = int(bbf_ihq) if bbf_ihq is not None and bbf_ihq != "" else None
+            
+            recd_ser_val = int(recd_ser or 0)
+            recd_pws_val = int(recd_pws or 0)
+            recd_total_val = recd_ser_val + recd_pws_val
+            
+            issd_ser_val = int(issd_ser or 0)
+            issd_pws_val = int(issd_pws or 0)
+            issd_total_val = issd_ser_val + issd_pws_val
+            
+            stock_ser_val = int(stock_ser or 0)
+            stock_pws_val = int(stock_pws or 0)
+            stock_total_val = stock_ser_val + stock_pws_val
+            stock_comd_val = int(stock_comd) if stock_comd is not None and stock_comd != "" else None
+            stock_ihq_val = int(stock_ihq) if stock_ihq is not None and stock_ihq != "" else None
+            
+            add_knd_val = int(add_knd or 0)
+            add_tn_model_val = int(add_tn_model or 0)
+            add_n_area_otg_val = int(add_n_area_otg or 0)
+            add_idt_ict_val = int(add_idt_ict or 0)
+            add_remarks_ro_bal_val = int(add_remarks_ro_bal or 0)
+            
+            tps_val = int(tps or 0)
+            deficiency_val = int(deficiency or 0)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "All input values (except scale) must be numbers."}), 400
+            
+        # Verify item exists in DB
+        item_exists = ScmeItems.query.get(item_id_val)
+        if not item_exists:
+            return jsonify({"success": False, "message": "Selected Item does not exist."}), 400
+            
+        # Create record
+        new_state = EccMonthlyState(
+            item_id=item_id_val,
+            scale=scale,
+            auth_auth=auth_auth_val,
+            auth_res=auth_res_val,
+            auth_total=auth_total_val,
+            bbf_division=bbf_division,
+            bbf_ser=bbf_ser_val,
+            bbf_pws=bbf_pws_val,
+            bbf_total=bbf_total_val,
+            bbf_comd=bbf_comd_val,
+            bbf_ihq=bbf_ihq_val,
+            recd_ser=recd_ser_val,
+            recd_pws=recd_pws_val,
+            recd_total=recd_total_val,
+            issd_ser=issd_ser_val,
+            issd_pws=issd_pws_val,
+            issd_total=issd_total_val,
+            stock_ser=stock_ser_val,
+            stock_pws=stock_pws_val,
+            stock_total=stock_total_val,
+            stock_comd=stock_comd_val,
+            stock_ihq=stock_ihq_val,
+            add_knd=add_knd_val,
+            add_tn_model=add_tn_model_val,
+            add_n_area_otg=add_n_area_otg_val,
+            add_idt_ict=add_idt_ict_val,
+            add_remarks_ro_bal=add_remarks_ro_bal_val,
+            tps=tps_val,
+            deficiency=deficiency_val
+        )
+        
+        db.session.add(new_state)
+        
+        # Log action
+        log_entry = ActionLog(
+            user_id=session.get("user_id"),
+            username=session.get("username", "Unknown"),
+            role=session.get("role", "scme"),
+            action_type="CREATE",
+            module="ECC",
+            details=f"Recorded monthly state for Item: '{item_exists.item_name}', Division: {bbf_division}"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "ECC monthly state recorded successfully.",
+            "state": {
+                "id": new_state.id,
+                "item_name": item_exists.item_name,
+                "scale": new_state.scale,
+                "bbf_division": new_state.bbf_division,
+                "auth_total": new_state.auth_total,
+                "bbf_total": new_state.bbf_total,
+                "recd_total": new_state.recd_total,
+                "issd_total": new_state.issd_total,
+                "stock_total": new_state.stock_total,
+                "deficiency": new_state.deficiency,
+                "created_at": new_state.created_at.strftime('%d %b %Y, %H:%M') if new_state.created_at else ""
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@scme_bp.route('/api/ecc-state/<int:state_id>', methods=['PUT', 'DELETE'])
+def api_ecc_state_actions(state_id):
+    if "user_id" not in session or session.get("role") != "scme":
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+        
+    record = EccMonthlyState.query.get(state_id)
+    if not record:
+        return jsonify({"success": False, "message": "Record not found."}), 404
+        
+    if request.method == 'DELETE':
+        try:
+            item_name = record.item.item_name if record.item else f"Item ID {record.item_id}"
+            div_name = record.bbf_division
+            
+            db.session.delete(record)
+            
+            # Log action
+            log_entry = ActionLog(
+                user_id=session.get("user_id"),
+                username=session.get("username", "Unknown"),
+                role=session.get("role", "scme"),
+                action_type="DELETE",
+                module="ECC",
+                details=f"Deleted ECC monthly state for Item: '{item_name}', Division: {div_name}"
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+            
+            return jsonify({"success": True, "message": "Record deleted successfully."}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"success": False, "message": str(e)}), 500
+            
+    elif request.method == 'PUT':
+        try:
+            data = request.get_json()
+            item_id = data.get("item_id")
+            scale = (data.get("scale") or "").strip()
+            
+            # Section 2: Auth
+            auth_auth = data.get("auth_auth")
+            auth_res = data.get("auth_res")
+            
+            # Section 3: BBF Last Month
+            bbf_division = (data.get("bbf_division") or "").strip()
+            bbf_ser = data.get("bbf_ser")
+            bbf_pws = data.get("bbf_pws")
+            bbf_comd = data.get("bbf_comd")
+            bbf_ihq = data.get("bbf_ihq")
+            
+            # Section 4: Received This Month
+            recd_ser = data.get("recd_ser")
+            recd_pws = data.get("recd_pws")
+            
+            # Section 5: Issued This Month
+            issd_ser = data.get("issd_ser")
+            issd_pws = data.get("issd_pws")
+            
+            # Section 6: Stock Held
+            stock_ser = data.get("stock_ser")
+            stock_pws = data.get("stock_pws")
+            stock_comd = data.get("stock_comd")
+            stock_ihq = data.get("stock_ihq")
+            
+            # Section 7: Additional Fields
+            add_knd = data.get("add_knd")
+            add_tn_model = data.get("add_tn_model")
+            add_n_area_otg = data.get("add_n_area_otg")
+            add_idt_ict = data.get("add_idt_ict")
+            add_remarks_ro_bal = data.get("add_remarks_ro_bal")
+            
+            # Section 8: Stock Held with TPS
+            tps = data.get("tps")
+            
+            # Validate required fields
+            if not item_id or not bbf_division:
+                return jsonify({"success": False, "message": "Item and Division are required."}), 400
+                
+            # Parse integers
+            try:
+                item_id_val = int(item_id)
+                auth_auth_val = int(auth_auth or 0)
+                auth_res_val = int(auth_res or 0)
+                auth_total_val = auth_auth_val + auth_res_val
+                
+                bbf_ser_val = int(bbf_ser or 0)
+                bbf_pws_val = int(bbf_pws or 0)
+                bbf_total_val = bbf_ser_val + bbf_pws_val
+                bbf_comd_val = int(bbf_comd) if bbf_comd is not None and bbf_comd != "" else None
+                bbf_ihq_val = int(bbf_ihq) if bbf_ihq is not None and bbf_ihq != "" else None
+                
+                recd_ser_val = int(recd_ser or 0)
+                recd_pws_val = int(recd_pws or 0)
+                recd_total_val = recd_ser_val + recd_pws_val
+                
+                issd_ser_val = int(issd_ser or 0)
+                issd_pws_val = int(issd_pws or 0)
+                issd_total_val = issd_ser_val + issd_pws_val
+                
+                stock_ser_val = int(stock_ser or 0)
+                stock_pws_val = int(stock_pws or 0)
+                stock_total_val = stock_ser_val + stock_pws_val
+                stock_comd_val = int(stock_comd) if stock_comd is not None and stock_comd != "" else None
+                stock_ihq_val = int(stock_ihq) if stock_ihq is not None and stock_ihq != "" else None
+                
+                add_knd_val = int(add_knd or 0)
+                add_tn_model_val = int(add_tn_model or 0)
+                add_n_area_otg_val = int(add_n_area_otg or 0)
+                add_idt_ict_val = int(add_idt_ict or 0)
+                add_remarks_ro_bal_val = int(add_remarks_ro_bal or 0)
+                
+                tps_val = int(tps or 0)
+            except (ValueError, TypeError):
+                return jsonify({"success": False, "message": "All input values (except scale) must be numbers."}), 400
+                
+            item_exists = ScmeItems.query.get(item_id_val)
+            if not item_exists:
+                return jsonify({"success": False, "message": "Selected Item does not exist."}), 400
+                
+            # Update fields
+            record.item_id = item_id_val
+            record.scale = scale
+            record.auth_auth = auth_auth_val
+            record.auth_res = auth_res_val
+            record.auth_total = auth_total_val
+            record.bbf_division = bbf_division
+            record.bbf_ser = bbf_ser_val
+            record.bbf_pws = bbf_pws_val
+            record.bbf_total = bbf_total_val
+            record.bbf_comd = bbf_comd_val
+            record.bbf_ihq = bbf_ihq_val
+            record.recd_ser = recd_ser_val
+            record.recd_pws = recd_pws_val
+            record.recd_total = recd_total_val
+            record.issd_ser = issd_ser_val
+            record.issd_pws = issd_pws_val
+            record.issd_total = issd_total_val
+            record.stock_ser = stock_ser_val
+            record.stock_pws = stock_pws_val
+            record.stock_total = stock_total_val
+            record.stock_comd = stock_comd_val
+            record.stock_ihq = stock_ihq_val
+            record.add_knd = add_knd_val
+            record.add_tn_model = add_tn_model_val
+            record.add_n_area_otg = add_n_area_otg_val
+            record.add_idt_ict = add_idt_ict_val
+            record.add_remarks_ro_bal = add_remarks_ro_bal_val
+            record.tps = tps_val
+            
+            # Log action
+            log_entry = ActionLog(
+                user_id=session.get("user_id"),
+                username=session.get("username", "Unknown"),
+                role=session.get("role", "scme"),
+                action_type="UPDATE",
+                module="ECC",
+                details=f"Updated ECC monthly state for Item: '{item_exists.item_name}', Division: {bbf_division}"
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "ECC monthly state updated successfully.",
+                "state": {
+                    "id": record.id,
+                    "item_name": item_exists.item_name,
+                    "scale": record.scale,
+                    "bbf_division": record.bbf_division,
+                    "auth_total": record.auth_total,
+                    "created_at": record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else ""
+                }
+            }), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"success": False, "message": str(e)}), 500

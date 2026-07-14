@@ -131,6 +131,25 @@
         border-color: var(--border-dim);
         color: var(--text-primary);
     }
+    .badge-category {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .badge-cat-1 {
+        background: linear-gradient(135deg, #0ea5e9, #2563eb);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    }
+    .badge-cat-2 {
+        background: linear-gradient(135deg, #a855f7, #7c3aed);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+    }
 </style>
 
 
@@ -166,25 +185,24 @@
                 <table class="mm-table">
                     <thead>
                         <tr>
-                            <th>Item</th>
-                            <th>Category</th>
-                            <th class="mm-num">Issued Records</th>
-                            <th class="mm-num">Total Deficiency</th>
+                            <th style="padding-left: 32px;">Item Name</th>
+                            <th style="text-align: center;">Category</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for it in item_list %}
-                            {% set recs = issued_items | selectattr('item_id', 'equalto', it.id) | list %}
-                            {% set def_total = recs | sum(attribute='deficiency') %}
                             <tr>
-                                <td class="mm-strong">{{ it.item_name }}</td>
-                                <td><span class="badge-category">{{ it.category }}</span></td>
-                                <td class="mm-num">{{ recs | length }}</td>
-                                <td class="mm-num {% if def_total > 0 %}mm-def-high{% else %}mm-def-ok{% endif %}">{{ def_total }}</td>
+                                <td class="mm-strong" style="padding-left: 32px; display: flex; align-items: center; gap: 10px; height: 50px;">
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; box-shadow: 0 0 6px {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; flex-shrink: 0;"></div>
+                                    {{ it.item_name }}
+                                </td>
+                                <td style="text-align: center; vertical-align: middle;">
+                                    <span class="badge-category {% if it.category == 'CAT-I' %}badge-cat-1{% else %}badge-cat-2{% endif %}">{{ it.category }}</span>
+                                </td>
                             </tr>
                         {% else %}
                             <tr>
-                                <td colspan="4" class="mm-empty">
+                                <td colspan="2" class="mm-empty">
                                     <i class="fa-solid fa-box-open"></i>
                                     No registered items found.
                                 </td>
@@ -390,6 +408,131 @@
                                 </td>
                             </tr>
                         {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 6 — REGISTERED ECC ITEMS  (card: "Registered ECC Items")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalRegisteredEccItems" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-boxes-stacked mm-ic-primary"></i>
+                    Registered ECC Catalog Items
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            {% set ecc_item_list = ecc_catalog_items if ecc_catalog_items is defined else [] %}
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Registered</span>
+                    <span class="mm-stat-value">{{ total_ecc_items }}</span>
+                </div>
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Shown Here</span>
+                    <span class="mm-stat-value">{{ ecc_item_list | length }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 32px;">Item Name</th>
+                            <th style="text-align: center;">Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in ecc_item_list %}
+                            <tr>
+                                <td class="mm-strong" style="padding-left: 32px; display: flex; align-items: center; gap: 10px; height: 50px;">
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; box-shadow: 0 0 6px {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; flex-shrink: 0;"></div>
+                                    {{ it.item_name }}
+                                </td>
+                                <td style="text-align: center; vertical-align: middle;">
+                                    <span class="badge-category {% if it.category == 'CAT-I' %}badge-cat-1{% else %}badge-cat-2{% endif %}">{{ it.category }}</span>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="mm-empty">
+                                    <i class="fa-solid fa-box-open"></i>
+                                    No registered ECC items found.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 7 — ACTIVE DIVISIONS  (card: "Active Divisions")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalActiveDivisions" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-sitemap mm-ic-primary"></i>
+                    Active Divisions & Strengths
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Divisions Tracked</span>
+                    <span class="mm-stat-value">{{ db_units | length }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 24px;">Division</th>
+                            <th class="mm-num">Authorized Strength</th>
+                            <th class="mm-num">Posted Strength</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if db_units %}
+                            {% for u in db_units %}
+                                <tr>
+                                    <td class="mm-strong" style="padding-left: 24px;">{{ u.name.replace('_', ' ').upper() }}</td>
+                                    <td class="mm-num" style="font-weight: 700; color: var(--accent);">{{ u.authorized_strength or 0 }}</td>
+                                    <td class="mm-num" style="font-weight: 700; color: #10b981;">{{ u.posted_strength or 0 }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="3" class="mm-empty">
+                                    <i class="fa-solid fa-sitemap"></i>
+                                    No divisions found in unit table.
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>

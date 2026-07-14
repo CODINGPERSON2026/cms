@@ -393,19 +393,18 @@
 
     <!-- Tab bar -->
     <div class="ledger-tabs" role="tablist">
-        <button type="button" class="ledger-tab active" id="tabScme" data-tab="scme" role="tab" aria-selected="true">
-            <i class="fa-solid fa-file-signature"></i>
-            SCME
-        </button>
-        <button type="button" class="ledger-tab" id="tabEcc" data-tab="ecc" role="tab" aria-selected="false">
+        <button type="button" class="ledger-tab active" id="tabEcc" data-tab="ecc" role="tab" aria-selected="true">
             <i class="fa-solid fa-clipboard-list"></i>
             ECC
-            <span class="tab-soon">Soon</span>
+        </button>
+        <button type="button" class="ledger-tab" id="tabScme" data-tab="scme" role="tab" aria-selected="false">
+            <i class="fa-solid fa-file-signature"></i>
+            SCME
         </button>
     </div>
 
     <!-- ══════════════════════════ SCME TAB PANEL ══════════════════════════ -->
-    <div class="tab-panel active" id="panelScme" role="tabpanel">
+    <div class="tab-panel" id="panelScme" role="tabpanel">
 
     <!-- Top metrics grid -->
     <div class="metric-grid">
@@ -434,7 +433,7 @@
 
 
 
-        <!-- 4. Global Deficiency -->
+        <!-- 4. Global Deficiency
         <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalGlobalDeficiency">
             <div class="metric-icon-box icon-box-danger">
                 <i class="fa-solid fa-arrow-trend-down"></i>
@@ -444,6 +443,7 @@
                 <span class="metric-value" style="color: var(--danger);">{{ global_deficiency }}</span>
             </div>
         </div>
+        -->
 
         <!-- 5. Critical Alerts -->
         <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalCriticalAlerts">
@@ -471,7 +471,6 @@
                 </h3>
                 <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
                     <select id="unitChartFilter" class="chart-panel-filter" aria-label="Filter chart by unit">
-                        <option value="">All Units</option>
                     </select>
                     <select id="itemChartFilter" class="chart-panel-filter" aria-label="Filter chart by item">
                         <option value="">All Items</option>
@@ -496,6 +495,13 @@
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
                 </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="topDefCategoryFilter" class="chart-panel-filter" aria-label="Filter chart by category">
+                        <option value="">All Categories</option>
+                        <option value="CAT-I">CAT-I</option>
+                        <option value="CAT-II">CAT-II</option>
+                    </select>
+                </div>
             </div>
             <div class="chart-canvas-wrapper">
                 <div id="itemPrismChart" data-chart='{{ item_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
@@ -510,11 +516,15 @@
             <div class="chart-panel-header">
                 <h3 class="chart-panel-title">
                     <i class="fa-solid fa-chart-pie"></i>
-                    Deficiency Share by Unit
-                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes the percentage share of the total global shortage contributed by each unit.">
+                    Item-based Share by Units
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes the percentage share of the deficiency of the selected item contributed by each unit.">
                         <i class="fa-solid fa-circle-info"></i>
                     </span>
                 </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="defPieItemFilter" class="chart-panel-filter" aria-label="Select item for deficiency share">
+                    </select>
+                </div>
             </div>
             <div class="chart-canvas-wrapper">
                 <div id="unitDeficiencyPieChart" data-chart='{{ unit_deficiency_share_data | tojson }}' style="width: 100%; height: 350px;"></div>
@@ -661,13 +671,294 @@
     </div>
     <!-- ══════════════════════════ END SCME TAB PANEL ══════════════════════════ -->
 
-    <!-- ══════════════════════════ ECC TAB PANEL (placeholder) ══════════════════════════ -->
-    <div class="tab-panel" id="panelEcc" role="tabpanel">
-        <div class="coming-soon">
-            <i class="fa-solid fa-clipboard-list"></i>
-            <h3>ECC Dashboard — Coming Soon</h3>
-            <p>This section is under construction. The ECC overview dashboard will be built here.</p>
+    <!-- ══════════════════════════ ECC TAB PANEL ══════════════════════════ -->
+    <div class="tab-panel active" id="panelEcc" role="tabpanel">
+
+    <!-- Top metrics grid -->
+    <div class="metric-grid">
+        <!-- 1. Catalog Items -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredEccItems">
+            <div class="metric-icon-box icon-box-primary">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Registered ECC Items</span>
+                <span class="metric-value">{{ total_ecc_items }}</span>
+            </div>
         </div>
+
+
+        <!-- 2. Active Divisions -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveDivisions">
+            <div class="metric-icon-box icon-box-primary">
+                <i class="fa-solid fa-sitemap"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Active Divisions</span>
+                <span class="metric-value">{{ active_ecc_divisions }}</span>
+            </div>
+        </div>
+
+        <!-- 3. Total auth -->
+        <!-- <div class="metric-card">
+            <div class="metric-icon-box icon-box-success">
+                <i class="fa-solid fa-calculator"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Total Scale Auth</span>
+                <span class="metric-value">{{ total_ecc_auth }}</span>
+            </div>
+        </div> -->
+    </div>
+
+    <!-- Main Chart Row -->
+    <div class="chart-row">
+        <!-- Grouped Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    Item Analysis
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares scales, stock, and deficiency levels for each reporting division.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="eccDivisionChartFilter" class="chart-panel-filter" aria-label="Filter chart by division">
+                    </select>
+                    <select id="eccItemChartFilter" class="chart-panel-filter" aria-label="Filter chart by item">
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccUnitBarChart" data-chart='{{ ecc_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- Horizontal Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Top 5 Deficient ECC Items
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Highlights the ECC items with highest shortage quantity.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="eccTopDefCategoryFilter" class="chart-panel-filter" aria-label="Filter chart by category">
+                        <option value="">All Categories</option>
+                        <option value="CAT-I">CAT-I</option>
+                        <option value="CAT-II">CAT-II</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccItemPrismChart" style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Chart Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="chart-row-secondary animate-fade-in">
+        <!-- Pie Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    ECC Share by Divisions
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes deficiency percentage breakdown by division for a chosen item.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="eccDefPieItemFilter" class="chart-panel-filter" aria-label="Select item for deficiency share">
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccUnitDeficiencyPieChart" style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- Supply Readiness -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    Supply Readiness by Div
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Calculates the percentage of authorized items currently held for each division.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccUnitReadinessColumnChart" data-chart='{{ ecc_readiness_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Banner Row -->
+    <div class="chart-panel-card" style="margin-top: 24px;">
+        <div class="chart-panel-header">
+            <h3 class="chart-panel-title">
+                <i class="fa-solid fa-list-check"></i>
+                Quick Action Ledgers
+            </h3>
+        </div>
+        <div class="chart-canvas-wrapper" style="padding: 24px; min-height: auto; display: block;">
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
+                Enter monthly states for ECC inventory, track assets, and manage deficiency logs.
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <a href="/scme/enter-items" class="btn btn-outline-success text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
+                    <span><i class="fa-solid fa-clipboard-list me-2"></i>Enter ECC Monthly State</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+
+                <!-- View Table Format Popup Button -->
+                <button type="button" class="btn btn-outline-info text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
+                    <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Modal for ECC Table View -->
+    <div class="modal fade" id="eccLedgerTableModal" tabindex="-1" aria-labelledby="eccLedgerTableModalLabel" aria-hidden="true">
+        <div id="eccLedgerTableModalDialog" class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 95%; transition: max-width 0.3s ease;">
+            <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 20px 24px;">
+                    <h5 class="modal-title" id="eccLedgerTableModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent);"></i>
+                        ECC Monthly State Summary Table
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
+                </div>
+
+                <!-- ── Filter Bar (Division + Category) ── -->
+                <div class="ledger-filter-bar">
+                    <select id="eccLedgerDivisionFilter" aria-label="Filter by division">
+                        <option value="">All Divisions</option>
+                    </select>
+                    <select id="eccLedgerCategoryFilter" aria-label="Filter by category">
+                        <option value="">All Categories</option>
+                        <option value="CAT-I">CAT-I</option>
+                        <option value="CAT-II">CAT-II</option>
+                    </select>
+                    <button type="button" id="eccLedgerClearFilters" class="ledger-clear-btn">
+                        <i class="fa-solid fa-rotate-left me-1"></i>Clear
+                    </button>
+                    <span id="eccLedgerResultCount" class="ledger-result-count"></span>
+                </div>
+
+                <!-- ── Dynamic Unit/Division Top Header Block ── -->
+                <div id="eccLedgerSelectedHeaderBlock" style="display: none; padding: 12px 24px; background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-building-flag" style="color: var(--accent); font-size: 1.1rem;"></i>
+                    <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">Showing Unit: </span>
+                    <span id="eccLedgerSelectedDivision" style="font-weight: 800; font-size: 0.95rem; color: var(--accent); text-transform: uppercase;"></span>
+                </div>
+
+                <div class="modal-body" style="padding: 0; overflow-x: auto;">
+                    <table class="table-custom" style="width: 100%; min-width: 1600px; border-collapse: collapse; margin: 0;">
+                        <thead style="position: sticky; top: 0; z-index: 10;">
+                            <tr>
+                                <th class="ecc-col-division" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Division</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Item</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Category</th>
+                                <th class="ecc-col-scale" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Scale</th>
+                                
+                                <th class="ecc-col-auth-auth" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth Auth</th>
+                                <th class="ecc-col-auth-res" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth Res</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth Total</th>
+                                
+                                <th class="ecc-col-bbf-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F Ser</th>
+                                <th class="ecc-col-bbf-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F PWS</th>
+                                <th class="ecc-col-bbf-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F Total</th>
+                                
+                                <th class="ecc-col-recd-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd Ser</th>
+                                <th class="ecc-col-recd-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd PWS</th>
+                                <th class="ecc-col-recd-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd Total</th>
+                                
+                                <th class="ecc-col-issd-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issd Ser</th>
+                                <th class="ecc-col-issd-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issd PWS</th>
+                                <th class="ecc-col-issd-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issd Total</th>
+                                
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Stock Held</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Stock Ser</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Stock PWS</th>
+                                
+                                <th class="ecc-col-tps" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">TPS</th>
+                                <th class="ecc-col-deficiency" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Deficiency</th>
+                                <th class="ecc-col-created-at" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if ecc_states %}
+                                {% for record in ecc_states %}
+                                <tr class="ecc-ledger-row"
+                                    data-division="{{ record.bbf_division.replace('_', ' ').upper() if record.bbf_division else '' }}"
+                                    data-category="{{ record.item.category if record.item else '' }}"
+                                    style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
+                                    <td class="ecc-col-division" style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ record.bbf_division.replace('_', ' ').upper() if record.bbf_division else '' }}</td>
+                                    <td style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ record.item.item_name if record.item else '' }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">{{ record.item.category if record.item else '' }}</td>
+                                    <td class="ecc-col-scale" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.scale }}</td>
+                                    
+                                    <td class="ecc-col-auth-auth" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.auth_auth or 0 }}</td>
+                                    <td class="ecc-col-auth-res" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.auth_res or 0 }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--accent); font-weight:700; white-space: nowrap;">{{ record.auth_total or 0 }}</td>
+                                    
+                                    <td class="ecc-col-bbf-ser" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_ser or 0 }}</td>
+                                    <td class="ecc-col-bbf-pws" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_pws or 0 }}</td>
+                                    <td class="ecc-col-bbf-total" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_total or 0 }}</td>
+                                    
+                                    <td class="ecc-col-recd-ser" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.recd_ser or 0 }}</td>
+                                    <td class="ecc-col-recd-pws" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.recd_pws or 0 }}</td>
+                                    <td class="ecc-col-recd-total" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.recd_total or 0 }}</td>
+                                    
+                                    <td class="ecc-col-issd-ser" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.issd_ser or 0 }}</td>
+                                    <td class="ecc-col-issd-pws" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.issd_pws or 0 }}</td>
+                                    <td class="ecc-col-issd-total" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.issd_total or 0 }}</td>
+                                    
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #10b981; font-weight:700; white-space: nowrap;">{{ record.stock_total or 0 }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.stock_ser or 0 }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.stock_pws or 0 }}</td>
+                                    
+                                    <td class="ecc-col-tps" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.tps or 0 }}</td>
+                                    <td class="ecc-col-deficiency" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; color: var(--accent);">{{ record.deficiency or 0 }}</td>
+                                    <td class="ecc-col-created-at" style="padding: 14px 20px; font-size: 0.82rem; color: var(--text-secondary); white-space: nowrap;">
+                                        {{ record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else '' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="22" class="empty-state" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                        <i class="fa-solid fa-receipt" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                        No ECC monthly state records found.
+                                    </td>
+                                </tr>
+                            {% endif %}
+
+                            <!-- Shown only when active filters match nothing -->
+                            <tr id="eccLedgerNoResults" style="display:none;">
+                                <td colspan="22" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                    <i class="fa-solid fa-filter-circle-xmark" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                    No records match your filters.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 16px 24px;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: var(--bg-raised); border-color: var(--border-dim); color: var(--text-primary);">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </div>
 
 </div>
@@ -710,6 +1001,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (modalEl) {
         document.body.appendChild(modalEl);
     }
+    const eccModalEl = document.getElementById('eccLedgerTableModal');
+    if (eccModalEl) {
+        document.body.appendChild(eccModalEl);
+    }
 
     // Inject backend data (read from HTML5 data attributes to keep Javascript syntax clean and warnings-free)
     const unitChartData = JSON.parse(document.getElementById('unitBarChart').dataset.chart);
@@ -720,6 +1015,314 @@ document.addEventListener("DOMContentLoaded", function () {
     const textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || "#1a2420";
     const textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
     const borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ECC CHARTS INITIALIZATION
+    // ─────────────────────────────────────────────────────────────────────────
+    const eccChartDom = document.getElementById('eccUnitBarChart');
+    if (eccChartDom) {
+        const eccChartData = JSON.parse(eccChartDom.dataset.chart);
+
+        const allEccDivs = [...new Set(eccChartData.map(d => d.division))];
+        const allEccItems = [...new Set(eccChartData.map(d => d.item_name))].sort();
+        const allEccCats = [...new Set(eccChartData.map(d => d.category))].sort();
+
+        function formatEccDivLabel(d) {
+            return d ? d.replace(/_/g, ' ').toUpperCase() : '';
+        }
+
+        let defaultEccDiv = '';
+        if (allEccDivs.length > 0) {
+            const found2Fod = allEccDivs.find(d => d.replace(/_/g, ' ').toUpperCase() === '2 FOD');
+            defaultEccDiv = found2Fod || allEccDivs[0];
+        }
+        const defaultEccItem = '';
+
+        function aggregateEccUnitChart(divisionFilter, itemFilter) {
+            const rows = eccChartData.filter(d =>
+                d.division === divisionFilter &&
+                (!itemFilter || d.item_name === itemFilter)
+            );
+            const totalAuth = rows.reduce((sum, r) => sum + (r.auth_total || 0), 0);
+            const totalDef = rows.reduce((sum, r) => sum + (r.deficiency || 0), 0);
+            return {
+                auth: totalAuth,
+                def: totalDef
+            };
+        }
+
+        function getTopDeficientEccItems(categoryFilter) {
+            const itemTotals = {};
+            eccChartData.forEach(d => {
+                if (!categoryFilter || d.category === categoryFilter) {
+                    itemTotals[d.item_name] = (itemTotals[d.item_name] || 0) + d.deficiency;
+                }
+            });
+            const sorted = Object.entries(itemTotals)
+                .map(([name, def]) => ({ name, def }))
+                .filter(x => x.def > 0)
+                .sort((a, b) => b.def - a.def)
+                .slice(0, 5);
+            
+            return {
+                categories: sorted.map(x => x.name),
+                data: sorted.map(x => x.def)
+            };
+        }
+
+        const initialEccAgg = aggregateEccUnitChart(defaultEccDiv, defaultEccItem);
+
+        const eccUnitBarChart = Highcharts.chart('eccUnitBarChart', {
+            chart: {
+                type: 'column',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: ['Qty Metrics'],
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '10px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Quantity',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim
+            },
+            plotOptions: {
+                column: {
+                    grouping: true,
+                    shadow: false,
+                    dataLabels: {
+                        enabled: true,
+                        crop: false,
+                        overflow: 'none',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '10px',
+                            textOutline: 'none',
+                            color: 'var(--text-primary)'
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Authorized Scale',
+                data: [initialEccAgg.auth],
+                color: '#38bdf8'
+            }, {
+                name: 'Deficiency',
+                data: [initialEccAgg.def],
+                color: '#f59e0b'
+            }],
+            legend: {
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                backgroundColor: 'var(--bg-surface)',
+                borderWidth: 1,
+                borderColor: 'var(--border-dim)',
+                style: {
+                    color: 'var(--text-primary)'
+                }
+            },
+            credits: { enabled: false }
+        });
+
+        const eccDivFilterSel = document.getElementById('eccDivisionChartFilter');
+        const eccItemFilterSel = document.getElementById('eccItemChartFilter');
+
+        if (eccDivFilterSel && eccItemFilterSel) {
+            allEccDivs.forEach(div => {
+                eccDivFilterSel.insertAdjacentHTML('beforeend', `<option value="${div}">${formatEccDivLabel(div)}</option>`);
+            });
+            eccItemFilterSel.insertAdjacentHTML('beforeend', `<option value="">All Items</option>`);
+            allEccItems.forEach(i => {
+                eccItemFilterSel.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
+            });
+
+            if (defaultEccDiv) {
+                eccDivFilterSel.value = defaultEccDiv;
+            }
+            eccItemFilterSel.value = defaultEccItem; // selects empty/All Items option!
+
+            function refreshEccUnitChart() {
+                const agg = aggregateEccUnitChart(eccDivFilterSel.value, eccItemFilterSel.value);
+                eccUnitBarChart.series[0].setData([agg.auth]);
+                eccUnitBarChart.series[1].setData([agg.def]);
+            }
+
+            eccDivFilterSel.addEventListener('change', refreshEccUnitChart);
+            eccItemFilterSel.addEventListener('change', refreshEccUnitChart);
+        }
+
+        const initialEccTopDef = getTopDeficientEccItems('');
+        const eccItemPrismChart = Highcharts.chart('eccItemPrismChart', {
+            chart: {
+                type: 'bar',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: initialEccTopDef.categories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '9px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Deficiency Quantity',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim
+            },
+            plotOptions: {
+                bar: {
+                    dataLabels: {
+                        enabled: true,
+                        crop: false,
+                        overflow: 'none',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            textOutline: 'none',
+                            color: 'var(--text-primary)'
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Deficiency',
+                data: initialEccTopDef.data,
+                color: '#f59e0b',
+                showInLegend: false
+            }],
+            tooltip: {
+                backgroundColor: 'var(--bg-surface)',
+                borderWidth: 1,
+                borderColor: 'var(--border-dim)',
+                style: { color: 'var(--text-primary)' }
+            },
+            credits: { enabled: false }
+        });
+
+        const eccTopDefCategoryFilter = document.getElementById('eccTopDefCategoryFilter');
+        if (eccTopDefCategoryFilter) {
+            eccTopDefCategoryFilter.addEventListener('change', function () {
+                const data = getTopDeficientEccItems(this.value);
+                eccItemPrismChart.update({
+                    xAxis: { categories: data.categories },
+                    series: [{ data: data.data }]
+                });
+            });
+        }
+
+        const eccPieItemFilter = document.getElementById('eccDefPieItemFilter');
+        if (eccPieItemFilter) {
+            const eccItemShortages = {};
+            eccChartData.forEach(d => {
+                eccItemShortages[d.item_name] = (eccItemShortages[d.item_name] || 0) + d.deficiency;
+            });
+
+            const eccItemsWithShortage = Object.entries(eccItemShortages)
+                .filter(([name, def]) => def > 0)
+                .map(([name, def]) => name)
+                .sort();
+            const eccItemsWithoutShortage = Object.entries(eccItemShortages)
+                .filter(([name, def]) => def <= 0)
+                .map(([name, def]) => name)
+                .sort();
+            const allEccPieItems = [...eccItemsWithShortage, ...eccItemsWithoutShortage];
+
+            allEccPieItems.forEach(i => {
+                eccPieItemFilter.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
+            });
+
+            function getEccPieBreakdownForItem(selectedItem) {
+                const rows = eccChartData.filter(d => d.item_name === selectedItem);
+                return rows
+                    .map(d => ({
+                        name: formatEccDivLabel(d.division),
+                        y: d.deficiency
+                    }))
+                    .filter(pt => pt.y > 0);
+            }
+
+            const defaultEccPieItem = allEccPieItems.length > 0 ? allEccPieItems[0] : '';
+            if (defaultEccPieItem) {
+                eccPieItemFilter.value = defaultEccPieItem;
+            }
+
+            const initialEccPieData = getEccPieBreakdownForItem(defaultEccPieItem);
+
+            const eccUnitDeficiencyPieChart = Highcharts.chart('eccUnitDeficiencyPieChart', {
+                chart: {
+                    type: 'pie',
+                    backgroundColor: 'transparent'
+                },
+                title: { text: null },
+                tooltip: {
+                    pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)',
+                    backgroundColor: 'var(--bg-surface)',
+                    borderWidth: 1,
+                    borderColor: 'var(--border-dim)',
+                    style: { color: 'var(--text-primary)' }
+                },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f}%',
+                            style: {
+                                color: 'var(--text-primary)',
+                                fontWeight: 'bold',
+                                fontSize: '9px',
+                                textOutline: 'none'
+                            }
+                        }
+                    }
+                },
+                series: [{
+                    name: 'Deficiency Share',
+                    colorByPoint: true,
+                    data: initialEccPieData
+                }],
+                credits: { enabled: false }
+            });
+
+            eccPieItemFilter.addEventListener('change', function () {
+                const data = getEccPieBreakdownForItem(this.value);
+                eccUnitDeficiencyPieChart.series[0].setData(data);
+            });
+        }
+    }
 
     // unitChartData is now granular: one row per (unit, item, category) combination,
     // so the chart can be filtered by unit, item, and/or category on the client side.
@@ -754,15 +1357,38 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
-    const initialAgg = aggregateUnitChart('', '', '');
+    // Helper to get top 5 deficient items dynamically
+    function getTopDeficientItems(categoryFilter) {
+        const itemTotals = {};
+        unitChartData.forEach(d => {
+            if (!categoryFilter || d.category === categoryFilter) {
+                itemTotals[d.item_name] = (itemTotals[d.item_name] || 0) + d.deficiency;
+            }
+        });
+        const sorted = Object.entries(itemTotals)
+            .map(([name, def]) => ({ name, def }))
+            .filter(x => x.def > 0)
+            .sort((a, b) => b.def - a.def)
+            .slice(0, 5);
+        
+        return {
+            categories: sorted.map(x => x.name),
+            data: sorted.map(x => x.def)
+        };
+    }
+
+    const defaultUnit = allUnitNames.length > 0 ? allUnitNames[0] : '';
+    const defaultItem = '';
+    const defaultCategory = '';
+    const initialAgg = aggregateUnitChart(defaultUnit, defaultItem, defaultCategory);
     const unitCategories = initialAgg.categories;
     const auSeries = initialAgg.au;
     const heldSeries = initialAgg.held;
     const defSeries = initialAgg.def;
 
-    // Format item names for deficiency chart
-    const itemCategories = itemChartData.map(d => d.item_name);
-    const itemDeficiencies = itemChartData.map(d => d.deficiency);
+    const initialTopDef = getTopDeficientItems('');
+    const itemCategories = initialTopDef.categories;
+    const itemDeficiencies = initialTopDef.data;
 
     // ─────────────────────────────────────────────────────────────────────────
     // CHART 1: UNIT LEDGER COMPARISON (2D GROUPED COLUMN CHART)
@@ -860,6 +1486,12 @@ document.addEventListener("DOMContentLoaded", function () {
             categoryFilterSel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`);
         });
 
+        if (defaultUnit) {
+            unitFilterSel.value = defaultUnit;
+        }
+        itemFilterSel.value = defaultItem;
+        categoryFilterSel.value = defaultCategory;
+
         function refreshUnitChart() {
             const agg = aggregateUnitChart(unitFilterSel.value, itemFilterSel.value, categoryFilterSel.value);
             unitBarChart.update({
@@ -880,7 +1512,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ─────────────────────────────────────────────────────────────────────────
     // CHART 2: TOP 5 DEFICIENT ITEMS (2D HORIZONTAL BAR CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    Highcharts.chart('itemPrismChart', {
+    const itemPrismChart = Highcharts.chart('itemPrismChart', {
         chart: {
             type: 'bar',
             backgroundColor: 'transparent'
@@ -941,19 +1573,63 @@ document.addEventListener("DOMContentLoaded", function () {
         credits: { enabled: false }
     });
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // CHART 3: DEFICIENCY SHARE BY UNIT (2D PIE CHART)
-    // ─────────────────────────────────────────────────────────────────────────
-    const pieEl = document.getElementById('unitDeficiencyPieChart');
-    const unitDefShareData = pieEl ? JSON.parse(pieEl.dataset.chart) : [];
+    const topDefCategoryFilter = document.getElementById('topDefCategoryFilter');
+    if (topDefCategoryFilter) {
+        topDefCategoryFilter.addEventListener('change', function () {
+            const data = getTopDeficientItems(this.value);
+            itemPrismChart.update({
+                xAxis: { categories: data.categories },
+                series: [{ data: data.data }]
+            });
+        });
+    }
 
-    if (pieEl) {
-        const pieSeriesData = unitDefShareData.map(d => ({
-            name: d.unit_name,
-            y: d.deficiency
-        }));
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 3: ITEM-BASED DEFICIENCY SHARE BY UNIT (2D PIE CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const pieItemFilter = document.getElementById('defPieItemFilter');
+    let deficiencyPieChart = null;
 
-        Highcharts.chart('unitDeficiencyPieChart', {
+    if (pieItemFilter) {
+        // Collect items that have deficiency
+        const itemShortages = {};
+        unitChartData.forEach(d => {
+            itemShortages[d.item_name] = (itemShortages[d.item_name] || 0) + d.deficiency;
+        });
+
+        // Group items: those with def > 0 first, then others
+        const itemsWithShortage = Object.entries(itemShortages)
+            .filter(([name, def]) => def > 0)
+            .map(([name, def]) => name)
+            .sort();
+        const itemsWithoutShortage = Object.entries(itemShortages)
+            .filter(([name, def]) => def <= 0)
+            .map(([name, def]) => name)
+            .sort();
+        const allPieItems = [...itemsWithShortage, ...itemsWithoutShortage];
+
+        allPieItems.forEach(i => {
+            pieItemFilter.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
+        });
+
+        function getPieBreakdownForItem(selectedItem) {
+            const rows = unitChartData.filter(d => d.item_name === selectedItem);
+            return rows
+                .map(d => ({
+                    name: formatUnitLabel(d.unit_name),
+                    y: d.deficiency
+                }))
+                .filter(pt => pt.y > 0);
+        }
+
+        const defaultPieItem = allPieItems.length > 0 ? allPieItems[0] : '';
+        if (defaultPieItem) {
+            pieItemFilter.value = defaultPieItem;
+        }
+
+        const initialPieData = getPieBreakdownForItem(defaultPieItem);
+
+        deficiencyPieChart = Highcharts.chart('unitDeficiencyPieChart', {
             chart: {
                 type: 'pie',
                 backgroundColor: 'transparent'
@@ -965,7 +1641,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     cursor: 'pointer',
                     dataLabels: {
                         enabled: true,
-                        format: '<b>{point.name}</b>: {point.percentage:.1f}%',
+                        format: '<b>{point.name}</b>: {point.y} ({point.percentage:.1f}%)',
                         connectorColor: 'var(--text-secondary)',
                         connectorWidth: 1.5,
                         distance: 20,
@@ -978,8 +1654,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             series: [{
-                name: 'Deficiency Share',
-                data: pieSeriesData
+                name: 'Deficiency Qty',
+                data: initialPieData
             }],
             legend: {
                 itemStyle: {
@@ -999,6 +1675,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)'
             },
             credits: { enabled: false }
+        });
+
+        pieItemFilter.addEventListener('change', function () {
+            const selectedItem = this.value;
+            const newData = getPieBreakdownForItem(selectedItem);
+            deficiencyPieChart.series[0].setData(newData);
         });
     }
 
@@ -1081,6 +1763,84 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // CHART 5: SUPPLY READINESS BY DIV FOR ECC (2D COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const eccReadinessEl = document.getElementById('eccUnitReadinessColumnChart');
+    const eccReadinessData = eccReadinessEl ? JSON.parse(eccReadinessEl.dataset.chart) : [];
+
+    if (eccReadinessEl) {
+        const eccReadinessCategories = eccReadinessData.map(d => d.division.replace(/_/g, ' ').toUpperCase());
+        const eccReadinessRates = eccReadinessData.map(d => d.rate);
+
+        Highcharts.chart('eccUnitReadinessColumnChart', {
+            chart: {
+                type: 'column',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: eccReadinessCategories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '9px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Readiness Rate (%)',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    format: '{value}%',
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim,
+                max: 100
+            },
+            plotOptions: {
+                column: {
+                    colorByPoint: true,
+                    colors: eccReadinessRates.map(val => {
+                        if (val >= 80) return '#10b981'; // Emerald green
+                        if (val >= 50) return '#f59e0b'; // Amber
+                        return '#ef4444'; // Red
+                    }),
+                    dataLabels: {
+                        enabled: true,
+                        format: '{point.y:.1f}%',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            textOutline: 'none',
+                            color: 'var(--text-primary)'
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Readiness Rate',
+                data: eccReadinessRates,
+                showInLegend: false
+            }],
+            tooltip: {
+                backgroundColor: 'var(--bg-surface)',
+                borderWidth: 1,
+                borderColor: 'var(--border-dim)',
+                style: {
+                    color: 'var(--text-primary)'
+                },
+                valueSuffix: '%'
+            },
+            credits: { enabled: false }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // LEDGER TABLE FILTERS (Unit + Category) — client-side
     // ─────────────────────────────────────────────────────────────────────────
     const unitSel   = document.getElementById('ledgerUnitFilter');
@@ -1129,6 +1889,96 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         applyLedgerFilters();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ECC LEDGER TABLE FILTERS (Division + Category) — client-side
+    // ─────────────────────────────────────────────────────────────────────────
+    const eccDivSel = document.getElementById('eccLedgerDivisionFilter');
+    const eccCatSel = document.getElementById('eccLedgerCategoryFilter');
+
+    if (eccDivSel && eccCatSel) {
+        const eccClearBtn  = document.getElementById('eccLedgerClearFilters');
+        const eccCountEl   = document.getElementById('eccLedgerResultCount');
+        const eccNoResults = document.getElementById('eccLedgerNoResults');
+        const eccRows      = Array.from(document.querySelectorAll('.ecc-ledger-row'));
+
+        // Populate dropdowns from the rows themselves (only values that exist, sorted, de-duped)
+        [...new Set(eccRows.map(r => r.dataset.division).filter(Boolean))].sort()
+            .forEach(div => eccDivSel.insertAdjacentHTML('beforeend', `<option value="${div}">${div}</option>`));
+
+        function applyEccLedgerFilters() {
+            const div = eccDivSel.value;
+            const cat = eccCatSel.value;
+            let visible = 0;
+
+            const headerBlock = document.getElementById('eccLedgerSelectedHeaderBlock');
+            const headerDivName = document.getElementById('eccLedgerSelectedDivision');
+            if (headerBlock && headerDivName) {
+                if (div) {
+                    headerDivName.textContent = div;
+                    headerBlock.style.display = 'flex';
+                } else {
+                    headerBlock.style.display = 'none';
+                    headerDivName.textContent = '';
+                }
+            }
+
+            const hideableSelectors = [
+                '.ecc-col-division', '.ecc-col-scale', '.ecc-col-auth-auth', 
+                '.ecc-col-auth-res', '.ecc-col-bbf-ser', '.ecc-col-bbf-pws', 
+                '.ecc-col-bbf-total', '.ecc-col-recd-ser', '.ecc-col-recd-pws', 
+                '.ecc-col-recd-total', '.ecc-col-issd-ser', '.ecc-col-issd-pws', 
+                '.ecc-col-issd-total', '.ecc-col-tps', '.ecc-col-deficiency', 
+                '.ecc-col-created-at'
+            ];
+
+            hideableSelectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    el.style.display = div ? 'none' : '';
+                });
+            });
+
+            // Dynamically remove horizontal scroll when filter is selected by setting min-width to 100%
+            const tableEl = document.querySelector('#eccLedgerTableModal table.table-custom');
+            const dialogEl = document.getElementById('eccLedgerTableModalDialog');
+            if (tableEl) {
+                if (div) {
+                    tableEl.style.minWidth = '100%';
+                    if (dialogEl) dialogEl.style.maxWidth = '1200px';
+                } else {
+                    tableEl.style.minWidth = '1600px';
+                    if (dialogEl) dialogEl.style.maxWidth = '95%';
+                }
+            }
+
+            eccRows.forEach(row => {
+                const show = (!div || row.dataset.division === div) &&
+                             (!cat || row.dataset.category === cat);
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            if (eccNoResults) {
+                eccNoResults.style.display = (eccRows.length > 0 && visible === 0) ? '' : 'none';
+            }
+            if (eccCountEl) {
+                eccCountEl.textContent = eccRows.length ? (visible + ' of ' + eccRows.length + ' shown') : '';
+            }
+        }
+
+        eccDivSel.addEventListener('change', applyEccLedgerFilters);
+        eccCatSel.addEventListener('change', applyEccLedgerFilters);
+        if (eccClearBtn) {
+            eccClearBtn.addEventListener('click', function () {
+                eccDivSel.value = '';
+                eccCatSel.value = '';
+                applyEccLedgerFilters();
+            });
+        }
+
+        applyEccLedgerFilters();
     }
 });
 </script>
