@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('selected-theme');
+            if (savedTheme && savedTheme !== 'default') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CMS — {{ self.page_title() }}</title>
@@ -41,6 +49,14 @@
             --header-shadow: 0 1px 0 var(--border-dim), 0 4px 20px rgba(0,0,0,0.05);
 
             --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            /* Chart Colors */
+            --chart-auth:     #3498db;
+            --chart-held:     #2ecc71;
+            --chart-def:      #e67e22;
+            --chart-ser:      #27ae60;
+            --chart-pws:      #9b59b6;
+            --chart-strength: #16a085;
         }
 
         /* ── Midnight / Stealth ── */
@@ -60,6 +76,14 @@
             --text-muted:     #64748b;
             --header-shadow: 0 1px 0 #334155, 0 4px 24px rgba(0,0,0,0.35);
             --success-color: #0dd906;
+
+            /* Chart Colors */
+            --chart-auth:     #38bdf8;
+            --chart-held:     #34d399;
+            --chart-def:      #fbbf24;
+            --chart-ser:      #60a5fa;
+            --chart-pws:      #f472b6;
+            --chart-strength: #a78bfa;
         }
 
         /* ── Desert / Tactical ── */
@@ -79,25 +103,14 @@
             --text-muted:     #8d6e63;
             --header-shadow: 0 1px 0 #d5bdaf, 0 4px 20px rgba(62,39,35,0.08);
             --success-color: #0dd906;
-        }
 
-        /* ── Security / Alert ── */
-        [data-theme="security"] {
-            --bg-base:      #0a0a0a;
-            --bg-surface:   #1a1a1a;
-            --bg-raised:    #2a2a2a;
-            --bg-header:    #111111;
-            --border-dim:   #2e2e2e;
-            --border-glow:  #ff4d4d;
-            --accent:       #e74c3c;
-            --accent-dim:   #c0392b;
-            --accent-muted: rgba(231, 76, 60, 0.10);
-            --accent-glow:  rgba(231, 76, 60, 0.20);
-            --text-primary:   #ffffff;
-            --text-secondary: #cccccc;
-            --text-muted:     #888888;
-            --header-shadow: 0 1px 0 #2e2e2e, 0 4px 24px rgba(231,76,60,0.10);
-            --success-color: #0dd906;
+            /* Chart Colors */
+            --chart-auth:     #5c677d;
+            --chart-held:     #6b705c;
+            --chart-def:      #cb997e;
+            --chart-ser:      #a0522d;
+            --chart-pws:      #dda15e;
+            --chart-strength: #4f5d75;
         }
 
         /* ── Arctic / Frost ── */
@@ -117,6 +130,95 @@
             --text-muted:     #90a4ae;
             --header-shadow: 0 1px 0 #d1d9e6, 0 4px 16px rgba(44,62,80,0.06);
             --success-color: #0dd906;
+
+            /* Chart Colors */
+            --chart-auth:     #4682b4;
+            --chart-held:     #5f9ea0;
+            --chart-def:      #cd5c5c;
+            --chart-ser:      #2c3e50;
+            --chart-pws:      #8fbc8f;
+            --chart-strength: #4682b4;
+        }
+
+        /* ── Tokyo Night (Cyber Dark) ── */
+        [data-theme="tokyo"] {
+            --bg-base:      #1a1b26;
+            --bg-surface:   #1f2335;
+            --bg-raised:    #24283b;
+            --bg-header:    #1f2335;
+            --border-dim:   #292e42;
+            --border-glow:  #7aa2f7;
+            --accent:       #bb9af7;
+            --accent-dim:   #9d7cd8;
+            --accent-muted: rgba(187, 154, 247, 0.10);
+            --accent-glow:  rgba(187, 154, 247, 0.20);
+            --text-primary:   #c0caf5;
+            --text-secondary: #a9b1d6;
+            --text-muted:     #565f89;
+            --header-shadow: 0 1px 0 #292e42, 0 4px 24px rgba(0,0,0,0.45);
+            --success-color: #9ece6a;
+
+            /* Chart Colors */
+            --chart-auth:     #7aa2f7;
+            --chart-held:     #9ece6a;
+            --chart-def:      #f7768e;
+            --chart-ser:      #bb9af7;
+            --chart-pws:      #ff007f;
+            --chart-strength: #2ac3de;
+        }
+
+        /* ── Royal Velvet (Saturated Purple) ── */
+        [data-theme="velvet"] {
+            --bg-base:      #4c1d95;
+            --bg-surface:   #5b21b6;
+            --bg-raised:    #6d28d9;
+            --bg-header:    #5b21b6;
+            --border-dim:   #7c3ded;
+            --border-glow:  #a78bfa;
+            --accent:       #f59e0b;
+            --accent-dim:   #d97706;
+            --accent-muted: rgba(245, 158, 11, 0.15);
+            --accent-glow:  rgba(245, 158, 11, 0.25);
+            --text-primary:   #ddd6fe;
+            --text-secondary: #c084fc;
+            --text-muted:     #9061f9;
+            --header-shadow: 0 1px 0 #7c3ded, 0 4px 24px rgba(0,0,0,0.25);
+            --success-color: #10b981;
+
+            /* Chart Colors */
+            --chart-auth:     #f59e0b;
+            --chart-held:     #fbbf24;
+            --chart-def:      #f43f5e;
+            --chart-ser:      #c084fc;
+            --chart-pws:      #e9d5ff;
+            --chart-strength: #f59e0b;
+        }
+
+        /* ── Terracotta Amber (Saturated Copper) ── */
+        [data-theme="copper"] {
+            --bg-base:      #7c2d12;
+            --bg-surface:   #9a3412;
+            --bg-raised:    #b45309;
+            --bg-header:    #9a3412;
+            --border-dim:   #ea580c;
+            --border-glow:  #f97316;
+            --accent:       #06b6d4;
+            --accent-dim:   #0891b2;
+            --accent-muted: rgba(6, 182, 212, 0.15);
+            --accent-glow:  rgba(6, 182, 212, 0.25);
+            --text-primary:   #ffedd5;
+            --text-secondary: #fed7aa;
+            --text-muted:     #c2410c;
+            --header-shadow: 0 1px 0 #ea580c, 0 4px 24px rgba(0,0,0,0.25);
+            --success-color: #34d399;
+
+            /* Chart Colors */
+            --chart-auth:     #06b6d4;
+            --chart-held:     #7dd3fc;
+            --chart-def:      #fb7185;
+            --chart-ser:      #ffedd5;
+            --chart-pws:      #fed7aa;
+            --chart-strength: #06b6d4;
         }
 
         /* =========================================
@@ -606,12 +708,139 @@
             }
             .theme-picker-popover::before { display: none; }
         }
+
+        /* ── Fullscreen Loader ── */
+        .fs-loader {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: var(--bg-base);
+            z-index: 999999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        visibility 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .fs-loader.loaded {
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+
+        .fs-loader-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .fs-loader-eyebrow {
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-shadow: 0 0 8px var(--accent-glow);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            opacity: 0.85;
+        }
+
+        .fs-loader-title {
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        .fs-loader-progress-track {
+            width: 260px;
+            height: 4px;
+            background: var(--border-dim);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .fs-loader-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            transition: width 0.1s ease-out;
+        }
+
+        .fs-loader-percent {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-shadow: 0 0 16px var(--accent-glow);
+            font-family: monospace;
+            margin-top: 8px;
+        }
     </style>
 
     {% block head %}{% endblock %}
 </head>
 
 <body>
+
+    <!-- FULLSCREEN SYSTEM LOADER -->
+    <div id="fullscreenLoader" class="fs-loader">
+        <div class="fs-loader-content">
+            <h2 class="fs-loader-title">LOADING</h2>
+            <span id="fsLoaderPercent" class="fs-loader-percent">0%</span>
+        </div>
+    </div>
+    <script>
+        (function() {
+            const loader = document.getElementById('fullscreenLoader');
+            const pct = document.getElementById('fsLoaderPercent');
+            let currentProgress = 0;
+            let timer;
+
+            function startSimulation() {
+                timer = setInterval(() => {
+                    if (currentProgress < 75) {
+                        currentProgress += Math.floor(Math.random() * 4) + 1;
+                    } else if (currentProgress < 95) {
+                        currentProgress += (Math.random() > 0.6) ? 1 : 0;
+                    }
+                    if (currentProgress > 95) currentProgress = 95;
+                    updateUI(currentProgress);
+                }, 60);
+            }
+
+            function updateUI(val) {
+                if (pct) pct.textContent = val + '%';
+            }
+
+            function completeLoader() {
+                clearInterval(timer);
+                updateUI(100);
+                setTimeout(() => {
+                    if (loader) {
+                        loader.classList.add('loaded');
+                    }
+                }, 180);
+            }
+
+            startSimulation();
+
+            window.addEventListener('load', completeLoader);
+            // Backup safety trigger
+            setTimeout(completeLoader, 4000);
+        })();
+    </script>
 
     <!-- MOBILE OVERLAY -->
     <div class="overlay" id="overlay"></div>
@@ -652,11 +881,17 @@
                 <button class="theme-option-btn" data-theme="desert">
                     <span class="swatch" style="background:#a0522d;"></span>Tactical Desert
                 </button>
-                <button class="theme-option-btn" data-theme="security">
-                    <span class="swatch" style="background:#e74c3c;"></span>Alert Security
-                </button>
                 <button class="theme-option-btn" data-theme="arctic">
                     <span class="swatch" style="background:#34495e;"></span>Frost Arctic
+                </button>
+                <button class="theme-option-btn" data-theme="tokyo">
+                    <span class="swatch" style="background:#bb9af7;"></span>Tokyo Night
+                </button>
+                <button class="theme-option-btn" data-theme="velvet">
+                    <span class="swatch" style="background:#6d28d9;"></span>Royal Velvet
+                </button>
+                <button class="theme-option-btn" data-theme="copper">
+                    <span class="swatch" style="background:#b45309;"></span>Terracotta Amber
                 </button>
             </div>
 
@@ -754,6 +989,9 @@
             }
             localStorage.setItem('selected-theme', themeId);
             updatePickerUI(themeId);
+            
+            // Dispatch a global event so charts can react instantly
+            window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: themeId } }));
         }
 
         const savedTheme = localStorage.getItem('selected-theme') || 'default';
@@ -814,6 +1052,7 @@
         }
         tick();
         setInterval(tick, 1000);
+    });
     </script>
 
 </body>

@@ -1873,9 +1873,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Global theme variables mapped from CSS
     const computedStyles = getComputedStyle(document.documentElement);
-    const textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || "#1a2420";
-    const textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
-    const borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
+    let textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || "#1a2420";
+    let textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
+    let borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
+    let chartAuth = computedStyles.getPropertyValue('--chart-auth').trim() || "#3498db";
+    let chartHeld = computedStyles.getPropertyValue('--chart-held').trim() || "#2ecc71";
+    let chartDef = computedStyles.getPropertyValue('--chart-def').trim() || "#e67e22";
+    let chartSer = computedStyles.getPropertyValue('--chart-ser').trim() || "#27ae60";
+    let chartPws = computedStyles.getPropertyValue('--chart-pws').trim() || "#9b59b6";
+    let chartStrength = computedStyles.getPropertyValue('--chart-strength').trim() || "#16a085";
+
+    // Global chart instance variables for dynamic theme updating
+    let chartUnitBar = null;
+    let chartItemPrism = null;
+    let chartUnitDeficiencyPie = null;
+    let chartUnitReadiness = null;
+
+    let chartEccUnitBar = null;
+    let chartEccItemPrism = null;
+    let chartEccUnitDeficiencyPie = null;
+    let chartEccSerPws = null;
+    let chartEccUnitStrengthLine = null;
 
     // ─────────────────────────────────────────────────────────────────────────
     // ECC CHARTS INITIALIZATION
@@ -1936,7 +1954,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const initialEccAgg = aggregateEccUnitChart(defaultEccDiv, defaultEccItem);
 
-        const eccUnitBarChart = Highcharts.chart('eccUnitBarChart', {
+        chartEccUnitBar = Highcharts.chart('eccUnitBarChart', {
             chart: {
                 type: 'column',
                 backgroundColor: 'transparent'
@@ -1976,7 +1994,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             fontWeight: 'bold',
                             fontSize: '10px',
                             textOutline: 'none',
-                            color: 'var(--text-primary)'
+                            color: textPrimary
                         }
                     }
                 }
@@ -1984,15 +2002,15 @@ document.addEventListener("DOMContentLoaded", function () {
             series: [{
                 name: 'Authorized',
                 data: [initialEccAgg.auth],
-                color: '#38bdf8'
+                color: chartAuth
             }, {
                 name: 'Held',
                 data: [initialEccAgg.held],
-                color: '#10b981'
+                color: chartHeld
             }, {
                 name: 'Defi',
                 data: [initialEccAgg.def],
-                color: '#f59e0b'
+                color: chartDef
             }],
             legend: {
                 itemStyle: {
@@ -2003,11 +2021,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             tooltip: {
-                backgroundColor: 'var(--bg-surface)',
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
                 borderWidth: 1,
-                borderColor: 'var(--border-dim)',
+                borderColor: borderDim,
                 style: {
-                    color: 'var(--text-primary)'
+                    color: textPrimary
                 }
             },
             credits: { enabled: false }
@@ -2032,9 +2050,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             function refreshEccUnitChart() {
                 const agg = aggregateEccUnitChart(eccDivFilterSel.value, eccItemFilterSel.value);
-                eccUnitBarChart.series[0].setData([agg.auth]);
-                eccUnitBarChart.series[1].setData([agg.held]);
-                eccUnitBarChart.series[2].setData([agg.def]);
+                if (chartEccUnitBar) {
+                    chartEccUnitBar.series[0].setData([agg.auth]);
+                    chartEccUnitBar.series[1].setData([agg.held]);
+                    chartEccUnitBar.series[2].setData([agg.def]);
+                }
             }
 
             eccDivFilterSel.addEventListener('change', refreshEccUnitChart);
@@ -2042,7 +2062,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const initialEccTopDef = getTopDeficientEccItems('');
-        const eccItemPrismChart = Highcharts.chart('eccItemPrismChart', {
+        chartEccItemPrism = Highcharts.chart('eccItemPrismChart', {
             chart: {
                 type: 'bar',
                 backgroundColor: 'transparent'
@@ -2080,7 +2100,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             fontWeight: 'bold',
                             fontSize: '9px',
                             textOutline: 'none',
-                            color: 'var(--text-primary)'
+                            color: textPrimary
                         }
                     }
                 }
@@ -2088,14 +2108,14 @@ document.addEventListener("DOMContentLoaded", function () {
             series: [{
                 name: 'Defi',
                 data: initialEccTopDef.data,
-                color: '#f59e0b',
+                color: chartDef,
                 showInLegend: false
             }],
             tooltip: {
-                backgroundColor: 'var(--bg-surface)',
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
                 borderWidth: 1,
-                borderColor: 'var(--border-dim)',
-                style: { color: 'var(--text-primary)' }
+                borderColor: borderDim,
+                style: { color: textPrimary }
             },
             credits: { enabled: false }
         });
@@ -2104,10 +2124,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (eccTopDefCategoryFilter) {
             eccTopDefCategoryFilter.addEventListener('change', function () {
                 const data = getTopDeficientEccItems(this.value);
-                eccItemPrismChart.update({
-                    xAxis: { categories: data.categories },
-                    series: [{ data: data.data }]
-                });
+                if (chartEccItemPrism) {
+                    chartEccItemPrism.update({
+                        xAxis: { categories: data.categories },
+                        series: [{ data: data.data }]
+                    });
+                }
             });
         }
 
@@ -2136,7 +2158,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const initialEccPieData = getEccPieBreakdownForItem(defaultEccPieItem);
 
-            const eccUnitDeficiencyPieChart = Highcharts.chart('eccUnitDeficiencyPieChart', {
+            chartEccUnitDeficiencyPie = Highcharts.chart('eccUnitDeficiencyPieChart', {
                 chart: {
                     type: 'pie',
                     backgroundColor: 'transparent'
@@ -2144,10 +2166,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 title: { text: null },
                 tooltip: {
                     pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)',
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
                     borderWidth: 1,
-                    borderColor: 'var(--border-dim)',
-                    style: { color: 'var(--text-primary)' }
+                    borderColor: borderDim,
+                    style: { color: textPrimary }
                 },
                 plotOptions: {
                     pie: {
@@ -2157,7 +2179,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             enabled: true,
                             format: '<b>{point.name}</b>: {point.percentage:.1f}%',
                             style: {
-                                color: 'var(--text-primary)',
+                                color: textPrimary,
                                 fontWeight: 'bold',
                                 fontSize: '9px',
                                 textOutline: 'none'
@@ -2175,7 +2197,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             eccPieItemFilter.addEventListener('change', function () {
                 const data = getEccPieBreakdownForItem(this.value);
-                eccUnitDeficiencyPieChart.series[0].setData(data);
+                if (chartEccUnitDeficiencyPie) {
+                    chartEccUnitDeficiencyPie.series[0].setData(data);
+                }
             });
         }
     }
@@ -2249,7 +2273,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ─────────────────────────────────────────────────────────────────────────
     // CHART 1: UNIT LEDGER COMPARISON (2D GROUPED COLUMN CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    const unitBarChart = Highcharts.chart('unitBarChart', {
+    chartUnitBar = Highcharts.chart('unitBarChart', {
         chart: {
             type: 'column',
             backgroundColor: 'transparent'
@@ -2289,7 +2313,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         fontWeight: 'bold',
                         fontSize: '9px',
                         textOutline: 'none',
-                        color: 'var(--text-primary)'
+                        color: textPrimary
                     }
                 }
             }
@@ -2297,15 +2321,15 @@ document.addEventListener("DOMContentLoaded", function () {
         series: [{
             name: 'Authorised (A/U)',
             data: auSeries,
-            color: '#38bdf8' // Sky blue
+            color: chartAuth
         }, {
             name: 'Held',
             data: heldSeries,
-            color: '#f43f5e' // Soft red
+            color: chartHeld
         }, {
             name: 'Defi',
             data: defSeries,
-            color: '#f59e0b' // Amber
+            color: chartDef
         }],
         legend: {
             itemStyle: {
@@ -2316,11 +2340,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         },
         tooltip: {
-            backgroundColor: 'var(--bg-surface)',
+            backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
             borderWidth: 1,
-            borderColor: 'var(--border-dim)',
+            borderColor: borderDim,
             style: {
-                color: 'var(--text-primary)'
+                color: textPrimary
             }
         },
         credits: { enabled: false }
@@ -2350,14 +2374,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function refreshUnitChart() {
             const agg = aggregateUnitChart(unitFilterSel.value, itemFilterSel.value, categoryFilterSel.value);
-            unitBarChart.update({
-                xAxis: { categories: agg.categories },
-                series: [
-                    { data: agg.au },
-                    { data: agg.held },
-                    { data: agg.def }
-                ]
-            });
+            if (chartUnitBar) {
+                chartUnitBar.update({
+                    xAxis: { categories: agg.categories },
+                    series: [
+                        { data: agg.au },
+                        { data: agg.held },
+                        { data: agg.def }
+                    ]
+                });
+            }
         }
 
         unitFilterSel.addEventListener('change', refreshUnitChart);
@@ -2368,7 +2394,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ─────────────────────────────────────────────────────────────────────────
     // CHART 2: TOP 5 DEFICIENT ITEMS (2D HORIZONTAL BAR CHART)
     // ─────────────────────────────────────────────────────────────────────────
-    const itemPrismChart = Highcharts.chart('itemPrismChart', {
+    chartItemPrism = Highcharts.chart('itemPrismChart', {
         chart: {
             type: 'bar',
             backgroundColor: 'transparent'
@@ -2407,7 +2433,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         fontWeight: 'bold',
                         fontSize: '9px',
                         textOutline: 'none',
-                        color: 'var(--text-primary)'
+                        color: textPrimary
                     }
                 }
             }
@@ -2415,15 +2441,15 @@ document.addEventListener("DOMContentLoaded", function () {
         series: [{
             name: 'Defi',
             data: itemDeficiencies,
-            color: '#f59e0b', // Amber
+            color: chartDef,
             showInLegend: false
         }],
         tooltip: {
-            backgroundColor: 'var(--bg-surface)',
+            backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
             borderWidth: 1,
-            borderColor: 'var(--border-dim)',
+            borderColor: borderDim,
             style: {
-                color: 'var(--text-primary)'
+                color: textPrimary
             }
         },
         credits: { enabled: false }
@@ -2433,10 +2459,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (topDefCategoryFilter) {
         topDefCategoryFilter.addEventListener('change', function () {
             const data = getTopDeficientItems(this.value);
-            itemPrismChart.update({
-                xAxis: { categories: data.categories },
-                series: [{ data: data.data }]
-            });
+            if (chartItemPrism) {
+                chartItemPrism.update({
+                    xAxis: { categories: data.categories },
+                    series: [{ data: data.data }]
+                });
+            }
         });
     }
 
@@ -2444,7 +2472,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // CHART 3: ITEM-BASED DEFICIENCY SHARE BY UNIT (2D PIE CHART)
     // ─────────────────────────────────────────────────────────────────────────
     const pieItemFilter = document.getElementById('defPieItemFilter');
-    let deficiencyPieChart = null;
 
     if (pieItemFilter) {
         // Collect items that have deficiency
@@ -2485,7 +2512,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const initialPieData = getPieBreakdownForItem(defaultPieItem);
 
-        deficiencyPieChart = Highcharts.chart('unitDeficiencyPieChart', {
+        chartUnitDeficiencyPie = Highcharts.chart('unitDeficiencyPieChart', {
             chart: {
                 type: 'pie',
                 backgroundColor: 'transparent'
@@ -2498,7 +2525,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     dataLabels: {
                         enabled: true,
                         format: '<b>{point.name}</b>: {point.y} ({point.percentage:.1f}%)',
-                        connectorColor: 'var(--text-secondary)',
+                        connectorColor: textSecondary,
                         connectorWidth: 1.5,
                         distance: 20,
                         style: {
@@ -2522,11 +2549,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             tooltip: {
-                backgroundColor: 'var(--bg-surface)',
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
                 borderWidth: 1,
-                borderColor: 'var(--border-dim)',
+                borderColor: borderDim,
                 style: {
-                    color: 'var(--text-primary)'
+                    color: textPrimary
                 },
                 pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)'
             },
@@ -2536,7 +2563,9 @@ document.addEventListener("DOMContentLoaded", function () {
         pieItemFilter.addEventListener('change', function () {
             const selectedItem = this.value;
             const newData = getPieBreakdownForItem(selectedItem);
-            deficiencyPieChart.series[0].setData(newData);
+            if (chartUnitDeficiencyPie) {
+                chartUnitDeficiencyPie.series[0].setData(newData);
+            }
         });
     }
 
@@ -2550,7 +2579,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const readinessCategories = readinessData.map(d => d.unit_name);
         const readinessRates = readinessData.map(d => d.rate);
 
-        Highcharts.chart('unitReadinessColumnChart', {
+        chartUnitReadiness = Highcharts.chart('unitReadinessColumnChart', {
             chart: {
                 type: 'column',
                 backgroundColor: 'transparent'
@@ -2595,7 +2624,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             fontWeight: 'bold',
                             fontSize: '9px',
                             textOutline: 'none',
-                            color: 'var(--text-primary)'
+                            color: textPrimary
                         }
                     }
                 }
@@ -2606,11 +2635,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 showInLegend: false
             }],
             tooltip: {
-                backgroundColor: 'var(--bg-surface)',
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
                 borderWidth: 1,
-                borderColor: 'var(--border-dim)',
+                borderColor: borderDim,
                 style: {
-                    color: 'var(--text-primary)'
+                    color: textPrimary
                 },
                 valueSuffix: '%'
             },
@@ -2677,9 +2706,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const pwsPage = fullData.pws.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
             // Update chart data
-            eccSerPwsChart.xAxis[0].setCategories(categoriesPage, false);
-            eccSerPwsChart.series[0].setData(serPage, false);
-            eccSerPwsChart.series[1].setData(pwsPage, true);
+            if (chartEccSerPws) {
+                chartEccSerPws.xAxis[0].setCategories(categoriesPage, false);
+                chartEccSerPws.series[0].setData(serPage, false);
+                chartEccSerPws.series[1].setData(pwsPage, true);
+            }
 
             // Update navigation label
             const pageIndicator = document.getElementById('eccSerPwsPageIndicator');
@@ -2705,7 +2736,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const initialSer = initialSerPwsAgg.ser.slice(0, pageSize);
         const initialPws = initialSerPwsAgg.pws.slice(0, pageSize);
 
-        const eccSerPwsChart = Highcharts.chart('eccSerPwsColumnChart', {
+        chartEccSerPws = Highcharts.chart('eccSerPwsColumnChart', {
             chart: {
                 type: 'column',
                 backgroundColor: 'transparent'
@@ -2745,7 +2776,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             fontWeight: 'bold',
                             fontSize: '9px',
                             textOutline: 'none',
-                            color: 'var(--text-primary)'
+                            color: textPrimary
                         }
                     }
                 }
@@ -2753,11 +2784,11 @@ document.addEventListener("DOMContentLoaded", function () {
             series: [{
                 name: 'SER Stock',
                 data: initialSer,
-                color: '#3b82f6'
+                color: chartSer
             }, {
                 name: 'PWS Stock',
                 data: initialPws,
-                color: '#ec4899'
+                color: chartPws
             }],
             legend: {
                 itemStyle: {
@@ -2768,11 +2799,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             tooltip: {
-                backgroundColor: 'var(--bg-surface)',
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
                 borderWidth: 1,
-                borderColor: 'var(--border-dim)',
+                borderColor: borderDim,
                 style: {
-                    color: 'var(--text-primary)'
+                    color: textPrimary
                 }
             },
             credits: { enabled: false }
@@ -2817,7 +2848,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const categories = strengthData.map(d => d.name);
         const postedStrengths = strengthData.map(d => d.posted_strength);
 
-        Highcharts.chart('eccUnitStrengthLineChart', {
+        chartEccUnitStrengthLine = Highcharts.chart('eccUnitStrengthLineChart', {
             chart: {
                 type: 'line',
                 backgroundColor: 'transparent'
@@ -2853,7 +2884,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             fontWeight: 'bold',
                             fontSize: '9px',
                             textOutline: 'none',
-                            color: 'var(--text-primary)'
+                            color: textPrimary
                         }
                     },
                     enableMouseTracking: true
@@ -2862,7 +2893,7 @@ document.addEventListener("DOMContentLoaded", function () {
             series: [{
                 name: 'Posted Strength',
                 data: postedStrengths,
-                color: '#6366f1'
+                color: chartStrength
             }],
             legend: {
                 itemStyle: {
@@ -2873,11 +2904,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             },
             tooltip: {
-                backgroundColor: 'var(--bg-surface)',
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
                 borderWidth: 1,
-                borderColor: 'var(--border-dim)',
+                borderColor: borderDim,
                 style: {
-                    color: 'var(--text-primary)'
+                    color: textPrimary
                 }
             },
             credits: { enabled: false }
@@ -3037,6 +3068,202 @@ document.addEventListener("DOMContentLoaded", function () {
 
         applyEccLedgerFilters();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DYNAMIC THEME SYNCHRONIZATION FOR HIGHCHARTS
+    // ─────────────────────────────────────────────────────────────────────────
+    function updateAllChartsTheme() {
+        const computedStyles = getComputedStyle(document.documentElement);
+        textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || "#1a2420";
+        textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
+        borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
+        chartAuth = computedStyles.getPropertyValue('--chart-auth').trim() || "#3498db";
+        chartHeld = computedStyles.getPropertyValue('--chart-held').trim() || "#2ecc71";
+        chartDef = computedStyles.getPropertyValue('--chart-def').trim() || "#e67e22";
+        chartSer = computedStyles.getPropertyValue('--chart-ser').trim() || "#27ae60";
+        chartPws = computedStyles.getPropertyValue('--chart-pws').trim() || "#9b59b6";
+        chartStrength = computedStyles.getPropertyValue('--chart-strength').trim() || "#16a085";
+
+        const bgSurface = computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff';
+
+        // 1. Common Axis, Grid, Tooltip, and Legend Style mappings
+        const axisUpdate = {
+            xAxis: {
+                labels: { style: { color: textSecondary } },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: { style: { color: textSecondary } },
+                labels: { style: { color: textSecondary } },
+                gridLineColor: borderDim
+            },
+            tooltip: {
+                backgroundColor: bgSurface,
+                borderColor: borderDim,
+                style: { color: textPrimary }
+            },
+            legend: {
+                itemStyle: { color: textPrimary }
+            }
+        };
+
+        // 2. Apply theme updates individually to all instantiated charts
+        if (chartUnitBar) {
+            chartUnitBar.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartAuth },
+                    { color: chartHeld },
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartItemPrism) {
+            chartItemPrism.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    bar: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartUnitDeficiencyPie) {
+            chartUnitDeficiencyPie.update({
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    pie: {
+                        dataLabels: {
+                            connectorColor: textSecondary,
+                            style: { color: textPrimary }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (chartUnitReadiness) {
+            chartUnitReadiness.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                }
+            });
+        }
+
+        if (chartEccUnitBar) {
+            chartEccUnitBar.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartAuth },
+                    { color: chartHeld },
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartEccItemPrism) {
+            chartEccItemPrism.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    bar: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartEccUnitDeficiencyPie) {
+            chartEccUnitDeficiencyPie.update({
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    pie: {
+                        dataLabels: {
+                            style: { color: textPrimary }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (chartEccSerPws) {
+            chartEccSerPws.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartSer },
+                    { color: chartPws }
+                ]
+            });
+        }
+
+        if (chartEccUnitStrengthLine) {
+            chartEccUnitStrengthLine.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    line: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartStrength }
+                ]
+            });
+        }
+    }
+
+    // Bind custom theme change event broadcasted from base template
+    window.addEventListener('themeChanged', function () {
+        // Run update on animation frame to ensure variable styles have fully settled in the DOM
+        requestAnimationFrame(updateAllChartsTheme);
+    });
+
+    // Make sure initial state matches selected theme
+    updateAllChartsTheme();
 });
 </script>
 {% endblock %}
