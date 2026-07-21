@@ -122,6 +122,19 @@ class Units(db.Model):
         self.authorized_strength = authorized_strength
         self.posted_strength = posted_strength
 
+class Strength(db.Model):
+    __tablename__ = "strength"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    unit_name = db.Column(db.String(255), unique=True, nullable=False)
+    unit_strength = db.Column(db.Integer, default=0, nullable=False)
+    authorized_strength = db.Column(db.Integer, default=0, nullable=False)
+
+    def __init__(self, unit_name, unit_strength=0, authorized_strength=0):
+        self.unit_name = unit_name
+        self.unit_strength = unit_strength
+        self.authorized_strength = authorized_strength
+
 class ScmeIssuedItems(db.Model):
     __tablename__ = "scme_issued_items"
 

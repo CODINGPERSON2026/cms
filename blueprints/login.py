@@ -30,7 +30,7 @@ def login():
                 "message": "Username can only contain letters, numbers and underscore"
             })
 
-        user = User.query.filter_by(username=username).first()
+        user = LoginUser.query.filter_by(username=username).first()
 
         if not user:
             return jsonify({

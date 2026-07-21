@@ -366,11 +366,12 @@
     }
   }
 </style>
+{% block sidebar_nav %}
+<a href="/" class="nav-item">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
 {% endblock %}
- {% block sidebar_nav %}
-
-
-{% endblock %} {% block content %}
 
 <div class="request-page">
   <!-- Back Link -->

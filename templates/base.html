@@ -11,6 +11,7 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>CMS — {{ self.page_title() }}</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
@@ -863,7 +864,12 @@
 
         <!-- Nav links — fill from child templates via block or keep static -->
         <nav class="sidebar-nav" id="sidebarNav">
-            {% block sidebar_nav %}{% endblock %}
+            {% block sidebar_nav %}
+            <a href="/" class="nav-item">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span class="nav-tooltip">Dashboard</span>
+            </a>
+            {% endblock %}
         </nav>
 
         <!-- Footer -->

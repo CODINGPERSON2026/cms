@@ -2,8 +2,7 @@ from imports import *
 from extensions import db
 from validation import has_special_characters
 from models import LoginUser
-from models.our_items import OurItems
-from models.our_items import ItemRequestTable
+from models.our_items import OurItems, ItemRequestTable, Units
 from models.org_ladder import OrgLadder
 
 
@@ -12,10 +11,13 @@ unit_bp = Blueprint("unit",__name__,url_prefix='/unit')
 
 @unit_bp.route('/')
 def unit_dashboard():
-        if "user_id" not in session:
-            return "Unauthorized - Please login first", 401
-        
-        return render_template('/Unit_Dashboard/unit_dashboard.html')
+    if "user_id" not in session:
+        return redirect('/')
+
+    user = LoginUser.query.get(session["user_id"])
+    username = user.username if user else session.get("username", "Unit")
+
+    return render_template('/Unit_Dashboard/unit_dashboard.html', username=username)
 
 
 
@@ -241,6 +243,18 @@ def create_user():
         )
 
         db.session.add(new_user)
+
+        # ---------------- INSERT INTO UNITS TABLE (ONLY WHEN CREATED BY ORD / SUPER_ADMIN) ----------------
+        if current_user.role == "super_admin":
+            existing_unit_rec = Units.query.filter_by(name=username).first()
+            if not existing_unit_rec:
+                new_unit_rec = Units(
+                    name=username,
+                    authorized_strength=0,
+                    posted_strength=0
+                )
+                db.session.add(new_unit_rec)
+
         db.session.commit()
 
         return jsonify({
