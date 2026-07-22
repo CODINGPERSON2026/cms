@@ -2,7 +2,7 @@ from imports import *
 from extensions import db
 from validation import has_special_characters
 from models import LoginUser
-from models.our_items import OurItems, ItemRequestTable, Units
+from models.our_items import OurItems, ItemRequestTable, Units, Strength, TrackUnitItems
 from models.org_ladder import OrgLadder
 
 
@@ -17,8 +17,74 @@ def unit_dashboard():
     user = LoginUser.query.get(session["user_id"])
     username = user.username if user else session.get("username", "Unit")
 
-    return render_template('/Unit_Dashboard/unit_dashboard.html', username=username)
+    unit_names = set()
+    if user:
+        if user.username:
+            unit_names.add(user.username.strip())
+            unit_names.add(user.username.replace('_', ' ').strip())
+            unit_names.add(user.username.replace(' ', '_').strip())
+        if user.org and user.org.name:
+            unit_names.add(user.org.name.strip())
+            unit_names.add(user.org.name.replace('_', ' ').strip())
+            unit_names.add(user.org.name.replace(' ', '_').strip())
 
+    unit_records = []
+    if unit_names:
+        records = TrackUnitItems.query.filter(
+            db.func.lower(TrackUnitItems.unit_name).in_([name.lower() for name in unit_names])
+        ).all()
+
+        for rec in records:
+            item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+            auth = rec.auth or 0
+            held_qty = rec.held or 0
+            defi = max(0, auth - held_qty)
+            unit_records.append({
+                "id": rec.id,
+                "item_id": rec.item_id,
+                "item_name": item_name,
+                "authorized": auth,
+                "held": held_qty,
+                "deficiency": defi,
+                "issued_at": rec.issued_at
+            })
+
+    return render_template('/Unit_Dashboard/unit_dashboard.html', username=username, unit_records=unit_records)
+
+
+@unit_bp.route('/api/update-auth', methods=['POST'])
+def api_update_auth():
+    try:
+        if "user_id" not in session:
+            return jsonify({"success": False, "message": "Not authenticated."}), 401
+
+        data = request.get_json() or {}
+        rec_id = data.get("rec_id")
+        new_auth = data.get("authorized_strength")
+
+        if rec_id is None or new_auth is None:
+            return jsonify({"success": False, "message": "Record ID and authorized value are required."}), 400
+
+        try:
+            rec_id = int(rec_id)
+            new_auth = int(new_auth)
+            if new_auth < 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Authorized value must be a non-negative integer."}), 400
+
+        rec = TrackUnitItems.query.get(rec_id)
+        if not rec:
+            return jsonify({"success": False, "message": "Record not found."}), 404
+
+        rec.auth = new_auth
+        db.session.commit()
+
+        return jsonify({"success": True, "message": f"AUTH updated to {new_auth} successfully.", "authorized_strength": new_auth}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @unit_bp.route("/api/submit-request", methods=["POST"])

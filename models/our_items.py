@@ -123,17 +123,36 @@ class Units(db.Model):
         self.posted_strength = posted_strength
 
 class Strength(db.Model):
-    __tablename__ = "strength"
+    __tablename__ = "unit_strength"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    unit_name = db.Column(db.String(255), unique=True, nullable=False)
-    unit_strength = db.Column(db.Integer, default=0, nullable=False)
-    authorized_strength = db.Column(db.Integer, default=0, nullable=False)
+    unit_name = db.Column(db.String(255), nullable=False)
+    posted_strength = db.Column(db.Integer, default=0, nullable=True)
+    authorized_strength = db.Column(db.Integer, default=0, nullable=True)
 
-    def __init__(self, unit_name, unit_strength=0, authorized_strength=0):
+    def __init__(self, unit_name, posted_strength=0, authorized_strength=0):
         self.unit_name = unit_name
-        self.unit_strength = unit_strength
+        self.posted_strength = posted_strength
         self.authorized_strength = authorized_strength
+
+class TrackUnitItems(db.Model):
+    __tablename__ = "track_unit_items"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    unit_name = db.Column(db.String(255), nullable=False, index=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("ecc_scme_items.id"), nullable=False)
+    auth = db.Column(db.Integer, default=0, nullable=False)   # MAX limit of this item for unit
+    held = db.Column(db.Integer, default=0, nullable=False)   # Quantity currently held
+    issued_at = db.Column(db.DateTime, nullable=True, server_default=db.func.now())
+
+    item = db.relationship("ScmeItems", backref="track_unit_records")
+
+    def __init__(self, unit_name, item_id, auth=0, held=0, issued_at=None):
+        self.unit_name = unit_name
+        self.item_id = item_id
+        self.auth = auth
+        self.held = held
+        self.issued_at = issued_at
 
 class ScmeIssuedItems(db.Model):
     __tablename__ = "scme_issued_items"

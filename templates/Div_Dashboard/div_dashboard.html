@@ -16,23 +16,41 @@
         padding: 8px 4px;
     }
 
-    /* Cards Grid */
+    /* Cards Grid (Compact SCME Style) */
     .metrics-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
         margin-bottom: 24px;
     }
 
     .metric-card {
         background: var(--bg-surface);
         border: 1px solid var(--border-dim);
-        border-radius: 16px;
-        padding: 22px 24px;
+        border-radius: 14px;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
         position: relative;
         overflow: hidden;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    .metric-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; right: 0;
+        width: 35px; height: 35px;
+        background: var(--accent-muted);
+        border-radius: 50% 0 0 0;
+        opacity: 0.4;
+        transition: transform 0.3s;
+    }
+
+    .metric-card:hover::after {
+        transform: scale(1.4);
     }
 
     .metric-card.clickable {
@@ -40,30 +58,24 @@
     }
 
     .metric-card.clickable:hover {
-        transform: translateY(-3px);
+        transform: translateY(-2px);
         border-color: var(--accent);
-        box-shadow: 0 10px 25px rgba(45, 107, 66, 0.12);
+        box-shadow: 0 6px 20px rgba(45, 107, 66, 0.1);
     }
 
     .metric-card.clickable:active {
-        transform: translateY(-1px);
-    }
-
-    .metric-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 14px;
+        transform: translateY(0);
     }
 
     .metric-icon-wrap {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.15rem;
+        flex-shrink: 0;
     }
 
     .icon-units {
@@ -81,34 +93,45 @@
         color: #dc3545;
     }
 
-    .click-badge {
-        font-size: 0.72rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: rgba(13, 110, 253, 0.1);
-        color: #0d6efd;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
+    .icon-stock {
+        background: rgba(111, 66, 193, 0.1);
+        color: #6f42c1;
     }
 
-    .metric-value {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        line-height: 1.1;
-        margin-bottom: 4px;
+    .metric-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .metric-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
 
     .metric-title {
-        font-size: 0.85rem;
-        font-weight: 600;
+        font-size: 0.72rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.6px;
         color: var(--text-secondary);
+    }
+
+    .metric-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .click-hint {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--accent);
+        opacity: 0.85;
     }
 
     /* Collapsible Units Table Card */
@@ -211,144 +234,199 @@
 
 <div class="div-dash-container">
 
-    <!-- FIRST SECTION: 3 METRIC CARDS -->
+    <!-- FIRST SECTION: 4 METRIC CARDS -->
     <div class="metrics-grid">
         
         <!-- CARD 1: UNITS (Clickable) -->
-        <div class="metric-card clickable" id="unitsCard" onclick="toggleUnitsTable()">
-            <div class="metric-header">
-                <div class="metric-icon-wrap icon-units">
-                    <i class="fa-solid fa-sitemap"></i>
-                </div>
-                <span class="click-badge">
-                    <i class="fa-solid fa-hand-pointer"></i> Click to View
-                </span>
+        <div class="metric-card clickable" id="unitsCard" onclick="openUnitsModal()">
+            <div class="metric-icon-wrap icon-units">
+                <i class="fa-solid fa-sitemap"></i>
             </div>
-            <div class="metric-value">{{ unit_count }}</div>
-            <div class="metric-title">UNITS</div>
+            <div class="metric-content">
+                <div class="metric-header-row">
+                    <span class="metric-title">UNITS</span>
+                    <span class="click-hint"><i class="fa-solid fa-hand-pointer"></i> Click</span>
+                </div>
+                <div class="metric-value">{{ unit_count }}</div>
+            </div>
         </div>
 
         <!-- CARD 2: REGISTERED ITEMS (Clickable) -->
         <div class="metric-card clickable" id="registeredItemsCard" onclick="openRegisteredItemsModal()">
-            <div class="metric-header">
-                <div class="metric-icon-wrap icon-items">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                </div>
-                <span class="click-badge">
-                    <i class="fa-solid fa-hand-pointer"></i> Click to View
-                </span>
+            <div class="metric-icon-wrap icon-items">
+                <i class="fa-solid fa-boxes-stacked"></i>
             </div>
-            <div class="metric-value">{{ total_items }}</div>
-            <div class="metric-title">REGISTERED ITEMS</div>
+            <div class="metric-content">
+                <div class="metric-header-row">
+                    <span class="metric-title">REGISTERED ITEMS</span>
+                    <span class="click-hint"><i class="fa-solid fa-hand-pointer"></i> Click</span>
+                </div>
+                <div class="metric-value">{{ total_items }}</div>
+            </div>
         </div>
 
         <!-- CARD 3: CRITICAL ALERTS -->
         <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon-wrap icon-alerts">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
+            <div class="metric-icon-wrap icon-alerts">
+                <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
-            <div class="metric-value">{{ critical_alerts_count }}</div>
-            <div class="metric-title">CRITICAL ALERTS</div>
+            <div class="metric-content">
+                <span class="metric-title">CRITICAL ALERTS</span>
+                <div class="metric-value">{{ critical_alerts_count }}</div>
+            </div>
         </div>
 
-    </div>
+        <!-- CARD 4: TOTAL STOCK HELD (Clickable) -->
+        <div class="metric-card clickable" id="stockHeldCard" onclick="openStockHeldModal()">
+            <div class="metric-icon-wrap icon-stock">
+                <i class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-header-row">
+                    <span class="metric-title">TOTAL STOCK HELD</span>
+                    <span class="click-hint"><i class="fa-solid fa-hand-pointer"></i> Click</span>
+                </div>
+                <div class="metric-value">{{ total_stock_held }}</div>
+            </div>
+        </div>
 
-    <!-- UNITS TABLE SECTION (Shown when UNITS card is clicked) -->
-    <div class="table-section-card" id="unitsTableSection" style="display: none;">
-        <div class="table-card-header">
-            <h3 class="table-card-title">
-                <i class="fa-solid fa-shield-halved text-primary"></i>
-                Subordinate Units Under Current Division
-            </h3>
-            <button class="btn btn-sm btn-outline-secondary" onclick="toggleUnitsTable()">
-                <i class="fa-solid fa-xmark me-1"></i> Close Table
-            </button>
-        </div>
-        <div class="table-responsive">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th style="width: 70px;">#</th>
-                        <th>UNIT NAME</th>
-                        <th style="text-align: center;">UNIT STRENGTH</th>
-                        <th style="text-align: center;">AUTHORIZED STRENGTH</th>
-                        <th style="text-align: right;">ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for unit in units %}
-                    <tr>
-                        <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
-                        <td>
-                            <div class="unit-badge">
-                                <span class="badge-dot"></span>
-                                {{ unit.name }}
-                            </div>
-                        </td>
-                        <td style="text-align: center;">
-                            <span class="strength-pill" id="unit-str-display-{{ loop.index }}">{{ unit.unit_strength }}</span>
-                        </td>
-                        <td style="text-align: center;">
-                            <span class="strength-pill" id="auth-str-display-{{ loop.index }}">{{ unit.authorized_strength }}</span>
-                        </td>
-                        <td style="text-align: right;">
-                            <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;" onclick="openUpdateModal('{{ unit.name }}', {{ unit.unit_strength }}, {{ unit.authorized_strength }}, 'unit-str-display-{{ loop.index }}', 'auth-str-display-{{ loop.index }}')">
-                                <i class="fa-solid fa-pen-to-square me-1"></i> Update
-                            </button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">No units registered under this division.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
     </div>
 
 </div>
 
-<!-- UPDATE STRENGTH MODAL -->
-<div class="modal fade" id="updateStrengthModal" tabindex="-1" aria-labelledby="updateStrengthModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- SUBORDINATE UNITS MODAL -->
+<div class="modal fade" id="modalUnits" tabindex="-1" aria-labelledby="modalUnitsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
-                <h5 class="modal-title font-weight-bold" id="updateStrengthModalLabel" style="color: var(--text-primary); font-size: 1.1rem;">
-                    <i class="fa-solid fa-pen-to-square text-primary me-2"></i> Update Unit Strength Data
+                <h5 class="modal-title font-weight-bold" id="modalUnitsLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-shield-halved text-primary"></i> Subordinate Units Under Current Division
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" style="padding: 24px;">
-                <form id="updateStrengthForm" onsubmit="submitStrengthUpdate(event)">
-                    <input type="hidden" id="targetUnitName" name="unit_name">
-                    <input type="hidden" id="targetUElementId" name="target_u_element_id">
-                    <input type="hidden" id="targetAElementId" name="target_a_element_id">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-3" style="border-bottom: 1px solid var(--border-dim);">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);">
+                        Total Subordinate Units: <strong style="color: var(--text-primary);">{{ unit_count }}</strong>
+                    </span>
+                    <input type="text" id="searchUnitsInput" onkeyup="filterUnits()" class="form-control form-control-sm" placeholder="Search unit..." style="max-width: 250px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                </div>
+
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="custom-table" id="subordinateUnitsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 55px;">#</th>
+                                <th>UNIT NAME</th>
+                                <th style="text-align: center;">POSTED STRENGTH</th>
+                                <th style="text-align: right;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for unit in units %}
+                            <tr style="cursor: pointer;" onclick="openUnitBreakdown('{{ unit.name }}')">
+                                <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                                <td>
+                                    <div class="unit-badge">
+                                        <span class="badge-dot"></span>
+                                        {{ unit.name }}
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="strength-pill" style="font-weight: 700; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);">{{ unit.authorized_strength }}</span>
+                                </td>
+                                <td style="text-align: right;" onclick="event.stopPropagation()">
+                                    <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;" onclick="openUpdateAuthModal('{{ unit.name }}', {{ unit.authorized_strength }})">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i> Update Strength
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No units registered under this division.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UPDATE STRENGTH MODAL -->
+<div class="modal fade" id="modalUpdateAuth" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title" style="color: var(--text-primary); font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-pen-to-square text-primary"></i> Update Posted Strength
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <form id="updateAuthForm" onsubmit="submitUpdateAuth(event)">
+                    <input type="hidden" id="authTargetUnitName">
 
                     <div class="mb-3">
                         <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Unit Name</label>
-                        <input type="text" id="displayUnitName" class="form-control" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" readonly>
+                        <input type="text" id="authDisplayUnitName" class="form-control" readonly
+                            style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Unit Strength</label>
-                        <input type="number" id="inputUnitStrength" class="form-control" min="0" required placeholder="Enter unit strength e.g. 450" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Authorized Strength</label>
-                        <input type="number" id="inputAuthStrength" class="form-control" min="0" required placeholder="Enter authorized strength e.g. 500" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Posted Personnel Strength</label>
+                        <input type="number" id="authNewValue" class="form-control" min="0" required placeholder="Enter personnel count"
+                            style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
-                        <button type="submit" id="saveStrengthBtn" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 600;">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                        <button type="submit" id="saveAuthBtn" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 600;">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Save
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UNIT EQUIPMENT BREAKDOWN MODAL -->
+<div class="modal fade" id="modalUnitBreakdown" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-boxes-packing text-primary"></i>
+                    Item Inventory Breakdown — <span id="breakdownUnitTitle" style="color: var(--accent);">Unit</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 55px;">#</th>
+                                <th>ITEM NAME</th>
+                                <th style="text-align: center;">AUTH</th>
+                                <th style="text-align: center;">HELD</th>
+                                <th style="text-align: center;">DEFI</th>
+                                <th style="text-align: center;">ISSUED AT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unitBreakdownTbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
             </div>
         </div>
     </div>
@@ -408,156 +486,393 @@
     </div>
 </div>
 
-<script>
-    let strengthModalObj = null;
+<!-- TOTAL STOCK HELD DETAILS MODAL -->
+<div class="modal fade" id="modalStockHeld" tabindex="-1" aria-labelledby="modalStockHeldLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" id="modalStockHeldLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-cubes-stacked" style="color: #6f42c1;"></i> Total Stock Held Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-3" style="border-bottom: 1px solid var(--border-dim);">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);">
+                        Total Stock Items: <strong style="color: var(--text-primary);">{{ stock_records | length }}</strong> | Qty Held: <strong style="color: #6f42c1;">{{ total_stock_held }}</strong>
+                    </span>
+                    <input type="text" id="searchStockInput" onkeyup="filterStockItems()" class="form-control form-control-sm" placeholder="Search stock item..." style="max-width: 250px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                </div>
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const modalEl = document.getElementById('updateStrengthModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            strengthModalObj = new bootstrap.Modal(modalEl);
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="custom-table" id="stockItemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>ITEM NAME</th>
+                                <th style="text-align: center;">AUTH RES</th>
+                                <th style="text-align: center;">STOCK HELD</th>
+                                <th style="text-align: center;">STOCK SER</th>
+                                <th style="text-align: center;">STOCK PWS</th>
+                                <th style="text-align: right;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in stock_records %}
+                            <tr>
+                                <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary);">{{ item.item_name }}</td>
+                                <td style="text-align: center;">
+                                    <span class="strength-pill" style="color: #0d6efd;">{{ item.auth_res }}</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge" style="background: rgba(111, 66, 193, 0.15); color: #6f42c1; border: 1px solid rgba(111, 66, 193, 0.3); border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 0.88rem;">
+                                        {{ item.stock_total }}
+                                    </span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="strength-pill">{{ item.stock_ser }}</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="strength-pill">{{ item.stock_pws }}</span>
+                                </td>
+                                <td style="text-align: right;">
+                                    <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" onclick="handleIssueItem({{ item.item_id }}, '{{ item.item_name }}', {{ item.auth_res }}, this)">
+                                        <i class="fa-solid fa-hand-holding-hand"></i> Issue
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">No stock held items found for this division.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ISSUE ITEM TO SUBORDINATE UNIT MODAL -->
+<div class="modal fade" id="modalIssueItem" tabindex="-1" aria-labelledby="modalIssueItemLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" id="modalIssueItemLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-hand-holding-hand text-primary"></i> Issue Item to Subordinate Unit
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <form id="issueItemModalForm" onsubmit="submitIssueItem(event)">
+                    <input type="hidden" id="issueTargetItemId">
+                    <input type="hidden" id="issueCurrentStock">
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Selected Item</label>
+                        <input type="text" id="displayIssueItemName" class="form-control" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700;" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Select Subordinate Unit</label>
+                        <select id="issueUnitSelect" class="form-select" onchange="fetchExistingUnitItemAuth()" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                            <option value="" disabled selected>-- Select Subordinate Unit --</option>
+                            {% for u in units %}
+                            <option value="{{ u.name }}">{{ u.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">AUTH</label>
+                        <input type="number" id="issueItemAuthInput" class="form-control" min="0" placeholder="Enter max authorized limit (e.g. 50)" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Set or update the max authorized quantity for this item.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label mb-0" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Issue Count (Qty)</label>
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;" id="displayAvailStockBadge">Available Reserve: 0</span>
+                        </div>
+                        <input type="number" id="issueCountInput" class="form-control" min="1" required placeholder="Enter quantity to issue e.g. 10" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                        <button type="submit" id="confirmIssueBtn" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 600;">
+                            <i class="fa-solid fa-hand-holding-hand me-1"></i> Confirm Issue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentActiveStockRow = null;
+
+    // ---- Clean up stuck modal backdrops ----
+    document.addEventListener('hidden.bs.modal', function () {
+        if (!document.querySelector('.modal.show')) {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
         }
     });
 
-    function openRegisteredItemsModal() {
-        const modalEl = document.getElementById('modalRegisteredItems');
-        if (modalEl && modalEl.parentElement !== document.body) {
-            document.body.appendChild(modalEl);
-        }
-        if (typeof bootstrap !== 'undefined') {
-            let bsModal = bootstrap.Modal.getInstance(modalEl);
-            if (!bsModal) {
-                bsModal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
-            }
-            bsModal.show();
+    function _showModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        bootstrap.Modal.getOrCreateInstance(el).show();
+    }
+
+    function _hideModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const m = bootstrap.Modal.getInstance(el);
+        if (m) m.hide();
+    }
+
+    // ---- Stock Held Modal ----
+    function openStockHeldModal() { _showModal('modalStockHeld'); }
+
+    function filterStockItems() {
+        const filter = document.getElementById('searchStockInput').value.toLowerCase();
+        const rows = document.getElementById('stockItemsTable').getElementsByTagName('tr');
+        for (let i = 1; i < rows.length; i++) {
+            const td = rows[i].getElementsByTagName('td')[1];
+            rows[i].style.display = td && (td.textContent || '').toLowerCase().includes(filter) ? '' : 'none';
         }
     }
+
+    // ---- Registered Items Modal ----
+    function openRegisteredItemsModal() { _showModal('modalRegisteredItems'); }
 
     function filterCatalogItems() {
-        const input = document.getElementById("searchCatalogInput");
-        const filter = input.value.toLowerCase();
-        const table = document.getElementById("catalogItemsTable");
-        const tr = table.getElementsByTagName("tr");
-
-        for (let i = 1; i < tr.length; i++) {
-            const td = tr[i].getElementsByTagName("td")[1];
-            if (td) {
-                const txtValue = td.textContent || td.innerText;
-                if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                    tr[i].style.display = "";
-                } else {
-                    tr[i].style.display = "none";
-                }
-            }
+        const filter = document.getElementById('searchCatalogInput').value.toLowerCase();
+        const rows = document.getElementById('catalogItemsTable').getElementsByTagName('tr');
+        for (let i = 1; i < rows.length; i++) {
+            const td = rows[i].getElementsByTagName('td')[1];
+            rows[i].style.display = td && (td.textContent || '').toLowerCase().includes(filter) ? '' : 'none';
         }
     }
 
-    function toggleUnitsTable() {
-        const tableSection = document.getElementById("unitsTableSection");
-        if (tableSection.style.display === "none") {
-            tableSection.style.display = "block";
-            tableSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        } else {
-            tableSection.style.display = "none";
+    // ---- Subordinate Units Modal & Breakdown ----
+    function openUnitsModal() { _showModal('modalUnits'); }
+
+    function filterUnits() {
+        const filter = document.getElementById('searchUnitsInput').value.toLowerCase();
+        const rows = document.getElementById('subordinateUnitsTable').getElementsByTagName('tr');
+        for (let i = 1; i < rows.length; i++) {
+            const td = rows[i].getElementsByTagName('td')[1];
+            rows[i].style.display = td && (td.textContent || '').toLowerCase().includes(filter) ? '' : 'none';
         }
     }
 
-    function openUpdateModal(unitName, unitStr, authStr, uElementId, aElementId) {
-        document.getElementById("targetUnitName").value = unitName;
-        document.getElementById("displayUnitName").value = unitName;
-        document.getElementById("targetUElementId").value = uElementId;
-        document.getElementById("targetAElementId").value = aElementId;
+    async function openUnitBreakdown(unitName) {
+        document.getElementById('breakdownUnitTitle').textContent = unitName;
+        const tbody = document.getElementById('unitBreakdownTbody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    <i class="fa-solid fa-spinner fa-spin me-2"></i> Loading breakdown data...
+                </td>
+            </tr>
+        `;
 
-        // Dynamically pre-fill with latest values from the table
-        const uEl = document.getElementById(uElementId);
-        const aEl = document.getElementById(aElementId);
-
-        const latestUnitStr = uEl ? parseInt(uEl.textContent.trim(), 10) : unitStr;
-        const latestAuthStr = aEl ? parseInt(aEl.textContent.trim(), 10) : authStr;
-
-        document.getElementById("inputUnitStrength").value = isNaN(latestUnitStr) ? 0 : latestUnitStr;
-        document.getElementById("inputAuthStrength").value = isNaN(latestAuthStr) ? 0 : latestAuthStr;
-
-        const modalEl = document.getElementById('updateStrengthModal');
-        if (modalEl && modalEl.parentElement !== document.body) {
-            document.body.appendChild(modalEl);
-        }
-
-        if (typeof bootstrap !== 'undefined') {
-            let bsModal = bootstrap.Modal.getInstance(modalEl);
-            if (!bsModal) {
-                bsModal = new bootstrap.Modal(modalEl, {
-                    backdrop: true,
-                    keyboard: true
-                });
-            }
-            strengthModalObj = bsModal;
-            bsModal.show();
-        }
-    }
-
-    async function submitStrengthUpdate(event) {
-        event.preventDefault();
-        const saveBtn = document.getElementById("saveStrengthBtn");
-        const unitName = document.getElementById("targetUnitName").value;
-        const unitStr = document.getElementById("inputUnitStrength").value;
-        const authStr = document.getElementById("inputAuthStrength").value;
-        const targetUElementId = document.getElementById("targetUElementId").value;
-        const targetAElementId = document.getElementById("targetAElementId").value;
-
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...`;
+        _showModal('modalUnitBreakdown');
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await fetch('/division_admin/api/unit-breakdown?unit_name=' + encodeURIComponent(unitName));
+            const result = await res.json();
 
-            const response = await fetch('/division_admin/update-strength', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    unit_name: unitName,
-                    unit_strength: unitStr,
-                    authorized_strength: authStr
-                })
+            if (!res.ok || !result.success) {
+                throw new Error(result.message || 'Failed to load breakdown');
+            }
+
+            const records = result.records || [];
+            if (records.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-box-open fa-2x mb-2 d-block" style="opacity:0.3;"></i>
+                            No equipment records found for ${unitName}.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            records.forEach((rec, idx) => {
+                const defi = rec.deficiency;
+                const defiBadge = defi > 0
+                    ? `<span class="badge" style="background:rgba(220,53,69,0.1);color:#dc3545;border:1px solid rgba(220,53,69,0.25);border-radius:6px;padding:4px 10px;font-weight:700;font-family:monospace;">${defi}</span>`
+                    : `<span class="badge" style="background:rgba(25,135,84,0.1);color:#198754;border:1px solid rgba(25,135,84,0.25);border-radius:6px;padding:4px 10px;font-weight:700;font-family:monospace;">${defi}</span>`;
+
+                const issuedAtStr = rec.issued_at || '—';
+
+                html += `
+                    <tr>
+                        <td style="color: var(--text-secondary); font-weight: 600;">${idx + 1}</td>
+                        <td style="font-weight: 600; color: var(--text-primary);">${rec.item_name}</td>
+                        <td style="text-align: center;"><span class="strength-pill">${rec.authorized}</span></td>
+                        <td style="text-align: center;"><span class="strength-pill">${rec.held}</span></td>
+                        <td style="text-align: center;">${defiBadge}</td>
+                        <td style="text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${issuedAtStr}</td>
+                    </tr>
+                `;
             });
+            tbody.innerHTML = html;
 
-            const result = await response.json();
+        } catch (err) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-danger py-4">
+                        <i class="fa-solid fa-circle-exclamation me-1"></i> ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
 
-            if (!response.ok || !result.success) {
-                throw new Error(result.message || 'Failed to update strength');
-            }
+    // ---- Issue Item from Stock Held Modal ----
+    async function fetchExistingUnitItemAuth() {
+        const unitName = document.getElementById("issueUnitSelect").value;
+        const itemId = document.getElementById("issueTargetItemId").value;
+        const authInput = document.getElementById("issueItemAuthInput");
 
-            // Update DOM pills
-            const targetUEl = document.getElementById(targetUElementId);
-            if (targetUEl) {
-                targetUEl.textContent = result.unit_strength;
-            }
-            const targetAEl = document.getElementById(targetAElementId);
-            if (targetAEl) {
-                targetAEl.textContent = result.authorized_strength;
-            }
+        if (!unitName || !itemId) return;
 
-            if (strengthModalObj) {
-                strengthModalObj.hide();
-            }
-
-            if (typeof notify !== 'undefined') {
-                notify.success(result.message || 'Strength updated successfully!');
+        try {
+            const res = await fetch(`/division_admin/api/unit-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`);
+            const result = await res.json();
+            if (res.ok && result.success && result.exists && result.auth !== null) {
+                authInput.value = result.auth;
             } else {
-                alert(result.message || 'Strength updated successfully!');
+                authInput.value = "";
+            }
+        } catch (err) {
+            console.error('Error fetching unit item auth:', err);
+        }
+    }
+
+    function handleIssueItem(itemId, itemName, currentReserve, btnElement) {
+        document.getElementById("issueTargetItemId").value = itemId;
+        document.getElementById("issueCurrentStock").value = currentReserve;
+        document.getElementById("displayIssueItemName").value = itemName;
+        document.getElementById("issueItemAuthInput").value = "";
+        document.getElementById("displayAvailStockBadge").textContent = `Available Reserve: ${currentReserve}`;
+
+        const countInput = document.getElementById("issueCountInput");
+        countInput.value = "1";
+        countInput.max = currentReserve;
+
+        currentActiveStockRow = btnElement ? btnElement.closest("tr") : null;
+
+        _showModal('modalIssueItem');
+        fetchExistingUnitItemAuth();
+    }
+
+    async function submitIssueItem(event) {
+        event.preventDefault();
+        const btn = document.getElementById('confirmIssueBtn');
+        const itemId = document.getElementById('issueTargetItemId').value;
+        const unitName = document.getElementById('issueUnitSelect').value;
+        const issueCount = document.getElementById('issueCountInput').value;
+        const itemAuthVal = document.getElementById('issueItemAuthInput').value.trim();
+        const itemAuth = itemAuthVal !== "" ? parseInt(itemAuthVal, 10) : null;
+        const availReserve = parseInt(document.getElementById('issueCurrentStock').value, 10) || 0;
+
+        if (!unitName) { alert('Please select a target subordinate unit.'); return; }
+
+        const qty = parseInt(issueCount, 10);
+        if (isNaN(qty) || qty <= 0) { alert('Enter a valid positive quantity.'); return; }
+        if (qty > availReserve) { alert(`Cannot issue ${qty}. Maximum available reserve is ${availReserve}.`); return; }
+
+        if (itemAuth !== null && (isNaN(itemAuth) || itemAuth < 0)) {
+            alert('Item Authorized Limit (AUTH) must be a valid non-negative integer.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Issuing...';
+
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await fetch('/division_admin/issue-item', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+                body: JSON.stringify({ unit_name: unitName, item_id: itemId, issue_count: qty, item_auth: itemAuth })
+            });
+            const result = await res.json();
+            if (!res.ok || !result.success) throw new Error(result.message || 'Failed to issue item');
+
+            if (currentActiveStockRow) {
+                const reservePill = currentActiveStockRow.querySelector('td:nth-child(3) .strength-pill');
+                if (reservePill && result.new_item_reserve !== undefined) {
+                    reservePill.textContent = result.new_item_reserve;
+                }
             }
 
-        } catch (error) {
-            if (typeof notify !== 'undefined') {
-                notify.error(error.message);
-            } else {
-                alert('Error: ' + error.message);
-            }
+            _hideModal('modalIssueItem');
+            alert(result.message || 'Item issued successfully!');
+            window.location.reload();
+
+        } catch (err) {
+            alert('Error: ' + err.message);
         } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk me-1"></i> Save Changes`;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save';
+        }
+    }
+
+    // ---- Update AUTH Modal ----
+    function openUpdateAuthModal(unitName, currentAuth) {
+        document.getElementById('authTargetUnitName').value = unitName;
+        document.getElementById('authDisplayUnitName').value = unitName;
+        document.getElementById('authNewValue').value = currentAuth;
+        _showModal('modalUpdateAuth');
+    }
+
+    async function submitUpdateAuth(event) {
+        event.preventDefault();
+        const btn = document.getElementById('saveAuthBtn');
+        const unitName = document.getElementById('authTargetUnitName').value;
+        const newAuth = parseInt(document.getElementById('authNewValue').value, 10);
+
+        if (isNaN(newAuth) || newAuth < 0) { alert('Enter a valid non-negative number.'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
+
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await fetch('/division_admin/update-strength', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+                body: JSON.stringify({ unit_name: unitName, unit_strength: newAuth, authorized_strength: newAuth })
+            });
+            const result = await res.json();
+            if (!res.ok || !result.success) throw new Error(result.message || 'Failed to update AUTH');
+
+            _hideModal('modalUpdateAuth');
+            alert(result.message || 'AUTH updated successfully!');
+            window.location.reload();
+
+        } catch (err) {
+            alert('Error: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save';
         }
     }
 </script>

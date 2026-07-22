@@ -17,130 +17,71 @@
         padding: 8px 4px;
     }
 
-    /* Grid for Cards */
-    .unit-metrics-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 350px));
-        gap: 20px;
+    /* Compact Metric Cards — same style as division dashboard */
+    .metrics-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
         margin-bottom: 24px;
     }
 
-    .unit-metric-card {
+    .metric-card-compact {
         background: var(--bg-surface);
         border: 1px solid var(--border-dim);
-        border-radius: 16px;
-        padding: 22px 24px;
-        position: relative;
-        overflow: hidden;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-    }
-
-    .unit-metric-card.clickable {
-        cursor: pointer;
-    }
-
-    .unit-metric-card.clickable:hover {
-        transform: translateY(-3px);
-        border-color: var(--accent);
-        box-shadow: 0 10px 25px rgba(45, 107, 66, 0.12);
-    }
-
-    .unit-metric-header {
+        border-radius: 14px;
+        padding: 14px 20px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        margin-bottom: 14px;
+        gap: 16px;
+        min-width: 220px;
+        flex: 1;
+        max-width: 280px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
     }
 
-    .metric-icon-wrap {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+    .metric-card-compact:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 8px 20px rgba(45, 107, 66, 0.12);
+    }
+
+    .metric-card-compact .card-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.1rem;
+        flex-shrink: 0;
     }
 
-    .icon-strength {
-        background: rgba(45, 107, 66, 0.1);
-        color: var(--accent);
-    }
+    .icon-green  { background: rgba(45,107,66,0.12);  color: var(--accent); }
+    .icon-blue   { background: rgba(13,110,253,0.1);   color: #0d6efd; }
+    .icon-orange { background: rgba(253,126,20,0.12);  color: #fd7e14; }
+    .icon-red    { background: rgba(220,53,69,0.1);    color: #dc3545; }
 
-    .click-badge {
-        font-size: 0.72rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: rgba(45, 107, 66, 0.1);
-        color: var(--accent);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .metric-value {
-        font-size: 2.2rem;
+    .card-body-text .card-val {
+        font-size: 1.5rem;
         font-weight: 700;
         color: var(--text-primary);
         line-height: 1.1;
-        margin-bottom: 4px;
     }
 
-    .metric-title {
-        font-size: 0.85rem;
+    .card-body-text .card-lbl {
+        font-size: 0.73rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.6px;
+        letter-spacing: 0.5px;
         color: var(--text-secondary);
+        margin-top: 2px;
     }
 
-    /* Table Section Card */
-    .table-section-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-dim);
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-        margin-bottom: 24px;
-    }
-
-    .table-card-header {
-        padding: 18px 24px;
-        border-bottom: 1px solid var(--border-dim);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: var(--bg-raised);
-    }
-
-    .table-card-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .representation-note {
-        background: rgba(13, 110, 253, 0.08);
-        border: 1px solid rgba(13, 110, 253, 0.2);
-        color: #0d6efd;
-        padding: 10px 16px;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 20px 24px 12px 24px;
-    }
-
+    /* Custom table */
     .custom-table {
         width: 100%;
         border-collapse: collapse;
@@ -150,36 +91,31 @@
         background: var(--bg-raised);
         color: var(--text-secondary);
         font-weight: 600;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        padding: 14px 24px;
+        padding: 12px 20px;
         text-align: left;
         border-bottom: 1px solid var(--border-dim);
     }
 
     .custom-table td {
-        padding: 14px 24px;
+        padding: 12px 20px;
         color: var(--text-primary);
-        font-size: 0.95rem;
+        font-size: 0.93rem;
         border-bottom: 1px solid var(--border-dim);
         vertical-align: middle;
     }
 
-    .custom-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .custom-table tbody tr:hover {
-        background: rgba(0, 0, 0, 0.015);
-    }
+    .custom-table tbody tr:last-child td { border-bottom: none; }
+    .custom-table tbody tr:hover { background: rgba(0,0,0,0.015); }
 
     .number-pill {
         font-family: monospace;
-        font-size: 0.9rem;
-        font-weight: 600;
+        font-size: 0.88rem;
+        font-weight: 700;
         background: var(--bg-raised);
-        padding: 4px 12px;
+        padding: 3px 10px;
         border-radius: 6px;
         border: 1px solid var(--border-dim);
         display: inline-block;
@@ -187,150 +123,246 @@
 
     .badge-defi {
         font-family: monospace;
-        font-size: 0.9rem;
-        font-weight: 600;
-        padding: 4px 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        padding: 3px 10px;
         border-radius: 6px;
         display: inline-block;
     }
 
-    .badge-defi-positive {
-        background: rgba(220, 53, 69, 0.1);
+    /* RED = deficiency (auth > held) */
+    .badge-defi-red {
+        background: rgba(220,53,69,0.1);
         color: #dc3545;
-        border: 1px solid rgba(220, 53, 69, 0.25);
+        border: 1px solid rgba(220,53,69,0.25);
     }
 
-    .badge-defi-zero {
-        background: rgba(25, 135, 84, 0.1);
+    /* GREEN = surplus (held >= auth) */
+    .badge-defi-green {
+        background: rgba(25,135,84,0.1);
         color: #198754;
-        border: 1px solid rgba(25, 135, 84, 0.25);
+        border: 1px solid rgba(25,135,84,0.25);
+    }
+
+    /* Modal overrides */
+    .modal-content {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 16px;
+    }
+
+    .modal-header {
+        background: var(--bg-raised);
+        border-bottom: 1px solid var(--border-dim);
+        border-radius: 16px 16px 0 0;
+        padding: 16px 24px;
+    }
+
+    .modal-body { padding: 24px; }
+    .modal-footer {
+        border-top: 1px solid var(--border-dim);
+        padding: 14px 24px;
     }
 </style>
 
 <div class="unit-dash-container">
 
-    <!-- TOP SECTION: ONE CARD (STRENGTH) -->
-    <div class="unit-metrics-grid">
-        <div class="unit-metric-card clickable" id="strengthCard" onclick="toggleStrengthTable()">
-            <div class="unit-metric-header">
-                <div class="metric-icon-wrap icon-strength">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-                <span class="click-badge">
-                    <i class="fa-solid fa-hand-pointer"></i> Click to View
-                </span>
+    <!-- SINGLE STOCK CARD -->
+    <div class="metrics-row">
+        <div class="metric-card-compact" onclick="openEquipmentModal()" title="Click to view stock">
+            <div class="card-icon icon-green">
+                <i class="fa-solid fa-boxes-stacked"></i>
             </div>
-            <div class="metric-value">STRENGTH</div>
-            <div class="metric-title">{{ username }}</div>
-        </div>
-    </div>
-
-    <!-- DUMMY TABLE SECTION (Shown when STRENGTH card is clicked) -->
-    <div class="table-section-card" id="strengthTableSection" style="display: none;">
-        <div class="table-card-header">
-            <h3 class="table-card-title">
-                <i class="fa-solid fa-boxes-packing text-success"></i>
-                Unit Equipment & Stock Representation
-            </h3>
-            <button class="btn btn-sm btn-outline-secondary" onclick="toggleStrengthTable()">
-                <i class="fa-solid fa-xmark me-1"></i> Close Table
-            </button>
-        </div>
-
-        <!-- REPRESENTATION NOTE AT THE TOP -->
-        <div class="representation-note">
-            <i class="fa-solid fa-circle-info"></i>
-            <span>Note: This data below is only for representation ( DATA IS NOT COMING FROM DATABASE)</span>
-        </div>
-
-        <div class="table-responsive">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th style="width: 70px;">SN</th>
-                        <th>ITEM NAME</th>
-                        <th style="text-align: center;">AUTH</th>
-                        <th style="text-align: center;">HELD</th>
-                        <th style="text-align: center;">DEFI</th>
-                        <th style="text-align: right;">ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="color: var(--text-secondary); font-weight: 600;">1</td>
-                        <td style="font-weight: 600;">Bag Sleeping MK-IV</td>
-                        <td style="text-align: center;"><span class="number-pill">120</span></td>
-                        <td style="text-align: center;"><span class="number-pill">100</span></td>
-                        <td style="text-align: center;"><span class="badge-defi badge-defi-positive">20</span></td>
-                        <td style="text-align: right;">
-                            <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;">
-                                <i class="fa-solid fa-pen-to-square me-1"></i> Update
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--text-secondary); font-weight: 600;">2</td>
-                        <td style="font-weight: 600;">Coat ECC</td>
-                        <td style="text-align: center;"><span class="number-pill">150</span></td>
-                        <td style="text-align: center;"><span class="number-pill">150</span></td>
-                        <td style="text-align: center;"><span class="badge-defi badge-defi-zero">0</span></td>
-                        <td style="text-align: right;">
-                            <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;">
-                                <i class="fa-solid fa-pen-to-square me-1"></i> Update
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--text-secondary); font-weight: 600;">3</td>
-                        <td style="font-weight: 600;">Rucksack</td>
-                        <td style="text-align: center;"><span class="number-pill">200</span></td>
-                        <td style="text-align: center;"><span class="number-pill">160</span></td>
-                        <td style="text-align: center;"><span class="badge-defi badge-defi-positive">40</span></td>
-                        <td style="text-align: right;">
-                            <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;">
-                                <i class="fa-solid fa-pen-to-square me-1"></i> Update
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--text-secondary); font-weight: 600;">4</td>
-                        <td style="font-weight: 600;">Snow Boot / Boot RI</td>
-                        <td style="text-align: center;"><span class="number-pill">100</span></td>
-                        <td style="text-align: center;"><span class="number-pill">85</span></td>
-                        <td style="text-align: center;"><span class="badge-defi badge-defi-positive">15</span></td>
-                        <td style="text-align: right;">
-                            <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;">
-                                <i class="fa-solid fa-pen-to-square me-1"></i> Update
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--text-secondary); font-weight: 600;">5</td>
-                        <td style="font-weight: 600;">Goggles GS MK-II</td>
-                        <td style="text-align: center;"><span class="number-pill">180</span></td>
-                        <td style="text-align: center;"><span class="number-pill">120</span></td>
-                        <td style="text-align: center;"><span class="badge-defi badge-defi-positive">60</span></td>
-                        <td style="text-align: right;">
-                            <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;">
-                                <i class="fa-solid fa-pen-to-square me-1"></i> Update
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="card-body-text">
+                <div class="card-val">{{ unit_records | length }}</div>
+                <div class="card-lbl">Stock</div>
+            </div>
         </div>
     </div>
 
 </div>
 
+<!-- =========== EQUIPMENT MODAL =========== -->
+<div class="modal fade" id="modalEquipment" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-boxes-packing text-success"></i>
+                    {{ username }} — Issued Equipment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 55px;">SN</th>
+                                <th>ITEM NAME</th>
+                                <th style="text-align: center;">AUTH</th>
+                                <th style="text-align: center;">HELD</th>
+                                <th style="text-align: center;">DEFI</th>
+                                <th style="text-align: center;">ISSUED AT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in unit_records %}
+                            <tr>
+                                <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary);">{{ rec.item_name }}</td>
+                                <td style="text-align: center;"><span class="number-pill">{{ rec.authorized }}</span></td>
+                                <td style="text-align: center;"><span class="number-pill">{{ rec.held }}</span></td>
+                                <td style="text-align: center;">
+                                    {% set defi = rec.authorized - rec.held %}
+                                    {% if defi > 0 %}
+                                        <span class="badge-defi badge-defi-red">{{ defi }}</span>
+                                    {% else %}
+                                        <span class="badge-defi badge-defi-green">{{ defi }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center; color: var(--text-secondary); font-size: 0.85rem;">
+                                    {{ rec.issued_at.strftime('%d %b %Y') if rec.issued_at else '—' }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <i class="fa-solid fa-box-open fa-2x mb-2 d-block" style="opacity:0.3;"></i>
+                                    No items have been issued to this unit yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========== UPDATE AUTH MODAL =========== -->
+<div class="modal fade" id="modalUpdateAuth" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-pen-to-square text-primary"></i> Update AUTH
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="submitUpdateAuth(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="authRecId">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Item</label>
+                        <input type="text" id="authItemName" class="form-control" readonly
+                            style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">New AUTH Value</label>
+                        <input type="number" id="authNewVal" class="form-control" min="0" required placeholder="Enter authorized quantity"
+                            style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button type="submit" id="confirmAuthBtn" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 600;">
+                        <i class="fa-solid fa-check me-1"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
-    function toggleStrengthTable() {
-        const tableSection = document.getElementById("strengthTableSection");
-        if (tableSection.style.display === "none") {
-            tableSection.style.display = "block";
-            tableSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        } else {
-            tableSection.style.display = "none";
+    function openEquipmentModal() {
+        const el = document.getElementById('modalEquipment');
+        if (!el) return;
+        // Move to body to avoid stacking context issues
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+    }
+
+    // Clean up stuck backdrop whenever any modal is hidden
+    document.addEventListener('hidden.bs.modal', function () {
+        // If no other modals are open, remove any leftover backdrops
+        if (!document.querySelector('.modal.show')) {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }
+    });
+
+    function openUpdateAuth(recId, itemName, currentAuth) {
+        // Hide equipment modal cleanly first
+        const eqEl = document.getElementById('modalEquipment');
+        if (eqEl) {
+            const eqModal = bootstrap.Modal.getInstance(eqEl);
+            if (eqModal) {
+                eqEl.addEventListener('hidden.bs.modal', function showAuthOnce() {
+                    eqEl.removeEventListener('hidden.bs.modal', showAuthOnce);
+                    _showAuthModal(recId, itemName, currentAuth);
+                }, { once: true });
+                eqModal.hide();
+                return;
+            }
+        }
+        _showAuthModal(recId, itemName, currentAuth);
+    }
+
+    function _showAuthModal(recId, itemName, currentAuth) {
+        document.getElementById('authRecId').value = recId;
+        document.getElementById('authItemName').value = itemName;
+        document.getElementById('authNewVal').value = currentAuth;
+
+        const authEl = document.getElementById('modalUpdateAuth');
+        if (!authEl) return;
+        if (authEl.parentElement !== document.body) document.body.appendChild(authEl);
+        const m = bootstrap.Modal.getOrCreateInstance(authEl);
+        m.show();
+    }
+
+    async function submitUpdateAuth(event) {
+        event.preventDefault();
+        const btn = document.getElementById('confirmAuthBtn');
+        const recId = document.getElementById('authRecId').value;
+        const newAuth = parseInt(document.getElementById('authNewVal').value, 10);
+
+        if (isNaN(newAuth) || newAuth < 0) {
+            alert('Please enter a valid non-negative number.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...`;
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const response = await fetch('/unit/api/update-auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ rec_id: recId, authorized_strength: newAuth })
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Update failed');
+
+            const authEl = document.getElementById('modalUpdateAuth');
+            if (authEl) {
+                const m = bootstrap.Modal.getInstance(authEl);
+                if (m) m.hide();
+            }
+            window.location.reload();
+
+        } catch (err) {
+            alert('Error: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-check me-1"></i> Save`;
         }
     }
 </script>
