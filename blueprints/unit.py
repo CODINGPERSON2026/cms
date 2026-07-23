@@ -1,3 +1,4 @@
+from datetime import datetime, timezone, timedelta
 from imports import *
 from extensions import db
 from validation import has_special_characters
@@ -7,7 +8,6 @@ from models.org_ladder import OrgLadder
 
 
 unit_bp = Blueprint("unit",__name__,url_prefix='/unit')
-
 
 @unit_bp.route('/')
 def unit_dashboard():
@@ -29,6 +29,7 @@ def unit_dashboard():
             unit_names.add(user.org.name.replace(' ', '_').strip())
 
     unit_records = []
+    records = []
     if unit_names:
         records = TrackUnitItems.query.filter(
             db.func.lower(TrackUnitItems.unit_name).in_([name.lower() for name in unit_names])
@@ -38,6 +39,8 @@ def unit_dashboard():
             item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
             auth = rec.auth or 0
             held_qty = rec.held or 0
+            ser_qty = getattr(rec, 'ser', 0) or 0
+            pws_qty = getattr(rec, 'pws', 0) or 0
             defi = max(0, auth - held_qty)
             unit_records.append({
                 "id": rec.id,
@@ -45,11 +48,50 @@ def unit_dashboard():
                 "item_name": item_name,
                 "authorized": auth,
                 "held": held_qty,
+                "ser": ser_qty,
+                "pws": pws_qty,
                 "deficiency": defi,
                 "issued_at": rec.issued_at
             })
 
-    return render_template('/Unit_Dashboard/unit_dashboard.html', username=username, unit_records=unit_records)
+    # Build Day-Wise Received Equipment Data for Unit Dashboard
+    daily_issue_totals = {}
+    daily_item_issue_map = {}
+
+    if unit_names and records:
+        for rec in records:
+            if rec.issued_at and (rec.held or 0) > 0:
+                dt_str = rec.issued_at.strftime("%Y-%m-%d")
+                item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+                held_qty = rec.held or 0
+
+                daily_issue_totals[dt_str] = daily_issue_totals.get(dt_str, 0) + held_qty
+
+                if item_name not in daily_item_issue_map:
+                    daily_item_issue_map[item_name] = {}
+                daily_item_issue_map[item_name][dt_str] = daily_item_issue_map[item_name].get(dt_str, 0) + held_qty
+
+    sorted_dates = sorted(daily_issue_totals.keys())
+
+    if not sorted_dates:
+        today = datetime.now()
+        sorted_dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
+
+    daily_trend_labels = [datetime.strptime(d, "%Y-%m-%d").strftime("%d %b") for d in sorted_dates]
+    daily_trend_data = [daily_issue_totals.get(d, 0) for d in sorted_dates]
+
+    daily_item_trend_map = {}
+    for item_name, d_map in daily_item_issue_map.items():
+        daily_item_trend_map[item_name] = [d_map.get(d, 0) for d in sorted_dates]
+
+    return render_template(
+        '/Unit_Dashboard/unit_dashboard.html',
+        username=username,
+        unit_records=unit_records,
+        daily_trend_labels=daily_trend_labels,
+        daily_trend_data=daily_trend_data,
+        daily_item_trend_map=daily_item_trend_map
+    )
 
 
 @unit_bp.route('/api/update-auth', methods=['POST'])

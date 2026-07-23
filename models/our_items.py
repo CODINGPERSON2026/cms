@@ -143,15 +143,19 @@ class TrackUnitItems(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey("ecc_scme_items.id"), nullable=False)
     auth = db.Column(db.Integer, default=0, nullable=False)   # MAX limit of this item for unit
     held = db.Column(db.Integer, default=0, nullable=False)   # Quantity currently held
+    ser = db.Column(db.Integer, default=0, nullable=False)    # Serviceable quantity held
+    pws = db.Column(db.Integer, default=0, nullable=False)    # Partially working quantity held
     issued_at = db.Column(db.DateTime, nullable=True, server_default=db.func.now())
 
     item = db.relationship("ScmeItems", backref="track_unit_records")
 
-    def __init__(self, unit_name, item_id, auth=0, held=0, issued_at=None):
+    def __init__(self, unit_name, item_id, auth=0, held=0, ser=0, pws=0, issued_at=None):
         self.unit_name = unit_name
         self.item_id = item_id
         self.auth = auth
         self.held = held
+        self.ser = ser
+        self.pws = pws
         self.issued_at = issued_at
 
 class ScmeIssuedItems(db.Model):

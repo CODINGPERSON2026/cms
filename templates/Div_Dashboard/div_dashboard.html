@@ -11,9 +11,9 @@
 {% block content %}
 <style>
     .div-dash-container {
-        max-width: 1280px;
+        max-width: 1600px;
         margin: 0 auto;
-        padding: 8px 4px;
+        padding: 12px 16px;
     }
 
     /* Cards Grid (Compact SCME Style) */
@@ -292,6 +292,146 @@
 
     </div>
 
+    <!-- CHARTS SECTION: SUBORDINATE UNIT BAR GRAPH & SER/PWS PIE CHART -->
+    <script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
+
+    <div class="row g-4 mb-4">
+        <!-- GRAPH 1: SUBORDINATE UNIT ITEM STATUS (BAR CHART) -->
+        <div class="col-lg-7">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-column text-primary"></i> Subordinate Unit Item Status
+                    </h6>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Unit:</label>
+                            <select id="divBarUnitFilter" class="form-select form-select-sm" onchange="onDivBarUnitChanged(this.value)" style="width: auto; min-width: 140px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                                {% for u in units %}
+                                <option value="{{ u.name }}" {% if loop.first %}selected{% endif %}>{{ u.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Item:</label>
+                            <select id="divBarItemFilter" class="form-select form-select-sm" onchange="updateDivBarChart()" style="width: auto; min-width: 140px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                                <!-- Dynamically populated based on unit selection -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div id="divBarChartWrap" style="height: 300px; position: relative;">
+                        <canvas id="divUnitBarChart"></canvas>
+                    </div>
+                    <div id="divBarEmptyState" class="text-center text-muted py-5 d-none">
+                        <i class="fa-solid fa-chart-bar fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No item records found for this unit.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRAPH 2: ITEM OCCUPIED SHARE ACROSS UNITS (PIE CHART) -->
+        <div class="col-lg-5">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-pie text-success"></i> Item Distribution in Units
+                    </h6>
+                    <div class="d-flex align-items-center gap-1">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Item:</label>
+                        <select id="divPieItemFilter" class="form-select form-select-sm" onchange="updateDivPieChart(this.value)" style="width: auto; min-width: 140px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            {% for item in issued_unit_items %}
+                            <option value="{{ item.item_name }}" {% if loop.first %}selected{% endif %}>{{ item.item_name }}</option>
+                            {% else %}
+                            <option value="">No items issued yet</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div id="divPieChartWrap" style="height: 300px; position: relative;">
+                        <canvas id="divUnitPieChart"></canvas>
+                    </div>
+                    <div id="divPieEmptyState" class="text-center text-muted py-5 d-none">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No units currently hold this item.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2 CHARTS: DAY-WISE ISSUE TRENDING & DEFI CHART -->
+    <div class="row g-4 mb-4">
+        <!-- LEFT: DAY-WISE ISSUE TRENDING LINE CHART -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                        <i class="fa-solid fa-chart-line text-info"></i> Day-Wise Issue Trending
+                    </h6>
+                    <div class="d-flex align-items-center gap-1">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; white-space: nowrap;">Filter Item:</label>
+                        <select id="divTrendItemFilter" class="form-select form-select-sm" onchange="updateDivTrendChart(this.value)" style="width: auto; max-width: 160px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            <option value="__ALL__" selected>All Issued Items</option>
+                            {% for item in issued_unit_items %}
+                            <option value="{{ item.item_name }}">{{ item.item_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="divIssueTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: SER VS PWS DONUT CHART -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-nowrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0;">
+                        <i class="fa-solid fa-chart-pie text-warning"></i> SER vs PWS
+                    </h6>
+                    <div class="d-flex align-items-center gap-2 flex-nowrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; white-space: nowrap;">Unit:</label>
+                            <select id="divSerPwsUnitFilter" class="form-select form-select-sm" onchange="updateDivSerPwsChart()" style="width: auto; max-width: 110px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
+                                <option value="__ALL__" selected>All Units</option>
+                                {% for u in units %}
+                                <option value="{{ u.name }}">{{ u.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; white-space: nowrap;">Item:</label>
+                            <select id="divSerPwsItemFilter" class="form-select form-select-sm" onchange="updateDivSerPwsChart()" style="width: auto; max-width: 150px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
+                                {% for item in issued_unit_items %}
+                                <option value="{{ item.item_name }}" {% if loop.first %}selected{% endif %}>{{ item.item_name }}</option>
+                                {% else %}
+                                <option value="">No items available</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div id="divSerPwsChartWrap" style="height: 280px; position: relative;">
+                        <canvas id="divSerPwsDonutChart"></canvas>
+                    </div>
+                    <div id="divSerPwsEmptyState" class="text-center text-muted py-5 d-none">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No condition records found for this selection.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- SUBORDINATE UNITS MODAL -->
@@ -415,6 +555,8 @@
                                 <th>ITEM NAME</th>
                                 <th style="text-align: center;">AUTH</th>
                                 <th style="text-align: center;">HELD</th>
+                                <th style="text-align: center;">SER</th>
+                                <th style="text-align: center;">PWS</th>
                                 <th style="text-align: center;">DEFI</th>
                                 <th style="text-align: center;">ISSUED AT</th>
                             </tr>
@@ -588,18 +730,34 @@
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">AUTH</label>
-                        <input type="number" id="issueItemAuthInput" class="form-control" min="0" placeholder="Enter max authorized limit (e.g. 50)" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
-                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Set or update the max authorized quantity for this item.</small>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">AUTH</label>
+                            <input type="number" id="issueItemAuthInput" class="form-control" min="0" placeholder="Max limit" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">HELD (FOR THIS UNIT)</label>
+                            <input type="number" id="issueItemHeldInput" class="form-control" readonly placeholder="0" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
                     </div>
 
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label mb-0" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Issue Count (Qty)</label>
+                            <label class="form-label mb-0" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Issue Qty</label>
                             <span class="badge bg-secondary" style="font-size: 0.75rem;" id="displayAvailStockBadge">Available Reserve: 0</span>
                         </div>
-                        <input type="number" id="issueCountInput" class="form-control" min="1" required placeholder="Enter quantity to issue e.g. 10" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
+                        <input type="number" id="issueCountInput" class="form-control" min="1" required placeholder="Enter total quantity to issue (e.g. 70)" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 1rem;" oninput="onTotalIssueQtyChanged()">
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">SER Qty (Split)</label>
+                            <input type="number" id="issueSerInput" class="form-control" min="0" value="0" placeholder="SER Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="onSerQtyChanged()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">PWS Qty (Split)</label>
+                            <input type="number" id="issuePwsInput" class="form-control" min="0" value="0" placeholder="PWS Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="onPwsQtyChanged()">
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -726,6 +884,8 @@
                         <td style="font-weight: 600; color: var(--text-primary);">${rec.item_name}</td>
                         <td style="text-align: center;"><span class="strength-pill">${rec.authorized}</span></td>
                         <td style="text-align: center;"><span class="strength-pill">${rec.held}</span></td>
+                        <td style="text-align: center;"><span class="strength-pill" style="color:#10b981;">${rec.ser || 0}</span></td>
+                        <td style="text-align: center;"><span class="strength-pill" style="color:#f59e0b;">${rec.pws || 0}</span></td>
                         <td style="text-align: center;">${defiBadge}</td>
                         <td style="text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${issuedAtStr}</td>
                     </tr>
@@ -736,7 +896,7 @@
         } catch (err) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-danger py-4">
+                    <td colspan="8" class="text-center text-danger py-4">
                         <i class="fa-solid fa-circle-exclamation me-1"></i> ${err.message}
                     </td>
                 </tr>
@@ -745,23 +905,57 @@
     }
 
     // ---- Issue Item from Stock Held Modal ----
+    function onTotalIssueQtyChanged() {
+        const total = parseInt(document.getElementById("issueCountInput").value, 10) || 0;
+        let pws = parseInt(document.getElementById("issuePwsInput").value, 10) || 0;
+        if (pws > total) pws = 0;
+        const ser = Math.max(0, total - pws);
+        document.getElementById("issueSerInput").value = ser;
+        document.getElementById("issuePwsInput").value = pws;
+    }
+
+    function onSerQtyChanged() {
+        const total = parseInt(document.getElementById("issueCountInput").value, 10) || 0;
+        let ser = parseInt(document.getElementById("issueSerInput").value, 10) || 0;
+        if (ser > total) {
+            document.getElementById("issueCountInput").value = ser;
+            document.getElementById("issuePwsInput").value = 0;
+        } else {
+            document.getElementById("issuePwsInput").value = Math.max(0, total - ser);
+        }
+    }
+
+    function onPwsQtyChanged() {
+        const total = parseInt(document.getElementById("issueCountInput").value, 10) || 0;
+        let pws = parseInt(document.getElementById("issuePwsInput").value, 10) || 0;
+        if (pws > total) {
+            document.getElementById("issueCountInput").value = pws;
+            document.getElementById("issueSerInput").value = 0;
+        } else {
+            document.getElementById("issueSerInput").value = Math.max(0, total - pws);
+        }
+    }
+
     async function fetchExistingUnitItemAuth() {
         const unitName = document.getElementById("issueUnitSelect").value;
         const itemId = document.getElementById("issueTargetItemId").value;
         const authInput = document.getElementById("issueItemAuthInput");
+        const heldInput = document.getElementById("issueItemHeldInput");
 
         if (!unitName || !itemId) return;
 
         try {
             const res = await fetch(`/division_admin/api/unit-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`);
             const result = await res.json();
-            if (res.ok && result.success && result.exists && result.auth !== null) {
-                authInput.value = result.auth;
+            if (res.ok && result.success && result.exists) {
+                authInput.value = result.auth !== null ? result.auth : "";
+                heldInput.value = result.held !== undefined ? result.held : 0;
             } else {
                 authInput.value = "";
+                heldInput.value = 0;
             }
         } catch (err) {
-            console.error('Error fetching unit item auth:', err);
+            console.error('Error fetching unit item details:', err);
         }
     }
 
@@ -770,11 +964,11 @@
         document.getElementById("issueCurrentStock").value = currentReserve;
         document.getElementById("displayIssueItemName").value = itemName;
         document.getElementById("issueItemAuthInput").value = "";
+        document.getElementById("issueItemHeldInput").value = "0";
+        document.getElementById("issueCountInput").value = "1";
+        document.getElementById("issueSerInput").value = "1";
+        document.getElementById("issuePwsInput").value = "0";
         document.getElementById("displayAvailStockBadge").textContent = `Available Reserve: ${currentReserve}`;
-
-        const countInput = document.getElementById("issueCountInput");
-        countInput.value = "1";
-        countInput.max = currentReserve;
 
         currentActiveStockRow = btnElement ? btnElement.closest("tr") : null;
 
@@ -787,16 +981,22 @@
         const btn = document.getElementById('confirmIssueBtn');
         const itemId = document.getElementById('issueTargetItemId').value;
         const unitName = document.getElementById('issueUnitSelect').value;
-        const issueCount = document.getElementById('issueCountInput').value;
+        const totalVal = parseInt(document.getElementById('issueCountInput').value, 10) || 0;
+        const serVal = parseInt(document.getElementById('issueSerInput').value, 10) || 0;
+        const pwsVal = parseInt(document.getElementById('issuePwsInput').value, 10) || 0;
         const itemAuthVal = document.getElementById('issueItemAuthInput').value.trim();
         const itemAuth = itemAuthVal !== "" ? parseInt(itemAuthVal, 10) : null;
         const availReserve = parseInt(document.getElementById('issueCurrentStock').value, 10) || 0;
 
         if (!unitName) { alert('Please select a target subordinate unit.'); return; }
 
-        const qty = parseInt(issueCount, 10);
-        if (isNaN(qty) || qty <= 0) { alert('Enter a valid positive quantity.'); return; }
-        if (qty > availReserve) { alert(`Cannot issue ${qty}. Maximum available reserve is ${availReserve}.`); return; }
+        if (totalVal <= 0) { alert('Enter a valid positive total issue quantity.'); return; }
+        if (totalVal > availReserve) { alert(`Cannot issue ${totalVal}. Maximum available reserve is ${availReserve}.`); return; }
+
+        if (serVal + pwsVal !== totalVal) {
+            alert(`SER (${serVal}) + PWS (${pwsVal}) must equal Total Issue Quantity (${totalVal}).`);
+            return;
+        }
 
         if (itemAuth !== null && (isNaN(itemAuth) || itemAuth < 0)) {
             alert('Item Authorized Limit (AUTH) must be a valid non-negative integer.');
@@ -811,16 +1011,21 @@
             const res = await fetch('/division_admin/issue-item', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-                body: JSON.stringify({ unit_name: unitName, item_id: itemId, issue_count: qty, item_auth: itemAuth })
+                body: JSON.stringify({ unit_name: unitName, item_id: itemId, ser: serVal, pws: pwsVal, issue_count: totalVal, item_auth: itemAuth })
             });
             const result = await res.json();
             if (!res.ok || !result.success) throw new Error(result.message || 'Failed to issue item');
 
             if (currentActiveStockRow) {
-                const reservePill = currentActiveStockRow.querySelector('td:nth-child(3) .strength-pill');
-                if (reservePill && result.new_item_reserve !== undefined) {
-                    reservePill.textContent = result.new_item_reserve;
-                }
+                const resPill = currentActiveStockRow.querySelector('td:nth-child(3) .strength-pill');
+                const heldBadge = currentActiveStockRow.querySelector('td:nth-child(4) .badge');
+                const serPill = currentActiveStockRow.querySelector('td:nth-child(5) .strength-pill');
+                const pwsPill = currentActiveStockRow.querySelector('td:nth-child(6) .strength-pill');
+
+                if (resPill && result.new_item_reserve !== undefined) resPill.textContent = result.new_item_reserve;
+                if (heldBadge && result.new_item_stock !== undefined) heldBadge.textContent = result.new_item_stock;
+                if (serPill && result.new_item_stock_ser !== undefined) serPill.textContent = result.new_item_stock_ser;
+                if (pwsPill && result.new_item_stock_pws !== undefined) pwsPill.textContent = result.new_item_stock_pws;
             }
 
             _hideModal('modalIssueItem');
@@ -873,6 +1078,444 @@
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save';
+        }
+    }
+
+    // ---- DIVISION CHARTS INITIALIZATION & HANDLERS ----
+    const divUnitEquipmentMap = {{ unit_equipment_map | tojson }};
+    let divUnitBarChart = null;
+    let divUnitPieChart = null;
+
+    const divBarDataLabelsPlugin = {
+        id: 'divBarDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((bar, index) => {
+                    const val = dataset.data[index];
+                    if (val !== undefined && val !== null) {
+                        ctx.save();
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333333';
+                        ctx.font = 'bold 13px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(val, bar.x, bar.y - 6);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    const divPieDataLabelsPlugin = {
+        id: 'divPieDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((element, index) => {
+                    const val = dataset.data[index];
+                    if (val !== undefined && val !== null && val > 0) {
+                        const pos = element.tooltipPosition();
+                        ctx.save();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                        ctx.shadowBlur = 4;
+                        ctx.font = 'bold 13px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(val, pos.x, pos.y);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Bar Chart for 1st unit
+        const barUnitSelect = document.getElementById('divBarUnitFilter');
+        if (barUnitSelect && barUnitSelect.value) {
+            onDivBarUnitChanged(barUnitSelect.value);
+        }
+
+        // Initialize Pie Chart for 1st item
+        const pieItemSelect = document.getElementById('divPieItemFilter');
+        if (pieItemSelect && pieItemSelect.value) {
+            updateDivPieChart(pieItemSelect.value);
+        }
+
+        // Initialize Day-Wise Issue Trending Line Chart
+        initDivTrendChart();
+
+        // Initialize SER vs PWS Donut Chart
+        updateDivSerPwsChart();
+    });
+
+    // ---- DAY-WISE ISSUE TRENDING LINE CHART ----
+    const divTrendLabels = {{ daily_trend_labels | tojson }};
+    const divTrendData = {{ daily_trend_data | tojson }};
+    const divItemTrendMap = {{ daily_item_trend_map | tojson }};
+    let divIssueTrendChart = null;
+
+    const divTrendDataLabelsPlugin = {
+        id: 'divTrendDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((point, index) => {
+                    const val = dataset.data[index];
+                    if (val !== undefined && val !== null && val > 0) {
+                        ctx.save();
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333333';
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(val, point.x, point.y - 6);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    function initDivTrendChart() {
+        const ctx = document.getElementById('divIssueTrendChart');
+        if (!ctx) return;
+
+        divIssueTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: divTrendLabels,
+                datasets: [{
+                    label: 'Issued Quantity',
+                    data: divTrendData,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.08)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            plugins: [divTrendDataLabelsPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` Issued: ${context.raw} units`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        title: {
+                            display: true,
+                            text: 'DATE',
+                            font: { size: 11, weight: 'bold' }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grace: '15%',
+                        ticks: { precision: 0 },
+                        title: {
+                            display: true,
+                            text: 'ITEM COUNT',
+                            font: { size: 11, weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateDivTrendChart(selectedItem) {
+        if (!divIssueTrendChart) return;
+
+        let seriesData = [];
+        let labelName = 'Issued Quantity';
+
+        if (selectedItem === '__ALL__') {
+            seriesData = divTrendData;
+        } else {
+            seriesData = divItemTrendMap[selectedItem] || divTrendLabels.map(() => 0);
+            labelName = selectedItem;
+        }
+
+        divIssueTrendChart.data.datasets[0].label = labelName;
+        divIssueTrendChart.data.datasets[0].data = seriesData;
+        divIssueTrendChart.update();
+    }
+
+    // ---- SER VS PWS DONUT CHART ----
+    let divSerPwsDonutChart = null;
+
+    function updateDivSerPwsChart() {
+        const unitName = document.getElementById('divSerPwsUnitFilter')?.value || '__ALL__';
+        const itemName = document.getElementById('divSerPwsItemFilter')?.value;
+
+        if (!itemName) return;
+
+        const ctx = document.getElementById('divSerPwsDonutChart');
+        if (!ctx) return;
+
+        let totalSer = 0;
+        let totalPws = 0;
+
+        if (unitName === '__ALL__') {
+            Object.keys(divUnitEquipmentMap).forEach(uName => {
+                const items = divUnitEquipmentMap[uName] || [];
+                const itemRec = items.find(it => it.item_name === itemName);
+                if (itemRec) {
+                    totalSer += (itemRec.ser || 0);
+                    totalPws += (itemRec.pws || 0);
+                }
+            });
+        } else {
+            const items = divUnitEquipmentMap[unitName] || [];
+            const itemRec = items.find(it => it.item_name === itemName);
+            if (itemRec) {
+                totalSer += (itemRec.ser || 0);
+                totalPws += (itemRec.pws || 0);
+            }
+        }
+
+        if (totalSer === 0 && totalPws === 0) {
+            document.getElementById('divSerPwsChartWrap').classList.add('d-none');
+            document.getElementById('divSerPwsEmptyState').classList.remove('d-none');
+            return;
+        }
+
+        document.getElementById('divSerPwsChartWrap').classList.remove('d-none');
+        document.getElementById('divSerPwsEmptyState').classList.add('d-none');
+
+        const chartData = [totalSer, totalPws];
+
+        if (!divSerPwsDonutChart) {
+            divSerPwsDonutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['SER (Serviceable)', 'PWS (Partially Working)'],
+                    datasets: [{
+                        data: chartData,
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderWidth: 2,
+                        cutout: '60%'
+                    }]
+                },
+                plugins: [divPieDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 14, font: { size: 11, weight: '600' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            divSerPwsDonutChart.data.datasets[0].data = chartData;
+            divSerPwsDonutChart.update();
+        }
+    }
+
+    function onDivBarUnitChanged(unitName) {
+        const itemSelect = document.getElementById('divBarItemFilter');
+        if (!itemSelect) return;
+
+        const items = divUnitEquipmentMap[unitName] || [];
+        itemSelect.innerHTML = '';
+
+        if (items.length === 0) {
+            document.getElementById('divBarChartWrap').classList.add('d-none');
+            document.getElementById('divBarEmptyState').classList.remove('d-none');
+            return;
+        }
+
+        document.getElementById('divBarChartWrap').classList.remove('d-none');
+        document.getElementById('divBarEmptyState').classList.add('d-none');
+
+        items.forEach((it, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = it.item_name;
+            if (idx === 0) opt.selected = true;
+            itemSelect.appendChild(opt);
+        });
+
+        updateDivBarChart();
+    }
+
+    function updateDivBarChart() {
+        const unitName = document.getElementById('divBarUnitFilter').value;
+        const itemIdxStr = document.getElementById('divBarItemFilter').value;
+        const items = divUnitEquipmentMap[unitName] || [];
+        const itemIdx = parseInt(itemIdxStr, 10);
+        const itemRec = items[itemIdx];
+
+        if (!itemRec) return;
+
+        const ctx = document.getElementById('divUnitBarChart');
+        if (!ctx) return;
+
+        const chartData = [itemRec.authorized || 0, itemRec.held || 0, itemRec.deficiency || 0];
+
+        if (!divUnitBarChart) {
+            divUnitBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['AUTH', 'HELD', 'DEFI'],
+                    datasets: [{
+                        label: itemRec.item_name,
+                        data: chartData,
+                        backgroundColor: [
+                            'rgba(13, 110, 253, 0.75)',
+                            'rgba(16, 185, 129, 0.75)',
+                            'rgba(220, 53, 69, 0.75)'
+                        ],
+                        borderColor: ['#0d6efd', '#10b981', '#dc3545'],
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        maxBarThickness: 70,
+                        barPercentage: 0.9,
+                        categoryPercentage: 0.9
+                    }]
+                },
+                plugins: [divBarDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grace: '15%',
+                            ticks: { precision: 0 },
+                            title: {
+                                display: true,
+                                text: 'ITEM COUNT',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            divUnitBarChart.data.datasets[0].label = itemRec.item_name;
+            divUnitBarChart.data.datasets[0].data = chartData;
+            divUnitBarChart.update();
+        }
+    }
+
+    function updateDivPieChart(itemName) {
+        if (!itemName) {
+            const itemSelect = document.getElementById('divPieItemFilter');
+            if (itemSelect && itemSelect.value) itemName = itemSelect.value;
+        }
+        if (!itemName) return;
+
+        const ctx = document.getElementById('divUnitPieChart');
+        if (!ctx) return;
+
+        const unitLabels = [];
+        const heldData = [];
+
+        Object.keys(divUnitEquipmentMap).forEach(unitName => {
+            const items = divUnitEquipmentMap[unitName] || [];
+            const itemRec = items.find(it => it.item_name === itemName);
+            if (itemRec && (itemRec.held || 0) > 0) {
+                unitLabels.push(unitName);
+                heldData.push(itemRec.held);
+            }
+        });
+
+        const totalHeld = heldData.reduce((a, b) => a + b, 0);
+
+        if (totalHeld === 0 || heldData.length === 0) {
+            document.getElementById('divPieChartWrap').classList.add('d-none');
+            document.getElementById('divPieEmptyState').classList.remove('d-none');
+            return;
+        }
+
+        document.getElementById('divPieChartWrap').classList.remove('d-none');
+        document.getElementById('divPieEmptyState').classList.add('d-none');
+
+        const vibrantColors = [
+            '#10b981', '#0d6efd', '#f59e0b', '#8b5cf6', '#ec4899',
+            '#14b8a6', '#6366f1', '#f43f5e', '#06b6d4', '#84cc16'
+        ];
+        const bgColors = unitLabels.map((_, i) => vibrantColors[i % vibrantColors.length]);
+
+        if (!divUnitPieChart) {
+            divUnitPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: unitLabels,
+                    datasets: [{
+                        data: heldData,
+                        backgroundColor: bgColors,
+                        borderWidth: 2
+                    }]
+                },
+                plugins: [divPieDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 14,
+                                font: { size: 11, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw} held`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            divUnitPieChart.data.labels = unitLabels;
+            divUnitPieChart.data.datasets[0].data = heldData;
+            divUnitPieChart.data.datasets[0].backgroundColor = bgColors;
+            divUnitPieChart.update();
         }
     }
 </script>

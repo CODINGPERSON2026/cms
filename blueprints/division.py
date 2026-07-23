@@ -4,16 +4,29 @@ from models import LoginUser
 from models.our_items import OurItems, ItemRequestTable, Strength, ScmeItems, EccMonthlyState, ScmeIssuedItems, Units, TrackUnitItems
 from models.org_ladder import OrgLadder
 from validation import get_parent_admin,has_special_characters
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import text
 
 div_bp = Blueprint("div",__name__,url_prefix='/division_admin')
 
 
 def _ensure_track_unit_items_migrated():
-    """Ensure track_unit_items table exists and drop legacy columns from unit_strength MySQL table."""
+    """Ensure track_unit_items table exists, add ser/pws columns if missing, and drop legacy columns from unit_strength table."""
     try:
         db.create_all()
+        # Ensure ser and pws columns exist in track_unit_items table
+        track_cols = [c[0] for c in db.session.execute(text("DESCRIBE `track_unit_items`;")).fetchall()]
+        if "ser" not in track_cols:
+            try:
+                db.session.execute(text("ALTER TABLE `track_unit_items` ADD COLUMN `ser` INT DEFAULT 0 NOT NULL;"))
+            except Exception:
+                pass
+        if "pws" not in track_cols:
+            try:
+                db.session.execute(text("ALTER TABLE `track_unit_items` ADD COLUMN `pws` INT DEFAULT 0 NOT NULL;"))
+            except Exception:
+                pass
+
         # Drop legacy item columns from unit_strength table in MySQL if present
         cols = [c[0] for c in db.session.execute(text("DESCRIBE `unit_strength`;")).fetchall()]
         cols_to_drop = [col for col in ["item_id", "held", "issued_at"] if col in cols]
@@ -36,7 +49,7 @@ def _ensure_track_unit_items_migrated():
                 except Exception:
                     pass
 
-            db.session.commit()
+        db.session.commit()
     except Exception as e:
         db.session.rollback()
 
@@ -140,6 +153,86 @@ def div_home():
         total_stock = sum(r["stock_total"] for r in stock_records)
         total_stock_held = total_stock or 0
 
+    # Build equipment map for subordinate units to populate graphs
+    unit_equipment_map = {}
+    if subordinate_units:
+        all_unit_names = [u["name"] for u in subordinate_units if "name" in u]
+        if all_unit_names:
+            all_track_records = TrackUnitItems.query.filter(
+                TrackUnitItems.unit_name.in_(all_unit_names)
+            ).all()
+
+            for rec in all_track_records:
+                u_name = rec.unit_name
+                if u_name not in unit_equipment_map:
+                    unit_equipment_map[u_name] = []
+
+                item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+                auth = rec.auth or 0
+                held_qty = rec.held or 0
+                ser_qty = getattr(rec, 'ser', 0) or 0
+                pws_qty = getattr(rec, 'pws', 0) or 0
+                defi = max(0, auth - held_qty)
+
+                unit_equipment_map[u_name].append({
+                    "id": rec.id,
+                    "item_id": rec.item_id,
+                    "item_name": item_name,
+                    "authorized": auth,
+                    "held": held_qty,
+                    "ser": ser_qty,
+                    "pws": pws_qty,
+                    "deficiency": defi
+                })
+
+    # Collect items that are held/issued to at least one subordinate unit under this division
+    issued_unit_items = []
+    seen_item_names = set()
+    for u_name, items_list in unit_equipment_map.items():
+        for it in items_list:
+            i_name = it.get("item_name")
+            if i_name and i_name not in seen_item_names:
+                seen_item_names.add(i_name)
+                issued_unit_items.append({"item_id": it["item_id"], "item_name": i_name})
+
+    issued_unit_items.sort(key=lambda x: x["item_name"])
+
+    # Build Day-Wise Issue Trending Data
+    daily_issue_totals = {}
+    daily_item_issue_map = {}
+
+    if subordinate_units:
+        all_unit_names = [u["name"] for u in subordinate_units if "name" in u]
+        if all_unit_names:
+            all_track_recs = TrackUnitItems.query.filter(
+                TrackUnitItems.unit_name.in_(all_unit_names)
+            ).all()
+
+            for rec in all_track_recs:
+                if rec.issued_at and (rec.held or 0) > 0:
+                    dt_str = rec.issued_at.strftime("%Y-%m-%d")
+                    item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+                    held_qty = rec.held or 0
+
+                    daily_issue_totals[dt_str] = daily_issue_totals.get(dt_str, 0) + held_qty
+
+                    if item_name not in daily_item_issue_map:
+                        daily_item_issue_map[item_name] = {}
+                    daily_item_issue_map[item_name][dt_str] = daily_item_issue_map[item_name].get(dt_str, 0) + held_qty
+
+    sorted_dates = sorted(daily_issue_totals.keys())
+
+    if not sorted_dates:
+        today = datetime.now()
+        sorted_dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
+
+    daily_trend_labels = [datetime.strptime(d, "%Y-%m-%d").strftime("%d %b") for d in sorted_dates]
+    daily_trend_data = [daily_issue_totals.get(d, 0) for d in sorted_dates]
+
+    daily_item_trend_map = {}
+    for item_name, d_map in daily_item_issue_map.items():
+        daily_item_trend_map[item_name] = [d_map.get(d, 0) for d in sorted_dates]
+
     return render_template(
         '/Div_Dashboard/div_dashboard.html',
         username=username,
@@ -149,7 +242,12 @@ def div_home():
         total_items=len(catalog_items),
         critical_alerts_count=0,
         total_stock_held=total_stock_held,
-        stock_records=stock_records
+        stock_records=stock_records,
+        unit_equipment_map=unit_equipment_map,
+        issued_unit_items=issued_unit_items,
+        daily_trend_labels=daily_trend_labels,
+        daily_trend_data=daily_trend_data,
+        daily_item_trend_map=daily_item_trend_map
     )
 
 
@@ -249,6 +347,8 @@ def api_unit_breakdown():
             item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
             auth = rec.auth or 0
             held_qty = rec.held or 0
+            ser_qty = getattr(rec, 'ser', 0) or 0
+            pws_qty = getattr(rec, 'pws', 0) or 0
             defi = max(0, auth - held_qty)
             breakdown.append({
                 "id": rec.id,
@@ -256,6 +356,8 @@ def api_unit_breakdown():
                 "item_name": item_name,
                 "authorized": auth,
                 "held": held_qty,
+                "ser": ser_qty,
+                "pws": pws_qty,
                 "deficiency": defi,
                 "issued_at": rec.issued_at.strftime('%d %b %Y') if rec.issued_at else None
             })
@@ -299,7 +401,9 @@ def api_unit_item_auth():
                 "success": True,
                 "exists": True,
                 "auth": track_rec.auth or 0,
-                "held": track_rec.held or 0
+                "held": track_rec.held or 0,
+                "ser": getattr(track_rec, 'ser', 0) or 0,
+                "pws": getattr(track_rec, 'pws', 0) or 0
             }), 200
 
         issued_rec = ScmeIssuedItems.query.filter(
@@ -312,10 +416,12 @@ def api_unit_item_auth():
                 "success": True,
                 "exists": True,
                 "auth": issued_rec.unit_authorized or 0,
-                "held": issued_rec.held or 0
+                "held": issued_rec.held or 0,
+                "ser": 0,
+                "pws": 0
             }), 200
 
-        return jsonify({"success": True, "exists": False, "auth": None, "held": 0}), 200
+        return jsonify({"success": True, "exists": False, "auth": None, "held": 0, "ser": 0, "pws": 0}), 200
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -335,22 +441,38 @@ def issue_item():
         data = request.get_json() or {}
         unit_name = data.get("unit_name")
         item_id = data.get("item_id")
-        issue_count = data.get("issue_count")
         item_auth = data.get("item_auth")
 
-        if not unit_name or not item_id or issue_count is None:
-            return jsonify({"success": False, "message": "Unit name, item ID, and issue count are required."}), 400
+        raw_ser = data.get("ser", data.get("ser_count"))
+        raw_pws = data.get("pws", data.get("pws_count"))
+        raw_issue_count = data.get("issue_count")
 
         try:
-            val_qty = int(issue_count)
-            item_id = int(item_id)
-            if val_qty <= 0:
+            val_ser = int(raw_ser) if (raw_ser is not None and str(raw_ser).strip() != "") else 0
+            val_pws = int(raw_pws) if (raw_pws is not None and str(raw_pws).strip() != "") else 0
+            if val_ser < 0 or val_pws < 0:
                 raise ValueError()
         except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Issue count must be a positive integer."}), 400
+            return jsonify({"success": False, "message": "SER and PWS counts must be non-negative integers."}), 400
+
+        val_qty = val_ser + val_pws
+        if val_qty == 0 and raw_issue_count is not None:
+            try:
+                val_qty = int(raw_issue_count)
+                val_ser = val_qty
+            except (ValueError, TypeError):
+                pass
+
+        if not unit_name or not item_id or val_qty <= 0:
+            return jsonify({"success": False, "message": "Unit name, item ID, and a positive quantity to issue (SER or PWS) are required."}), 400
+
+        try:
+            item_id = int(item_id)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Invalid item ID."}), 400
 
         val_auth = None
-        if item_auth is not None and item_auth != "":
+        if item_auth is not None and str(item_auth).strip() != "":
             try:
                 val_auth = int(item_auth)
                 if val_auth < 0:
@@ -391,9 +513,14 @@ def issue_item():
             curr_res = ecc_record.auth_res if ecc_record else 0
             return jsonify({"success": False, "message": f"Insufficient reserve available. Current reserve: {curr_res}."}), 400
 
-        # Deduct issued quantity from reserve (auth_res) in division EccMonthlyState
+        # Deduct issued quantity from reserve (auth_res) and update stock totals in division EccMonthlyState
         ecc_record.auth_res = (ecc_record.auth_res or 0) - val_qty
         ecc_record.issd_total = (ecc_record.issd_total or 0) + val_qty
+        ecc_record.issd_ser = (ecc_record.issd_ser or 0) + val_ser
+        ecc_record.issd_pws = (ecc_record.issd_pws or 0) + val_pws
+        ecc_record.stock_total = (ecc_record.stock_total or 0) + val_qty
+        ecc_record.stock_ser = (ecc_record.stock_ser or 0) + val_ser
+        ecc_record.stock_pws = (ecc_record.stock_pws or 0) + val_pws
         if ecc_record.auth_auth is not None:
             ecc_record.auth_total = (ecc_record.auth_auth or 0) + ecc_record.auth_res
 
@@ -424,6 +551,8 @@ def issue_item():
         track_rec = TrackUnitItems.query.filter_by(unit_name=unit_name, item_id=item_id).first()
         if track_rec:
             track_rec.held = (track_rec.held or 0) + val_qty
+            track_rec.ser = (track_rec.ser or 0) + val_ser
+            track_rec.pws = (track_rec.pws or 0) + val_pws
             if val_auth is not None:
                 track_rec.auth = val_auth
             else:
@@ -436,6 +565,8 @@ def issue_item():
                 item_id=item_id,
                 auth=initial_auth,
                 held=val_qty,
+                ser=val_ser,
+                pws=val_pws,
                 issued_at=now_dt
             )
             db.session.add(track_rec)
@@ -457,6 +588,8 @@ def issue_item():
             "item_id": item_id,
             "new_item_reserve": ecc_record.auth_res,
             "new_item_stock": ecc_record.stock_total,
+            "new_item_stock_ser": ecc_record.stock_ser,
+            "new_item_stock_pws": ecc_record.stock_pws,
             "new_total_stock": new_total_stock
         }), 200
 

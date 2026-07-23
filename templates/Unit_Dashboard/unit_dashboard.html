@@ -12,9 +12,9 @@
 {% block content %}
 <style>
     .unit-dash-container {
-        max-width: 1280px;
+        max-width: 1600px;
         margin: 0 auto;
-        padding: 8px 4px;
+        padding: 12px 16px;
     }
 
     /* Compact Metric Cards — same style as division dashboard */
@@ -175,7 +175,175 @@
             </div>
             <div class="card-body-text">
                 <div class="card-val">{{ unit_records | length }}</div>
-                <div class="card-lbl">Stock</div>
+                <div class="card-lbl">Stock (Click to View)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARTS SECTION: BAR GRAPH & PIE CHART -->
+    <script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
+
+    <div class="row g-4 mb-4">
+        <!-- LEFT: BAR GRAPH CARD WITH ITEM FILTER -->
+        <div class="col-lg-7">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-column text-primary"></i> Item Auth vs Held vs Deficiency
+                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Select Item:</label>
+                        <select id="barItemFilter" class="form-select form-select-sm" onchange="updateBarChart(this.value)" style="width: auto; min-width: 160px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            {% for rec in unit_records %}
+                            <option value="{{ loop.index0 }}" {% if loop.first %}selected{% endif %}>{{ rec.item_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    {% if unit_records %}
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="itemBarChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-chart-bar fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No stock data available to plot bar graph.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: PIE CHART CARD -->
+        <div class="col-lg-5">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-pie text-success"></i> Stock Items Distribution (Held)
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    {% if unit_records %}
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="stockPieChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No stock data available to plot pie chart.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2 CHARTS: SER VS PWS DONUT & READINESS % METER -->
+    <div class="row g-4 mb-4">
+        <!-- GRAPH A: SER VS PWS CONDITION DONUT CHART -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-pie text-warning"></i> SER vs PWS Condition
+                    </h6>
+                    <div class="d-flex align-items-center gap-1">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Select Item:</label>
+                        <select id="unitSerPwsItemFilter" class="form-select form-select-sm" onchange="updateUnitSerPwsChart(this.value)" style="width: auto; max-width: 160px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            <option value="__ALL__" selected>All Items</option>
+                            {% for rec in unit_records %}
+                            <option value="{{ loop.index0 }}">{{ rec.item_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    {% if unit_records %}
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="unitSerPwsDonutChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No condition records available.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- GRAPH B: TOP 5 ITEMS CLOSE TO FULLY EQUIPPED -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-circle-check text-success"></i> Top 5 Items Close to Fully Equipped
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    {% if unit_records %}
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="unitReadinessBarChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-chart-bar fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No equipment data available.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3 CHARTS: DEFICIENCY RANKING & DAY-WISE RECEIVED TREND -->
+    <div class="row g-4 mb-4">
+        <!-- GRAPH C: TOP CRITICAL SHORTFALLS (DEFICIENCY RANKING) -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation text-danger"></i> Top Critical Shortfalls (Deficiency)
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    {% if unit_records %}
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="unitDefiRankChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-chart-bar fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No deficiency data available.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- GRAPH D: DAY-WISE RECEIVED EQUIPMENT TREND -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-line text-info"></i> Day-Wise Received Equipment Trend
+                    </h6>
+                    <div class="d-flex align-items-center gap-1">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Filter Item:</label>
+                        <select id="unitTrendItemFilter" class="form-select form-select-sm" onchange="updateUnitReceivedTrendChart(this.value)" style="width: auto; max-width: 160px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            <option value="__ALL__" selected>All Received Items</option>
+                            {% for rec in unit_records %}
+                            <option value="{{ rec.item_name }}">{{ rec.item_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="unitReceivedTrendChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -202,6 +370,8 @@
                                 <th>ITEM NAME</th>
                                 <th style="text-align: center;">AUTH</th>
                                 <th style="text-align: center;">HELD</th>
+                                <th style="text-align: center;">SER</th>
+                                <th style="text-align: center;">PWS</th>
                                 <th style="text-align: center;">DEFI</th>
                                 <th style="text-align: center;">ISSUED AT</th>
                             </tr>
@@ -213,6 +383,8 @@
                                 <td style="font-weight: 600; color: var(--text-primary);">{{ rec.item_name }}</td>
                                 <td style="text-align: center;"><span class="number-pill">{{ rec.authorized }}</span></td>
                                 <td style="text-align: center;"><span class="number-pill">{{ rec.held }}</span></td>
+                                <td style="text-align: center;"><span class="number-pill" style="color:#10b981;">{{ rec.ser }}</span></td>
+                                <td style="text-align: center;"><span class="number-pill" style="color:#f59e0b;">{{ rec.pws }}</span></td>
                                 <td style="text-align: center;">
                                     {% set defi = rec.authorized - rec.held %}
                                     {% if defi > 0 %}
@@ -227,7 +399,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-5">
+                                <td colspan="8" class="text-center text-muted py-5">
                                     <i class="fa-solid fa-box-open fa-2x mb-2 d-block" style="opacity:0.3;"></i>
                                     No items have been issued to this unit yet.
                                 </td>
@@ -364,6 +536,528 @@
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-check me-1"></i> Save`;
         }
+    }
+
+    // ---- CHARTS INITIALIZATION & HANDLERS ----
+    const unitRecordsData = {{ unit_records | tojson }};
+    let itemBarChart = null;
+    let stockPieChart = null;
+
+    // Inline plugin for displaying counts on top of bars
+    const barDataLabelsPlugin = {
+        id: 'barDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((bar, index) => {
+                    const val = dataset.data[index];
+                    if (val !== undefined && val !== null) {
+                        ctx.save();
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333333';
+                        ctx.font = 'bold 13px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(val, bar.x, bar.y - 6);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    // Inline plugin for displaying counts directly inside pie slices
+    const pieDataLabelsPlugin = {
+        id: 'pieDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((element, index) => {
+                    const val = dataset.data[index];
+                    if (val !== undefined && val !== null && val > 0) {
+                        const pos = element.tooltipPosition();
+                        ctx.save();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                        ctx.shadowBlur = 4;
+                        ctx.font = 'bold 13px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(val, pos.x, pos.y);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!unitRecordsData || unitRecordsData.length === 0) return;
+
+        // Initialize Bar Chart for 1st item by default
+        initBarChart(0);
+
+        // Initialize Stock Distribution Pie Chart
+        initPieChart();
+
+        // Initialize 4 New Unit Graphs
+        initUnitSerPwsChart();
+        initUnitReadinessChart();
+        initUnitDefiRankChart();
+        initUnitReceivedTrendChart();
+    });
+
+    // ---- GRAPH A: SER VS PWS CONDITION DONUT CHART ----
+    let unitSerPwsDonutChart = null;
+
+    function initUnitSerPwsChart() {
+        const ctx = document.getElementById('unitSerPwsDonutChart');
+        if (!ctx || !unitRecordsData || unitRecordsData.length === 0) return;
+
+        updateUnitSerPwsChart('__ALL__');
+    }
+
+    function updateUnitSerPwsChart(itemVal) {
+        const ctx = document.getElementById('unitSerPwsDonutChart');
+        if (!ctx) return;
+
+        let totalSer = 0;
+        let totalPws = 0;
+
+        if (itemVal === '__ALL__') {
+            unitRecordsData.forEach(r => {
+                totalSer += (r.ser || 0);
+                totalPws += (r.pws || 0);
+            });
+        } else {
+            const idx = parseInt(itemVal, 10);
+            const rec = unitRecordsData[idx];
+            if (rec) {
+                totalSer = rec.ser || 0;
+                totalPws = rec.pws || 0;
+            }
+        }
+
+        const chartData = [totalSer, totalPws];
+
+        if (!unitSerPwsDonutChart) {
+            unitSerPwsDonutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['SER (Serviceable)', 'PWS (Partially Working)'],
+                    datasets: [{
+                        data: chartData,
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderWidth: 2,
+                        cutout: '60%'
+                    }]
+                },
+                plugins: [pieDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 14, font: { size: 11, weight: '600' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            unitSerPwsDonutChart.data.datasets[0].data = chartData;
+            unitSerPwsDonutChart.update();
+        }
+    }
+
+    // ---- GRAPH B: TOP 5 ITEMS CLOSE TO FULLY EQUIPPED ----
+    let unitReadinessBarChart = null;
+
+    function initUnitReadinessChart() {
+        const ctx = document.getElementById('unitReadinessBarChart');
+        if (!ctx || !unitRecordsData || unitRecordsData.length === 0) return;
+
+        // Calculate fulfillment % and select Top 5 closest to 100% fully equipped
+        const rankedItems = [...unitRecordsData]
+            .map(r => {
+                const auth = r.authorized || 0;
+                const held = r.held || 0;
+                const pct = auth === 0 ? (held > 0 ? 100 : 0) : Math.min(100, Math.round((held / auth) * 100));
+                return { item_name: r.item_name, pct: pct, held: held, auth: auth };
+            })
+            .filter(r => r.auth > 0 && r.held > 0)
+            .sort((a, b) => b.pct - a.pct)
+            .slice(0, 5);
+
+        const labels = rankedItems.map(r => r.item_name);
+        const percentages = rankedItems.map(r => r.pct);
+
+        const readinessLabelsPlugin = {
+            id: 'readinessLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((bar, index) => {
+                        const val = dataset.data[index];
+                        if (val !== undefined && val !== null) {
+                            ctx.save();
+                            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333333';
+                            ctx.font = 'bold 12px sans-serif';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`${val}%`, bar.x + 6, bar.y);
+                            ctx.restore();
+                        }
+                    });
+                });
+            }
+        };
+
+        unitReadinessBarChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Fulfillment %',
+                    data: percentages,
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    maxBarThickness: 26
+                }]
+            },
+            plugins: [readinessLabelsPlugin],
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` Fulfillment: ${context.raw}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        min: 0,
+                        max: 100,
+                        ticks: { callback: v => `${v}%` },
+                        title: { display: true, text: 'FULFILLMENT %', font: { size: 11, weight: 'bold' } }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- GRAPH C: TOP CRITICAL SHORTFALLS (DEFICIENCY RANKING) ----
+    let unitDefiRankChart = null;
+
+    function initUnitDefiRankChart() {
+        const ctx = document.getElementById('unitDefiRankChart');
+        if (!ctx || !unitRecordsData || unitRecordsData.length === 0) return;
+
+        // Filter and sort items by deficiency > 0
+        const sortedItems = [...unitRecordsData]
+            .sort((a, b) => (b.deficiency || 0) - (a.deficiency || 0))
+            .slice(0, 7);
+
+        const labels = sortedItems.map(r => r.item_name);
+        const defiValues = sortedItems.map(r => r.deficiency || 0);
+
+        const defiRankLabelsPlugin = {
+            id: 'defiRankLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((bar, index) => {
+                        const val = dataset.data[index];
+                        if (val !== undefined && val !== null) {
+                            ctx.save();
+                            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333333';
+                            ctx.font = 'bold 12px sans-serif';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(val, bar.x + 6, bar.y);
+                            ctx.restore();
+                        }
+                    });
+                });
+            }
+        };
+
+        unitDefiRankChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Deficiency',
+                    data: defiValues,
+                    backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                    borderColor: '#dc3545',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    maxBarThickness: 24
+                }]
+            },
+            plugins: [defiRankLabelsPlugin],
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` Deficiency: ${context.raw} units`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grace: '15%',
+                        ticks: { precision: 0 },
+                        title: { display: true, text: 'DEFICIENCY COUNT', font: { size: 11, weight: 'bold' } }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- GRAPH D: DAY-WISE RECEIVED EQUIPMENT TREND ----
+    const unitTrendLabels = {{ daily_trend_labels | tojson }};
+    const unitTrendData = {{ daily_trend_data | tojson }};
+    const unitItemTrendMap = {{ daily_item_trend_map | tojson }};
+    let unitReceivedTrendChart = null;
+
+    const unitTrendDataLabelsPlugin = {
+        id: 'unitTrendDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((point, index) => {
+                    const val = dataset.data[index];
+                    if (val !== undefined && val !== null && val > 0) {
+                        ctx.save();
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333333';
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(val, point.x, point.y - 6);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    function initUnitReceivedTrendChart() {
+        const ctx = document.getElementById('unitReceivedTrendChart');
+        if (!ctx) return;
+
+        unitReceivedTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: unitTrendLabels,
+                datasets: [{
+                    label: 'Received Quantity',
+                    data: unitTrendData,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.08)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            plugins: [unitTrendDataLabelsPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` Received: ${context.raw} units`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        title: { display: true, text: 'DATE', font: { size: 11, weight: 'bold' } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grace: '15%',
+                        ticks: { precision: 0 },
+                        title: { display: true, text: 'ITEM COUNT', font: { size: 11, weight: 'bold' } }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateUnitReceivedTrendChart(selectedItem) {
+        if (!unitReceivedTrendChart) return;
+
+        let seriesData = [];
+        let labelName = 'Received Quantity';
+
+        if (selectedItem === '__ALL__') {
+            seriesData = unitTrendData;
+        } else {
+            seriesData = unitItemTrendMap[selectedItem] || unitTrendLabels.map(() => 0);
+            labelName = selectedItem;
+        }
+
+        unitReceivedTrendChart.data.datasets[0].label = labelName;
+        unitReceivedTrendChart.data.datasets[0].data = seriesData;
+        unitReceivedTrendChart.update();
+    }
+
+    function initBarChart(index) {
+        const ctx = document.getElementById('itemBarChart');
+        if (!ctx) return;
+
+        const rec = unitRecordsData[index];
+        if (!rec) return;
+
+        itemBarChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['AUTH', 'HELD', 'DEFI'],
+                datasets: [{
+                    label: rec.item_name,
+                    data: [rec.authorized || 0, rec.held || 0, rec.deficiency || 0],
+                    backgroundColor: [
+                        'rgba(13, 110, 253, 0.75)',   // AUTH - Blue
+                        'rgba(16, 185, 129, 0.75)',   // HELD - Green
+                        'rgba(220, 53, 69, 0.75)'     // DEFI - Red
+                    ],
+                    borderColor: [
+                        '#0d6efd',
+                        '#10b981',
+                        '#dc3545'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    maxBarThickness: 70,
+                    barPercentage: 0.9,
+                    categoryPercentage: 0.9
+                }]
+            },
+            plugins: [barDataLabelsPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.label}: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grace: '15%',
+                        ticks: { precision: 0 },
+                        title: {
+                            display: true,
+                            text: 'ITEM COUNT',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateBarChart(indexStr) {
+        const index = parseInt(indexStr, 10);
+        const rec = unitRecordsData[index];
+        if (!rec || !itemBarChart) return;
+
+        itemBarChart.data.datasets[0].label = rec.item_name;
+        itemBarChart.data.datasets[0].data = [rec.authorized || 0, rec.held || 0, rec.deficiency || 0];
+        itemBarChart.update();
+    }
+
+    function initPieChart() {
+        const ctx = document.getElementById('stockPieChart');
+        if (!ctx) return;
+
+        const labels = unitRecordsData.map(r => r.item_name);
+        const dataValues = unitRecordsData.map(r => r.held || 0);
+
+        const vibrantColors = [
+            '#10b981', '#0d6efd', '#f59e0b', '#8b5cf6', '#ec4899',
+            '#14b8a6', '#6366f1', '#f43f5e', '#06b6d4', '#84cc16'
+        ];
+
+        const bgColors = labels.map((_, i) => vibrantColors[i % vibrantColors.length]);
+
+        stockPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: bgColors,
+                    borderWidth: 2
+                }]
+            },
+            plugins: [pieDataLabelsPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 14,
+                            font: { size: 11, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.label}: ${context.raw} held`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 </script>
 {% endblock %}
