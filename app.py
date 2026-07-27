@@ -1,6 +1,6 @@
 from imports import *
 from extensions import csrf
-
+from blueprints.chatbot import chatbot_bp
 
 def create_app():
     app = Flask(__name__)
@@ -21,6 +21,9 @@ def create_app():
     app.register_blueprint(mgt_bp)
     app.register_blueprint(scme_bp)
     app.register_blueprint(logs_bp)
+    
+    # chatbot blueprint
+    app.register_blueprint(chatbot_bp, url_prefix='/chatbot')
     
         
 
