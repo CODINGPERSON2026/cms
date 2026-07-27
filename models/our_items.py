@@ -145,11 +145,16 @@ class TrackUnitItems(db.Model):
     held = db.Column(db.Integer, default=0, nullable=False)   # Quantity currently held
     ser = db.Column(db.Integer, default=0, nullable=False)    # Serviceable quantity held
     pws = db.Column(db.Integer, default=0, nullable=False)    # Partially working quantity held
+    add_knd = db.Column(db.Integer, default=0, nullable=False)
+    add_tn_model = db.Column(db.Integer, default=0, nullable=False)
+    add_n_area_otg = db.Column(db.Integer, default=0, nullable=False)
+    add_idt_ict = db.Column(db.Integer, default=0, nullable=False)
     issued_at = db.Column(db.DateTime, nullable=True, server_default=db.func.now())
 
     item = db.relationship("ScmeItems", backref="track_unit_records")
 
-    def __init__(self, unit_name, item_id, auth=0, held=0, ser=0, pws=0, issued_at=None):
+    def __init__(self, unit_name, item_id, auth=0, held=0, ser=0, pws=0, issued_at=None,
+                 add_knd=0, add_tn_model=0, add_n_area_otg=0, add_idt_ict=0):
         self.unit_name = unit_name
         self.item_id = item_id
         self.auth = auth
@@ -157,6 +162,10 @@ class TrackUnitItems(db.Model):
         self.ser = ser
         self.pws = pws
         self.issued_at = issued_at
+        self.add_knd = add_knd
+        self.add_tn_model = add_tn_model
+        self.add_n_area_otg = add_n_area_otg
+        self.add_idt_ict = add_idt_ict
 
 class ScmeIssuedItems(db.Model):
     __tablename__ = "scme_issued_items"
@@ -301,7 +310,28 @@ class EccMonthlyState(db.Model):
         self.unit_auth = unit_auth
 
 
+class FodStock(db.Model):
+    __tablename__ = "fod_stock_table"
 
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    voucher_no = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey("ecc_scme_items.id"), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
+    source = db.Column(db.String(20), nullable=False)   # Depo / LP
+    pws = db.Column(db.Integer, nullable=False, default=0)
+    ser = db.Column(db.Integer, nullable=False, default=0)
+    type = db.Column(db.String(20), nullable=False)     # RES / IHQ / CMD
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    item = db.relationship("ScmeItems", backref="fod_stocks")
 
-
+    def __init__(self, voucher_no, category, item_id, quantity, source, pws, ser, type):
+        self.voucher_no = voucher_no
+        self.category = category
+        self.item_id = item_id
+        self.quantity = quantity
+        self.source = source
+        self.pws = pws
+        self.ser = ser
+        self.type = type

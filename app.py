@@ -12,6 +12,23 @@ def create_app():
     migrate = Migrate(app, db)
     with app.app_context():
         db.create_all()
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            if 'track_unit_items' in inspector.get_table_names():
+                columns = [c['name'] for c in inspector.get_columns('track_unit_items')]
+                new_cols = [
+                    ('add_knd', 'INT DEFAULT 0 NOT NULL'),
+                    ('add_tn_model', 'INT DEFAULT 0 NOT NULL'),
+                    ('add_n_area_otg', 'INT DEFAULT 0 NOT NULL'),
+                    ('add_idt_ict', 'INT DEFAULT 0 NOT NULL')
+                ]
+                for col, col_type in new_cols:
+                    if col not in columns:
+                        db.session.execute(text(f'ALTER TABLE track_unit_items ADD COLUMN {col} {col_type}'))
+                db.session.commit()
+        except Exception as e:
+            print("Auto-migration notice:", e)
 
     app.register_blueprint(login_bp)
     app.register_blueprint(unit_bp)

@@ -11,6 +11,10 @@
     <i class="fa-solid fa-file-signature"></i>
     <span class="nav-tooltip">Enter Ledgers</span>
 </a>
+<a href="/scme/add-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-packing"></i>
+    <span class="nav-tooltip">Add Stock</span>
+</a>
 <a href="/logs/" class="nav-item">
     <i class="fa-solid fa-clock-rotate-left"></i>
     <span class="nav-tooltip">Activity Logs</span>
@@ -1081,8 +1085,8 @@
         </div>
     </div>
 
-    <!-- Third Row: Line Chart + Quick Actions side-by-side -->
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px;" class="animate-fade-in">
+    <!-- Third Row: Posted Strength & Month-Wise Held Trend side-by-side with equal 50/50 space -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px;" class="animate-fade-in">
         <!-- Line Chart showing Posted Strength -->
         <div class="chart-panel-card" style="margin: 0;">
             <div class="chart-panel-header">
@@ -1099,39 +1103,61 @@
             </div>
         </div>
 
-        <!-- Quick Actions Banner Card -->
+        <!-- ── MONTHLY HELD TREND ANALYSIS CARD ── -->
         <div class="chart-panel-card" style="margin: 0;">
-            <div class="chart-panel-header">
-                <h3 class="chart-panel-title">
-                    <i class="fa-solid fa-list-check"></i>
+            <div class="chart-panel-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <h3 class="chart-panel-title" style="margin: 0;">
+                    <i class="fa-solid fa-chart-line" style="color: var(--accent); margin-right: 6px;"></i>
+                    Month-Wise Held Trend Analysis
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Historical month-by-month held stock quantity trend for the selected Unit and Item.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <select id="monthlyHeldUnitFilter" class="form-select form-select-sm" style="width: auto; max-width: 140px; background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; font-weight: 600; font-size: 0.8rem;">
+                    </select>
+                    <select id="monthlyHeldItemFilter" class="form-select form-select-sm" style="width: auto; max-width: 180px; background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; font-weight: 600; font-size: 0.8rem;">
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper" style="min-height: 280px;">
+                <div id="monthlyHeldTrendChart" data-chart='{{ monthly_held_trend_data | tojson }}' style="width: 100%; height: 280px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Banner Card (Full Width Bar Below Charts) -->
+    <div class="chart-panel-card animate-fade-in" style="margin-top: 24px;">
+        <div class="chart-canvas-wrapper" style="padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+            <div>
+                <h3 class="chart-panel-title" style="margin: 0 0 6px 0;">
+                    <i class="fa-solid fa-list-check" style="color: var(--accent); margin-right: 8px;"></i>
                     Quick Action Ledgers
                 </h3>
-            </div>
-            <div class="chart-canvas-wrapper" style="padding: 24px; min-height: 280px; display: flex; flex-direction: column; justify-content: center;">
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
                     Enter monthly states for ECC inventory, track assets, and manage deficiency logs.
                 </p>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <a href="/scme/enter-items" class="btn btn-outline-success text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
-                        <span><i class="fa-solid fa-clipboard-list me-2"></i>Enter ECC Monthly State</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <a href="/scme/enter-items" class="btn btn-outline-success py-2.5 px-4 d-flex align-items-center gap-2" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
+                    <i class="fa-solid fa-clipboard-list me-1"></i>Enter ECC Monthly State
+                    <i class="fa-solid fa-chevron-right ms-1"></i>
+                </a>
 
-                    <!-- View Table Format Popup Button -->
-                    <button type="button" class="btn btn-outline-info text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
-                        <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                </div>
+                <!-- View Table Format Popup Button -->
+                <button type="button" class="btn btn-outline-info py-2.5 px-4 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
+                    <i class="fa-solid fa-table me-1"></i>View Table Format
+                    <i class="fa-solid fa-chevron-right ms-1"></i>
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Bootstrap Modal for ECC Table View -->
     <div class="modal fade" id="eccLedgerTableModal" tabindex="-1" aria-labelledby="eccLedgerTableModalLabel" aria-hidden="true">
-        <div id="eccLedgerTableModalDialog" class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 95%; transition: max-width 0.3s ease;">
+        <div id="eccLedgerTableModalDialog" class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: max-content; min-width: 75%; margin: 1.75rem auto; transition: max-width 0.3s ease;">
             <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
-                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 20px 24px;">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 16px 24px;">
                     <h5 class="modal-title" id="eccLedgerTableModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
                         <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent);"></i>
                         ECC Monthly Summary 
@@ -1163,80 +1189,62 @@
                 </div>
 
                 <div class="modal-body" style="padding: 0; overflow-x: auto;">
-                    <table class="table-custom" style="width: 100%; min-width: 1600px; border-collapse: collapse; margin: 0;">
+                    <table class="table-custom" style="width: max-content; min-width: 100%; border-collapse: collapse; margin: 0 auto;">
                         <thead style="position: sticky; top: 0; z-index: 10;">
                             <tr>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap; width: 60px;">S.No.</th>
-                                <th class="ecc-col-division" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Unit</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Item</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">CAT</th>
-                                <th class="ecc-col-scale" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Scale</th>
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; text-align: center; white-space: nowrap; width: 45px;">S.No.</th>
+                                <th rowspan="2" class="ecc-col-division" style="padding: 10px 10px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; white-space: nowrap; width: 100px;">Unit</th>
+                                <th rowspan="2" style="padding: 10px 10px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; white-space: nowrap; width: 200px;">Item</th>
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; text-align: center; white-space: nowrap; width: 70px;">CAT</th>
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #f3e8ff; color: #6b21a8; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border: 1px solid #d8b4fe; text-align: center; white-space: nowrap; width: 85px;">Auth Unit</th>
                                 
-                                <th class="ecc-col-auth-auth" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Auth</th>
-                                <th class="ecc-col-auth-res" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Res</th>
-                                <th class="ecc-col-auth-total-header" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Auth  </th>
-                                <th class="ecc-col-auth-unit" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Unit Auth</th>
+                                <!-- PREVIOUS MONTH GROUP HEADER (EXCEL BLUE THEME) -->
+                                <th colspan="3" style="padding: 8px 12px; background-color: #dbeafe; color: #1d4ed8; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #bfdbfe; border-right: 2px solid #3b82f6; text-align: center; white-space: nowrap;">
+                                    <i class="fa-solid fa-clock-rotate-left" style="margin-right: 4px; opacity: 0.85;"></i> PREVIOUS MONTH
+                                </th>
                                 
-                                <th class="ecc-col-bbf-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F Ser</th>
-                                <th class="ecc-col-bbf-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F PWS</th>
-                                <th class="ecc-col-bbf-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">B/F Total</th>
+                                <!-- STOCK HELD GROUP HEADER (EXCEL GREEN THEME) -->
+                                <th colspan="3" style="padding: 8px 12px; background-color: #dcfce7; color: #15803d; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #bbf7d0; border-right: 2px solid #22c55e; text-align: center; white-space: nowrap;">
+                                    <i class="fa-solid fa-boxes-stacked" style="margin-right: 4px; opacity: 0.85;"></i> STOCK HELD
+                                </th>
                                 
-                                <th class="ecc-col-recd-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd Ser</th>
-                                <th class="ecc-col-recd-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd PWS</th>
-                                <th class="ecc-col-recd-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Recd Total</th>
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #fee2e2; color: #b91c1c; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border: 1px solid #fca5a5; text-align: center; white-space: nowrap; width: 65px;">Defi</th>
+                            </tr>
+                            <tr>
+                                <!-- PREVIOUS MONTH SUB-HEADERS -->
+                                <th style="padding: 6px 8px; background-color: #eff6ff; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bfdbfe; text-align: center; white-space: nowrap; width: 60px;">Ser</th>
+                                <th style="padding: 6px 8px; background-color: #eff6ff; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bfdbfe; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
+                                <th style="padding: 6px 8px; background-color: #dbeafe; color: #1d4ed8; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; border: 1px solid #bfdbfe; border-right: 2px solid #3b82f6; text-align: center; white-space: nowrap; width: 65px;">Total</th>
                                 
-                                <th class="ecc-col-issd-ser" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issued Ser</th>
-                                <th class="ecc-col-issd-pws" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issued PWS</th>
-                                <th class="ecc-col-issd-total" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Issued Total</th>
-                                
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Held</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> Ser</th>
-                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;"> PWS</th>
-                                
-                                <th class="ecc-col-tps" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Held with Tps</th>
-                                <th class="ecc-col-deficiency" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">Defi</th>
-                                <th class="ecc-col-created-at" style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); white-space: nowrap;">Created At</th>
+                                <!-- STOCK HELD SUB-HEADERS -->
+                                <th style="padding: 6px 8px; background-color: #f0fdf4; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bbf7d0; text-align: center; white-space: nowrap; width: 60px;">Ser</th>
+                                <th style="padding: 6px 8px; background-color: #f0fdf4; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bbf7d0; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
+                                <th style="padding: 6px 8px; background-color: #dcfce7; color: #15803d; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; border: 1px solid #bbf7d0; border-right: 2px solid #22c55e; text-align: center; white-space: nowrap; width: 65px;">Held</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if ecc_states %}
                                 {% for record in ecc_states %}
                                 <tr class="ecc-ledger-row"
-                                    data-division="{{ record.bbf_division.replace('_', ' ').upper() if record.bbf_division else '' }}"
+                                    data-division="{{ record.unit_name.replace('_', ' ').upper() if record.unit_name else '' }}"
                                     data-category="{{ record.item.category if record.item else '' }}"
                                     style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
-                                    <td class="ecc-col-sno" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap;">{{ loop.index }}</td>
-                                    <td class="ecc-col-division" style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ record.bbf_division.replace('_', ' ').upper() if record.bbf_division else '' }}</td>
-                                    <td style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap;">{{ record.item.item_name if record.item else '' }}</td>
-                                    <td style="padding: 14px 20px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">{{ record.item.category if record.item else '' }}</td>
-                                    <td class="ecc-col-scale" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.scale }}</td>
+                                    <td style="padding: 8px 10px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--text-secondary); border: 1px solid var(--border-dim); white-space: nowrap;">{{ loop.index }}</td>
+                                    <td style="padding: 8px 10px; font-weight: 700; font-size: 0.85rem; color: var(--text-primary); border: 1px solid var(--border-dim); white-space: nowrap;">{{ record.unit_name.replace('_', ' ').upper() if record.unit_name else '' }}</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); border: 1px solid var(--border-dim); white-space: nowrap;">{{ record.item.item_name if record.item else '' }}</td>
+                                    <td style="padding: 8px 6px; font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">{{ record.item.category if record.item else '' }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #6b21a8; font-weight: 700; border: 1px solid var(--border-dim); background-color: rgba(243, 232, 255, 0.2); white-space: nowrap;">{{ record.unit_auth or 0 }}</td>
                                     
-                                    <td class="ecc-col-auth-auth" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.auth_auth or 0 }}</td>
-                                    <td class="ecc-col-auth-res" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.auth_res or 0 }}</td>
-                                    <td class="ecc-col-auth-total-cell" data-auth-total="{{ record.auth_total or 0 }}" data-unit-auth="{{ record.unit_auth or 0 }}" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--accent); font-weight:700; white-space: nowrap;">{{ record.auth_total or 0 }}</td>
-                                    <td class="ecc-col-auth-unit" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.unit_auth or 0 }}</td>
+                                    <!-- PREVIOUS MONTH SPLIT DATA -->
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(219, 234, 254, 0.25); white-space: nowrap;">{{ record.prev_ser or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(219, 234, 254, 0.25); white-space: nowrap;">{{ record.prev_pws or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #1d4ed8; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #3b82f6; background: rgba(219, 234, 254, 0.45); white-space: nowrap;">{{ record.prev_total or 0 }}</td>
                                     
-                                    <td class="ecc-col-bbf-ser" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_ser or 0 }}</td>
-                                    <td class="ecc-col-bbf-pws" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_pws or 0 }}</td>
-                                    <td class="ecc-col-bbf-total" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.bbf_total or 0 }}</td>
-                                    
-                                    <td class="ecc-col-recd-ser" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.recd_ser or 0 }}</td>
-                                    <td class="ecc-col-recd-pws" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.recd_pws or 0 }}</td>
-                                    <td class="ecc-col-recd-total" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.recd_total or 0 }}</td>
-                                    
-                                    <td class="ecc-col-issd-ser" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.issd_ser or 0 }}</td>
-                                    <td class="ecc-col-issd-pws" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.issd_pws or 0 }}</td>
-                                    <td class="ecc-col-issd-total" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.issd_total or 0 }}</td>
-                                    
-                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #10b981; font-weight:700; white-space: nowrap;">{{ record.stock_total or 0 }}</td>
-                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.stock_ser or 0 }}</td>
-                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.stock_pws or 0 }}</td>
-                                    
-                                    <td class="ecc-col-tps" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;">{{ record.tps or 0 }}</td>
-                                    <td class="ecc-col-deficiency" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; color: {% if record.deficiency < 0 %}#10b981{% else %}#ef4444{% endif %};">{{ record.deficiency or 0 }}</td>
-                                    <td class="ecc-col-created-at" style="padding: 14px 20px; font-size: 0.82rem; color: var(--text-secondary); white-space: nowrap;">
-                                        {{ record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else '' }}
-                                    </td>
+                                    <!-- STOCK HELD DATA (SER -> PWS -> HELD) -->
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_ser or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_pws or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #15803d; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #22c55e; background: rgba(220, 252, 231, 0.45); white-space: nowrap;">{{ record.stock_total or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 800; border: 1px solid var(--border-dim); background: rgba(254, 226, 226, 0.3); white-space: nowrap; color: {% if record.deficiency <= 0 %}#059669{% else %}#b91c1c{% endif %};">{{ record.deficiency or 0 }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
@@ -1335,8 +1343,8 @@
     const eccStatesData = [
         {% for s in ecc_states %}
         {
-            id: {{ s.id }},
-            item_id: {{ s.item_id }},
+            id: {{ s.id or 0 }},
+            item_id: {{ s.item_id or 0 }},
             item_name: "{{ s.item.item_name if s.item else 'Unknown Item' }}",
             category: "{{ s.item.category if s.item else '' }}",
             scale: "{{ s.scale or '1 per indl' }}",
@@ -2916,6 +2924,159 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // CHART 7: MONTH-WISE HELD TREND (Mountain / Pyramid Infographic - 100% Offline)
+    // ─────────────────────────────────────────────────────────────────────────
+    const monthlyHeldChartEl = document.getElementById('monthlyHeldTrendChart');
+    const monthlyHeldUnitSel = document.getElementById('monthlyHeldUnitFilter');
+    const monthlyHeldItemSel = document.getElementById('monthlyHeldItemFilter');
+
+    if (monthlyHeldChartEl && monthlyHeldUnitSel && monthlyHeldItemSel) {
+        const trendRawData = JSON.parse(monthlyHeldChartEl.dataset.chart || "[]");
+
+        // 1. Populate Unit dropdown with distinct units
+        const distinctUnits = [...new Set(trendRawData.map(d => d.unit).filter(Boolean))].sort();
+        monthlyHeldUnitSel.innerHTML = '';
+        distinctUnits.forEach(u => {
+            monthlyHeldUnitSel.insertAdjacentHTML('beforeend', `<option value="${u}">${u.replace(/_/g, ' ').toUpperCase()}</option>`);
+        });
+
+        // Auto-select first unit
+        if (distinctUnits.length > 0) {
+            monthlyHeldUnitSel.value = distinctUnits[0];
+        }
+
+        // 2. Function to populate Item dropdown based on selected Unit
+        function populateItemsForUnit(selectedUnit) {
+            const unitRows = trendRawData.filter(d => d.unit === selectedUnit);
+            const distinctItems = [...new Set(unitRows.map(d => d.item_name).filter(Boolean))].sort();
+            
+            monthlyHeldItemSel.innerHTML = '';
+            distinctItems.forEach(item => {
+                monthlyHeldItemSel.insertAdjacentHTML('beforeend', `<option value="${item}">${item}</option>`);
+            });
+
+            // Auto-select first item
+            if (distinctItems.length > 0) {
+                monthlyHeldItemSel.value = distinctItems[0];
+            }
+        }
+
+        // Initialize Item dropdown for first Unit
+        if (monthlyHeldUnitSel.value) {
+            populateItemsForUnit(monthlyHeldUnitSel.value);
+        }
+
+        // 3. Render Mountain Pyramid Infographic SVG Chart
+        function renderMountainInfographicChart() {
+            const selUnit = monthlyHeldUnitSel.value;
+            const selItem = monthlyHeldItemSel.value;
+
+            const filteredRows = trendRawData.filter(d => d.unit === selUnit && d.item_name === selItem);
+
+            if (!filteredRows || filteredRows.length === 0) {
+                monthlyHeldChartEl.innerHTML = `<div style="text-align: center; padding: 60px; color: var(--text-secondary); font-weight: 600;">No monthly trend data available for selected Unit & Item</div>`;
+                return;
+            }
+
+            const palette = [
+                { fill: 'rgba(59, 130, 246, 0.65)', border: '#3b82f6', text: '#1d4ed8' },
+                { fill: 'rgba(219, 39, 119, 0.65)', border: '#db2777', text: '#be185d' },
+                { fill: 'rgba(239, 68, 68, 0.65)',  border: '#ef4444', text: '#b91c1c' },
+                { fill: 'rgba(249, 115, 22, 0.65)', border: '#f97316', text: '#c2410c' },
+                { fill: 'rgba(132, 204, 22, 0.65)', border: '#84cc16', text: '#4d7c0f' },
+                { fill: 'rgba(6, 182, 212, 0.65)',  border: '#06b6d4', text: '#0e7490' },
+                { fill: 'rgba(168, 85, 247, 0.65)', border: '#a855f7', text: '#7e22ce' }
+            ];
+
+            const width = monthlyHeldChartEl.clientWidth || 700;
+            const height = 300;
+            const paddingBottom = 45;
+            const paddingTop = 60;
+            const usableHeight = height - paddingTop - paddingBottom;
+            const baselineY = height - paddingBottom;
+
+            const maxHeld = Math.max(...filteredRows.map(r => r.held), 1);
+            const numPoints = filteredRows.length;
+
+            // Safe Inset PadX to guarantee mountains never get clipped at left/right edges
+            const padX = numPoints > 1 ? Math.min(width * 0.25, 120) : width / 2;
+            const startX = numPoints > 1 ? padX : width / 2;
+            const stepX = numPoints > 1 ? (width - 2 * padX) / (numPoints - 1) : 0;
+            const spread = numPoints > 1 ? Math.min(stepX * 0.48, padX - 15) : 100;
+
+            let mountainPaths = '';
+            let calloutHtml = '';
+            let monthLabelsHtml = '';
+
+            filteredRows.forEach((row, i) => {
+                const colorObj = palette[i % palette.length];
+                const peakX = numPoints > 1 ? (startX + i * stepX) : startX;
+                const ratio = Math.max(0.12, row.held / maxHeld);
+                const peakY = baselineY - (ratio * usableHeight);
+
+                const leftX = peakX - spread;
+                const rightX = peakX + spread;
+
+                const leftCtrlX = peakX - (spread * 0.42);
+                const rightCtrlX = peakX + (spread * 0.42);
+
+                // Perfectly Symmetrical Cubic Bezier path (100% Vertical Mirror around peakX)
+                const pathD = `M ${leftX},${baselineY} ` +
+                              `C ${leftCtrlX},${baselineY} ${peakX - spread * 0.12},${peakY} ${peakX},${peakY} ` +
+                              `C ${peakX + spread * 0.12},${peakY} ${rightCtrlX},${baselineY} ${rightX},${baselineY} Z`;
+
+                mountainPaths += `<path d="${pathD}" fill="${colorObj.fill}" stroke="${colorObj.border}" stroke-width="2" style="transition: all 0.4s ease;"></path>`;
+
+                // Speech bubble callout
+                const percentVal = row.auth ? Math.round((row.held / row.auth) * 100) + '%' : row.held;
+                
+                calloutHtml += `
+                    <div style="position: absolute; left: ${peakX}px; top: ${peakY - 48}px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 10;">
+                        <div style="background: #ffffff; color: ${colorObj.text}; border: 2px solid ${colorObj.border}; font-weight: 800; font-size: 0.85rem; padding: 4px 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap;">
+                            ${percentVal}
+                        </div>
+                        <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid ${colorObj.border}; margin-top: -1px;"></div>
+                    </div>
+                `;
+
+                // Month baseline label cleanly positioned below the dashed axis
+                monthLabelsHtml += `
+                    <div style="position: absolute; left: ${peakX}px; bottom: 8px; transform: translateX(-50%); font-weight: 700; font-size: 0.78rem; color: var(--text-primary); text-transform: uppercase; white-space: nowrap;">
+                        ${row.month}
+                    </div>
+                `;
+            });
+
+            monthlyHeldChartEl.style.position = 'relative';
+            monthlyHeldChartEl.style.overflow = 'hidden';
+            monthlyHeldChartEl.innerHTML = `
+                <svg width="100%" height="${height}px" viewBox="0 0 ${width} ${height}" style="display: block;">
+                    <!-- Dashed Baseline Axis -->
+                    <line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="var(--border-dim)" stroke-dasharray="4 4" stroke-width="1.5" />
+                    ${mountainPaths}
+                </svg>
+                ${calloutHtml}
+                ${monthLabelsHtml}
+            `;
+        }
+
+        // Initial chart render
+        renderMountainInfographicChart();
+
+        // 4. Event listeners for dropdown changes
+        monthlyHeldUnitSel.addEventListener('change', function() {
+            populateItemsForUnit(this.value);
+            renderMountainInfographicChart();
+        });
+
+        monthlyHeldItemSel.addEventListener('change', function() {
+            renderMountainInfographicChart();
+        });
+
+        window.addEventListener('resize', renderMountainInfographicChart);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // LEDGER TABLE FILTERS (Unit + Category) — client-side
     // ─────────────────────────────────────────────────────────────────────────
     const unitSel   = document.getElementById('ledgerUnitFilter');
@@ -2999,48 +3160,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            const hideableSelectors = [
-                '.ecc-col-division', '.ecc-col-scale', '.ecc-col-auth-auth', 
-                '.ecc-col-auth-res', '.ecc-col-auth-unit', '.ecc-col-bbf-ser', '.ecc-col-bbf-pws', 
-                '.ecc-col-bbf-total', '.ecc-col-recd-ser', '.ecc-col-recd-pws', 
-                '.ecc-col-recd-total', '.ecc-col-issd-ser', '.ecc-col-issd-pws', 
-                '.ecc-col-issd-total', '.ecc-col-tps', 
-                '.ecc-col-created-at'
-            ];
-
-            hideableSelectors.forEach(selector => {
-                const elements = document.querySelectorAll(selector);
-                elements.forEach(el => {
-                    el.style.display = div ? 'none' : '';
-                });
-            });
-
-            // Dynamically switch AUTH column values: unit_auth when filtered by unit, otherwise auth_total
-            const authTotalCells = document.querySelectorAll('.ecc-col-auth-total-cell');
-            authTotalCells.forEach(cell => {
-                cell.textContent = div ? cell.dataset.unitAuth : cell.dataset.authTotal;
-            });
-
-            // Dynamically remove horizontal scroll when filter is selected by setting min-width to 100%
-            const tableEl = document.querySelector('#eccLedgerTableModal table.table-custom');
-            const dialogEl = document.getElementById('eccLedgerTableModalDialog');
-            if (tableEl) {
-                if (div) {
-                    tableEl.style.minWidth = '100%';
-                    if (dialogEl) dialogEl.style.maxWidth = '1200px';
-                } else {
-                    tableEl.style.minWidth = '1600px';
-                    if (dialogEl) dialogEl.style.maxWidth = '95%';
-                }
-            }
-
             let visibleIdx = 1;
             eccRows.forEach(row => {
                 const show = (!div || row.dataset.division === div) &&
                              (!cat || row.dataset.category === cat);
                 row.style.display = show ? '' : 'none';
                 if (show) {
-                    const snoCell = row.querySelector('.ecc-col-sno');
+                    const snoCell = row.querySelector('td:first-child');
                     if (snoCell) {
                         snoCell.textContent = visibleIdx++;
                     }

@@ -11,6 +11,10 @@
     <i class="fa-solid fa-file-signature"></i>
     <span class="nav-tooltip">Enter Ledgers</span>
 </a>
+<a href="/scme/add-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-packing"></i>
+    <span class="nav-tooltip">Add Stock</span>
+</a>
 <a href="/logs/" class="nav-item">
     <i class="fa-solid fa-clock-rotate-left"></i>
     <span class="nav-tooltip">Activity Logs</span>
@@ -21,9 +25,23 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
     .enter-page {
-        padding: 28px;
-        max-width: 1100px;
+        padding: 8px;
+        max-width: 100%;
         margin: 0 auto;
+    }
+
+    .ecc-top-row-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .ecc-top-row-grid > .form-card {
+        margin-bottom: 0;
+    }
+
+    .ecc-top-row-grid > .form-card > .form-card-body {
+        overflow-y: visible;
     }
 
     .back-link {
@@ -58,7 +76,7 @@
     .ledger-tabs {
         display: flex;
         gap: 6px;
-        margin-bottom: 24px;
+        margin-bottom: 4px;
         border-bottom: 1px solid var(--border-dim);
     }
 
@@ -105,6 +123,18 @@
         background: var(--bg-raised);
         color: var(--text-muted);
         border: 1px solid var(--border-dim);
+    }
+
+    .ecc-fod-only { display: none; }
+    .ecc-fod-only.ecc-show { display: flex; }
+    /* number-only inputs: constrain width so they don't stretch awkwardly */
+    input.ecc-num {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        text-align: center;
+        font-weight: 700;
+        letter-spacing: 0.5px;
     }
 
     .tab-panel { display: none; }
@@ -504,66 +534,58 @@
         padding: 28px;
     }
 
-    /* ── ECC FORM STYLES ── */
+    /* ── ECC FORM STYLES (ULTRA COMPACT) ── */
     .ecc-form { max-width: 100%; margin: 0 auto; }
     .ecc-section {
-        background: var(--bg-surface);
         border: 1px solid var(--border-dim);
-        border-radius: 16px;
-        margin-bottom: 20px;
+        border-radius: 8px;
+        margin-bottom: 6px;
         overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
     }
     .ecc-section-header {
-        padding: 14px 22px;
+        padding: 5px 12px;
         border-bottom: 1px solid var(--border-dim);
-        display: flex; align-items: center; gap: 10px;
+        display: flex; align-items: center; gap: 6px;
         background: var(--bg-raised);
     }
-    .ecc-section-header i { color: var(--accent); font-size: 0.9rem; }
+    .ecc-section-header i { color: var(--accent); font-size: 0.75rem; }
     .ecc-section-header h3 {
-        margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--text-primary);
-        text-transform: uppercase; letter-spacing: 0.4px;
+        margin: 0; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);
+        text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .ecc-section-header .ecc-step {
-        margin-left: auto;
-        font-size: 0.65rem; font-weight: 800; letter-spacing: 0.5px;
-        color: var(--text-muted);
-        background: var(--bg-surface);
-        border: 1px solid var(--border-dim);
-        padding: 3px 9px; border-radius: 20px;
-    }
+    .ecc-section-header .ecc-step { display: none; }
     .ecc-section-body {
-        padding: 20px 22px;
+        padding: 8px 12px;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 6px 10px;
     }
-    .ecc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .ecc-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .ecc-field.ecc-field-wide { grid-column: 1 / -1; }
     .ecc-field label {
-        font-size: 0.7rem; font-weight: 700; letter-spacing: 0.6px;
-        text-transform: uppercase; color: var(--text-secondary);
-        display: flex; align-items: center; gap: 6px;
+        font-size: 0.6rem; font-weight: 700; letter-spacing: 0.4px;
+        text-transform: uppercase; color: var(--text-muted);
+        display: flex; align-items: center; gap: 4px;
+        white-space: nowrap;
     }
     .ecc-field label .req { color: var(--danger); }
     .ecc-input {
         width: 100%;
-        padding: 9px 12px;
-        border-radius: 10px;
+        padding: 5px 8px;
+        border-radius: 6px;
         border: 1px solid var(--border-dim);
         background: var(--bg-raised);
         color: var(--text-primary);
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         font-weight: 500;
         outline: none;
-        transition: border-color var(--transition), box-shadow var(--transition);
+        transition: border-color 0.15s, box-shadow 0.15s;
         font-variant-numeric: tabular-nums;
     }
     .ecc-input:hover  { border-color: var(--accent); }
-    .ecc-input:focus  { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .ecc-input:focus  { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
     select.ecc-input  { cursor: pointer; }
-    textarea.ecc-input { resize: vertical; min-height: 60px; font-family: inherit; }
+    textarea.ecc-input { resize: vertical; min-height: 44px; font-family: inherit; }
     .ecc-input.ecc-readonly {
         background: var(--accent-muted);
         border-color: var(--accent);
@@ -571,13 +593,24 @@
         font-weight: 800;
         cursor: not-allowed;
     }
-    .ecc-fod-only { display: none; }
-    .ecc-fod-only.ecc-show { display: flex; }
-    .ecc-actions {
-        display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;
-        padding-top: 4px;
-        margin-bottom: 30px;
+    /* three-col row for all 3 sections */
+    .ecc-top-sections-row {
+        display: grid;
+        grid-template-columns: 1.2fr 1.4fr 0.9fr;
+        gap: 6px;
+        margin-bottom: 6px;
+        align-items: start;
     }
+    .ecc-top-sections-row .ecc-section { margin-bottom: 0; }
+
+    .ecc-actions {
+        display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
+        padding-top: 6px;
+        margin-bottom: 12px;
+    }
+    #eccAvailableStockContainer { margin-top: 3px; }
+    #eccAvailableStockBadge { font-size: 0.7rem !important; padding: 3px 7px !important; }
+    #errEccStockExceeded { font-size: 0.68rem !important; }
 </style>
 {% endblock %}
 
@@ -816,262 +849,175 @@
     <!-- ══════════════════════════ ECC TAB PANEL ══════════════════════════ -->
     <div class="tab-panel active" id="panelEcc" role="tabpanel">
         
-        <!-- Monthly State Form -->
-        <div class="form-card">
+        <!-- HORIZONTAL ROW: FORM ENTRY (LEFT - SHRUNK SLIGHTLY) + PREVIOUS MONTH DATA EXCEL TABLE (RIGHT - EXPANDED) -->
+        <div class="ecc-top-row-grid">
+            
+        <!-- FORM SUBMIT CARD -->
+        <div class="form-card" style="margin-bottom: 0;">
             <div class="form-card-header">
                 <div class="form-card-icon">
                     <i class="fa-solid fa-clipboard-list"></i>
                 </div>
                 <h2 class="form-card-title">ECC — Monthly State Entry</h2>
             </div>
-            <div class="form-card-body">
+            <div class="form-card-body" style="padding: 10px 14px;">
                 <form class="ecc-form" id="eccForm" method="POST" autocomplete="off" novalidate>
-                    
-                    <!-- 1. ITEM DETAILS -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-boxes-stacked"></i>
-                            <h3>Item Details</h3>
-                            <span class="ecc-step">Section 1</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field">
-                                <label for="ecc_category">Category <span class="req">*</span></label>
-                                <select id="ecc_category" class="ecc-input" required>
-                                    <option value="">— Select Category —</option>
-                                    {% for category in ecc_categories %}
-                                        <option value="{{ category }}">{{ category }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_item_id">Item <span class="req">*</span></label>
-                                <select name="item_id" id="ecc_item_id" class="ecc-input" required disabled>
-                                    <option value="">— Select Category First —</option>
-                                </select>
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_scale">Scale</label>
-                                <input type="text" name="scale" id="ecc_scale" class="ecc-input" placeholder="e.g. 1 per indl">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_deficiency"><i class="fa-solid fa-calculator"></i> Defi (auto)</label>
-                                <input type="number" name="deficiency" id="ecc_deficiency" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- 2. AUTHORIZATION -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-stamp"></i>
-                            <h3>Authorization</h3>
-                            <span class="ecc-step">Section 2</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field">
-                                <label for="ecc_auth_auth">Auth</label>
-                                <input type="number" name="auth_auth" id="ecc_auth_auth" class="ecc-input auth-calc" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_auth_res">Res</label>
-                                <input type="number" name="auth_res" id="ecc_auth_res" class="ecc-input auth-calc" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_auth_total"><i class="fa-solid fa-calculator"></i> Total (auto)</label>
-                                <input type="number" name="auth_total" id="ecc_auth_total" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_unit_auth">Unit Auth</label>
-                                <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                        </div>
-                    </div>
+                    <!-- ALL 3 SECTIONS SIDE BY SIDE -->
+                    <div class="ecc-top-sections-row">
 
-                    <!-- 3. BBF (OF LAST MONTH) -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
-                            <h3>BBF (Of Last Month)</h3>
-                            <span class="ecc-step">Section 3</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field ecc-field-wide">
-                                <label for="ecc_bbf_division">Division <span class="req">*</span></label>
-                                <select name="bbf_division" id="ecc_bbf_division" class="ecc-input" required>
-                                    <option value="">— Select Division —</option>
-                                    {% for div in units %}
-                                        <option value="{{ div.name }}" data-fod="{{ 'true' if div.name == '2 FOD' else 'false' }}">
-                                            {{ div.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
+                        <!-- 1. DIVISION & ITEM DETAILS -->
+                        <div class="ecc-section">
+                            <div class="ecc-section-header">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                                <h3>Division &amp; Item</h3>
                             </div>
+                            <div class="ecc-section-body" style="grid-template-columns: 1fr 1fr;">
+                                <div class="ecc-field">
+                                    <label for="ecc_bbf_division">Unit <span class="req">*</span></label>
+                                    <select name="bbf_division" id="ecc_bbf_division" class="ecc-input" required {% if is_div_admin %}disabled style="background:var(--bg-raised);cursor:not-allowed;"{% endif %}>
+                                        {% if is_div_admin %}
+                                            <option value="{{ user_div }}" selected>{{ user_div }}</option>
+                                        {% else %}
+                                            <option value="">— Select Division —</option>
+                                            {% for div in units %}
+                                                <option value="{{ div.name }}" data-fod="{{ 'true' if div.name == '2 FOD' else 'false' }}">{{ div.name }}</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                    {% if is_div_admin %}<input type="hidden" name="bbf_division" value="{{ user_div }}">{% endif %}
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_category">Category <span class="req">*</span></label>
+                                    <select id="ecc_category" class="ecc-input" required>
+                                        <option value="">— Category —</option>
+                                        {% for category in ecc_categories %}
+                                            <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_item_id">Item <span class="req">*</span></label>
+                                    <select name="item_id" id="ecc_item_id" class="ecc-input" required disabled>
+                                        <option value="">— Select Category First —</option>
+                                    </select>
+                                    <div id="eccAvailableStockContainer" style="display:none;margin-top:3px;">
+                                        <span id="eccAvailableStockBadge" style="background:rgba(56,189,248,0.15);color:#0ea5e9;border:1px solid #38bdf8;font-weight:700;font-size:0.65rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
+                                            <i class="fa-solid fa-boxes-stacked"></i> Avail: <strong id="eccAvailableStockVal">0</strong>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_scale">Scale</label>
+                                    <input type="text" name="scale" id="ecc_scale" class="ecc-input" placeholder="1 per indl">
+                                </div>
+                            </div>
+                        </div>
 
-                            <div class="ecc-field">
-                                <label for="ecc_bbf_ser">SER</label>
-                                <input type="number" name="bbf_ser" id="ecc_bbf_ser" class="ecc-input" min="0" step="1" placeholder="0">
+                        <!-- 2. AUTH & STOCK -->
+                        <div class="ecc-section">
+                            <div class="ecc-section-header">
+                                <i class="fa-solid fa-stamp"></i>
+                                <h3>Auth &amp; Stock</h3>
                             </div>
-                            <div class="ecc-field">
-                                <label for="ecc_bbf_pws">PWS</label>
-                                <input type="number" name="bbf_pws" id="ecc_bbf_pws" class="ecc-input" min="0" step="1" placeholder="0">
+                            <div class="ecc-section-body" style="grid-template-columns: repeat(3,1fr);">
+                                <div class="ecc-field">
+                                    <label for="ecc_unit_auth">Auth <span class="req">*</span></label>
+                                    <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_issue_count">Issued <span class="req">*</span></label>
+                                    <input type="number" name="issue_count" id="ecc_issue_count" class="ecc-input ecc-num" min="0" step="1" value="0" placeholder="0">
+                                    <span id="errEccStockExceeded" style="color:var(--danger);font-size:0.6rem;font-weight:700;display:none;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds!</span>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_stock_ser">SER</label>
+                                    <input type="number" name="stock_ser" id="ecc_stock_ser" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_stock_pws">PWS</label>
+                                    <input type="number" name="stock_pws" id="ecc_stock_pws" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_stock_total"><i class="fa-solid fa-calculator"></i> Held</label>
+                                    <input type="number" name="stock_total" id="ecc_stock_total" class="ecc-input ecc-num ecc-readonly" value="0" readonly tabindex="-1">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_deficiency"><i class="fa-solid fa-calculator"></i> Defi</label>
+                                    <input type="number" name="deficiency" id="ecc_deficiency" class="ecc-input ecc-num ecc-readonly" value="0" readonly tabindex="-1">
+                                </div>
                             </div>
-                            <div class="ecc-field">
-                                <label for="ecc_bbf_total"><i class="fa-solid fa-calculator"></i> Total (auto)</label>
-                                <input type="number" name="bbf_total" id="ecc_bbf_total" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
-                            </div>
+                        </div>
 
-                            <!-- FOD-only fields (BBF) -->
-                            <div class="ecc-field ecc-fod-only" data-fod-group>
-                                <label for="ecc_bbf_comd">Comd</label>
-                                <input type="number" name="bbf_comd" id="ecc_bbf_comd" class="ecc-input" min="0" step="1" placeholder="0">
+                        <!-- 3. ADDITIONAL FIELDS -->
+                        <div class="ecc-section">
+                            <div class="ecc-section-header">
+                                <i class="fa-solid fa-list-ul"></i>
+                                <h3>Additional</h3>
                             </div>
-                            <div class="ecc-field ecc-fod-only" data-fod-group>
-                                <label for="ecc_bbf_ihq">IHQ</label>
-                                <input type="number" name="bbf_ihq" id="ecc_bbf_ihq" class="ecc-input" min="0" step="1" placeholder="0">
+                            <div class="ecc-section-body" style="grid-template-columns: 1fr 1fr;">
+                                <div class="ecc-field">
+                                    <label for="ecc_add_knd">KND</label>
+                                    <input type="number" name="add_knd" id="ecc_add_knd" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_add_tn_model">TN Model</label>
+                                    <input type="number" name="add_tn_model" id="ecc_add_tn_model" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_add_n_area_otg">N Area (OTG)</label>
+                                    <input type="number" name="add_n_area_otg" id="ecc_add_n_area_otg" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_add_idt_ict">IDT / ICT</label>
+                                    <input type="number" name="add_idt_ict" id="ecc_add_idt_ict" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- 4. QUANTITY RECEIVED THIS MONTH -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-arrow-down-to-bracket"></i>
-                            <h3>Quantity Received During This Month</h3>
-                            <span class="ecc-step">Section 4</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field">
-                                <label for="ecc_recd_ser">SER</label>
-                                <input type="number" name="recd_ser" id="ecc_recd_ser" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_recd_pws">PWS</label>
-                                <input type="number" name="recd_pws" id="ecc_recd_pws" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_recd_total"><i class="fa-solid fa-calculator"></i> Total (auto)</label>
-                                <input type="number" name="recd_total" id="ecc_recd_total" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 5. QUANTITY ISSUED THIS MONTH -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                            <h3>Quantity Issued During This Month</h3>
-                            <span class="ecc-step">Section 5</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field">
-                                <label for="ecc_issd_ser">SER</label>
-                                <input type="number" name="issd_ser" id="ecc_issd_ser" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_issd_pws">PWS</label>
-                                <input type="number" name="issd_pws" id="ecc_issd_pws" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_issd_total"><i class="fa-solid fa-calculator"></i> Total (auto)</label>
-                                <input type="number" name="issd_total" id="ecc_issd_total" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 6. STOCK HELD -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-warehouse"></i>
-                            <h3>Stock Held</h3>
-                            <span class="ecc-step">Section 6</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field">
-                                <label for="ecc_stock_ser">SER</label>
-                                <input type="number" name="stock_ser" id="ecc_stock_ser" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_stock_pws">PWS</label>
-                                <input type="number" name="stock_pws" id="ecc_stock_pws" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_stock_total"><i class="fa-solid fa-calculator"></i> Total (auto)</label>
-                                <input type="number" name="stock_total" id="ecc_stock_total" class="ecc-input ecc-readonly" value="0" readonly tabindex="-1">
-                            </div>
-
-                            <!-- FOD-only fields (Stock Held) -->
-                            <div class="ecc-field ecc-fod-only" data-fod-group>
-                                <label for="ecc_stock_comd">Comd</label>
-                                <input type="number" name="stock_comd" id="ecc_stock_comd" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field ecc-fod-only" data-fod-group>
-                                <label for="ecc_stock_ihq">IHQ</label>
-                                <input type="number" name="stock_ihq" id="ecc_stock_ihq" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 7. ADDITIONAL FIELDS -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-list-ul"></i>
-                            <h3>Additional Fields</h3>
-                            <span class="ecc-step">Section 7</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field">
-                                <label for="ecc_add_knd">KND</label>
-                                <input type="number" name="add_knd" id="ecc_add_knd" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_add_tn_model">TN Model</label>
-                                <input type="number" name="add_tn_model" id="ecc_add_tn_model" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_add_n_area_otg">N Area (OTG)</label>
-                                <input type="number" name="add_n_area_otg" id="ecc_add_n_area_otg" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_add_idt_ict">IDT / ICT</label>
-                                <input type="number" name="add_idt_ict" id="ecc_add_idt_ict" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                            <div class="ecc-field">
-                                <label for="ecc_add_remarks_ro_bal">Remarks (RO Bal Issue)</label>
-                                <input type="number" name="add_remarks_ro_bal" id="ecc_add_remarks_ro_bal" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 8. STOCK HELD WITH TPS -->
-                    <div class="ecc-section">
-                        <div class="ecc-section-header">
-                            <i class="fa-solid fa-boxes-packing"></i>
-                            <h3>Stock Held With TPS</h3>
-                            <span class="ecc-step">Section 8</span>
-                        </div>
-                        <div class="ecc-section-body">
-                            <div class="ecc-field">
-                                <label for="ecc_tps">TPS</label>
-                                <input type="number" name="tps" id="ecc_tps" class="ecc-input" min="0" step="1" placeholder="0">
-                            </div>
-                        </div>
-                    </div>
+                    </div><!-- /ecc-top-sections-row -->
 
                     <!-- Actions -->
                     <div class="ecc-actions">
-                        <button type="reset" class="btn-clear-filter" style="margin-right: auto; padding: 11px 22px; border-radius: 11px;">
-                            <i class="fa-solid fa-rotate-left"></i> Reset Form
+                        <button type="reset" class="btn-clear-filter" style="margin-right:auto;padding:6px 14px;border-radius:7px;font-size:0.78rem;">
+                            <i class="fa-solid fa-rotate-left"></i> Reset
                         </button>
-                        <button type="submit" class="ecc-btn ecc-btn-primary btn-submit" style="margin: 0; padding: 11px 22px;">
-                            <i class="fa-solid fa-floppy-disk"></i> Save Monthly State
+                        <button type="submit" class="ecc-btn ecc-btn-primary btn-submit" style="margin:0;padding:6px 16px;font-size:0.78rem;">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Entry
                         </button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Recorded ECC Monthly States list -->
+            <div class="form-card" id="previousMonthDataCard" style="margin-bottom: 0; border-left: 4px solid var(--accent, #3b82f6);">
+                <div class="form-card-header" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="form-card-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent, #3b82f6);">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                        <div>
+                            <h2 class="form-card-title" style="margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Previous Month Data</h2>
+                            <span style="font-size: 0.85rem; color: var(--text-muted, #94a3b8);" id="prevMonthSubtitle">Select a Division & Item to view previous month data</span>
+                        </div>
+                    </div>
+                    <div id="prevMonthBadge" style="display: none;">
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: var(--accent, #3b82f6); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                            <i class="fa-regular fa-clock"></i> <span id="prevMonthDate">—</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="form-card-body" id="prevMonthContent" style="padding: 20px;">
+                    <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="fa-solid fa-circle-info" style="font-size: 2.2rem; margin-bottom: 12px; opacity: 0.6; display: block;"></i>
+                        Select a <strong>Division / Unit Name</strong> and an <strong>Item</strong> above to display previous month data.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ══════════════════════════ VERTICAL SECTION 3: RECORDED ECC STATES TABLE ══════════════════════════ -->
         <div class="items-table-card" style="margin-top: 30px;">
             <div class="form-card-header">
                 <div class="form-card-icon">
@@ -1312,6 +1258,11 @@ document.addEventListener("DOMContentLoaded", function () {
         {% endfor %}
     ];
     window.scmeItems = scmeItems;
+
+    // ── ECC: only item IDs that exist in fod_stock_table with quantity > 0 ──
+    window.eccStockedItemIds = new Set([
+        {% for item_id in stocked_item_ids %}{{ item_id }},{% endfor %}
+    ]);
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const issuedTableBody = document.getElementById("issuedTableBody");
@@ -1866,6 +1817,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ── 1. Category -> Item Cascading Dropdown ──
     const eccCategorySel = document.getElementById("ecc_category");
     const eccItemIdSel = document.getElementById("ecc_item_id");
+    const divisionSel = document.getElementById("ecc_bbf_division");
 
     eccCategorySel.addEventListener("change", function () {
         eccItemIdSel.innerHTML = "";
@@ -1876,10 +1828,11 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
         const itemsList = window.scmeItems || [];
+        const stocked = window.eccStockedItemIds || new Set();
         const filtered = itemsList.filter(item => {
             const itemCat = (item.category || "").trim().toLowerCase();
             const selCat = (selectedCat || "").trim().toLowerCase();
-            return itemCat === selCat && (item.type || "scme") === "ecc";
+            return itemCat === selCat && stocked.has(item.id);
         });
         eccItemIdSel.innerHTML = '<option value="">— Select Item —</option>';
         filtered.forEach(item => {
@@ -1888,81 +1841,320 @@ document.addEventListener("DOMContentLoaded", function () {
             opt.textContent = item.name;
             eccItemIdSel.appendChild(opt);
         });
-        eccItemIdSel.disabled = false;
+        if (filtered.length === 0) {
+            eccItemIdSel.innerHTML = '<option value="">— No stocked items in this category —</option>';
+            eccItemIdSel.disabled = true;
+        } else {
+            eccItemIdSel.disabled = false;
+        }
     });
 
-    // ── 2. AUTH + RES → TOTAL (auto-calc) ──
-    const authInput  = document.getElementById("ecc_auth_auth");
-    const resInput   = document.getElementById("ecc_auth_res");
-    const totalInput = document.getElementById("ecc_auth_total");
+    // ── 2. Auto-fetch Auth & DB Held baseline for selected Unit & Item ──
+    window.currentDbHeld = 0;
 
-    function recalcTotal() {
-        const a = parseFloat(authInput.value) || 0;
-        const r = parseFloat(resInput.value)  || 0;
-        totalInput.value = a + r;
+    function fetchExistingItemAuth() {
+        const unitName = divisionSel ? divisionSel.value : "";
+        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
+        const unitAuthInput = document.getElementById("ecc_unit_auth");
+        const issueCountInput = document.getElementById("ecc_issue_count");
+        const stockSerInput = document.getElementById("ecc_stock_ser");
+        const stockPwsInput = document.getElementById("ecc_stock_pws");
+        const addKndInput = document.getElementById("ecc_add_knd");
+        const addTnInput = document.getElementById("ecc_add_tn_model");
+        const addNAreaInput = document.getElementById("ecc_add_n_area_otg");
+        const addIdtInput = document.getElementById("ecc_add_idt_ict");
+
+        if (!unitName || !itemId) {
+            window.currentDbHeld = 0;
+            if (unitAuthInput) unitAuthInput.value = 0;
+            if (issueCountInput) issueCountInput.value = "";
+            if (stockSerInput) stockSerInput.value = "";
+            if (stockPwsInput) stockPwsInput.value = "";
+            if (addKndInput) addKndInput.value = "";
+            if (addTnInput) addTnInput.value = "";
+            if (addNAreaInput) addNAreaInput.value = "";
+            if (addIdtInput) addIdtInput.value = "";
+            recalcDeficiency();
+            return;
+        }
+
+        fetch(`/scme/api/get-unit-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.exists) {
+                    window.currentDbHeld = data.held || 0;
+                    if (unitAuthInput) {
+                        unitAuthInput.value = data.auth || 0;
+                        unitAuthInput.readOnly = false;
+                    }
+                } else {
+                    window.currentDbHeld = 0;
+                    if (unitAuthInput) {
+                        unitAuthInput.value = 0;
+                        unitAuthInput.readOnly = false;
+                    }
+                }
+
+                // Inputs stay clean for entering new issue quantities now
+                if (issueCountInput) issueCountInput.value = "";
+                if (stockSerInput) stockSerInput.value = "";
+                if (stockPwsInput) stockPwsInput.value = "";
+                if (addKndInput) addKndInput.value = "";
+                if (addTnInput) addTnInput.value = "";
+                if (addNAreaInput) addNAreaInput.value = "";
+                if (addIdtInput) addIdtInput.value = "";
+                
+                recalcDeficiency();
+            })
+            .catch(err => console.error("Error fetching unit item auth:", err));
     }
-    authInput.addEventListener("input", recalcTotal);
-    resInput.addEventListener("input", recalcTotal);
-    recalcTotal();
 
-    // Auto-calculate Deficiency: unit_auth - (stock_ser + stock_pws)
+    // ── 2b. Fetch Item Status & Previous Month Data for Right Card (Excel format) ──
+    function fetchPreviousMonthData() {
+        const unitName = divisionSel ? divisionSel.value : "";
+        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
+        const prevContent = document.getElementById("prevMonthContent");
+        const prevSubtitle = document.getElementById("prevMonthSubtitle");
+        const prevBadge = document.getElementById("prevMonthBadge");
+
+        if (prevContent) {
+            prevContent.innerHTML = `
+                <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.6rem;"></i> Loading previous month data...
+                </div>
+            `;
+        }
+
+        let url = `/scme/api/get-previous-month-data`;
+        const params = [];
+        if (unitName) params.push(`unit_name=${encodeURIComponent(unitName)}`);
+        if (itemId) params.push(`item_id=${encodeURIComponent(itemId)}`);
+        if (params.length > 0) url += `?${params.join("&")}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data && data.data.length > 0) {
+                    if (prevSubtitle) {
+                        prevSubtitle.textContent = unitName 
+                            ? `Previous month records for unit "${unitName}" (${data.count} items)`
+                            : `All units previous month records (${data.count} items)`;
+                    }
+                    if (prevBadge) prevBadge.style.display = "none";
+
+                    let rowsHtml = data.data.map((r, idx) => {
+                        const isSelectedRow = (itemId && String(r.item_id) === String(itemId));
+                        const rowBg = isSelectedRow ? "rgba(59, 130, 246, 0.25)" : (idx % 2 === 0 ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.01)");
+                        const cb = "border: 1px solid rgba(255, 255, 255, 0.14);";
+
+                        return `
+                            <tr style="background: ${rowBg}; transition: background 0.15s ease;">
+                                <td style="padding: 10px 12px; text-align: left; font-weight: 700; white-space: nowrap; color: var(--text-primary, #ffffff); ${cb}">${r.unit_name}</td>
+                                <td style="padding: 10px 12px; text-align: left; color: var(--text-secondary, #cbd5e1); line-height: 1.2; ${cb}">${r.item_name}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.auth}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #10b981; font-weight: 600; ${cb}">${r.ser}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #f59e0b; font-weight: 600; ${cb}">${r.pws}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #10b981; font-weight: 700; ${cb}">${r.held}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #ef4444; font-weight: 600; ${cb}">${r.deficiency}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_knd}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_tn_model}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_n_area_otg}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_idt_ict}</td>
+                            </tr>
+                        `;
+                    }).join("");
+
+                    prevContent.innerHTML = `
+                        <div class="excel-table-wrapper" style="overflow-x: auto; max-height: 520px; overflow-y: auto; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.18);">
+                            <table class="excel-data-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+                                <thead>
+                                    <tr style="background: rgba(255, 255, 255, 0.12); color: var(--text-primary, #ffffff); position: sticky; top: 0; z-index: 2;">
+                                        <th style="padding: 10px 12px; text-align: left; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">Unit / DOU</th>
+                                        <th style="padding: 10px 12px; text-align: left; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">Item Name</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">Auth</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">SER</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">PWS</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">Held</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">Defi</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">KND</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">TN Model</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">N Area</th>
+                                        <th style="padding: 10px 12px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">IDT/ICT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    if (prevSubtitle) prevSubtitle.textContent = unitName ? `No previous month records for "${unitName}"` : `No previous month records found`;
+                    if (prevBadge) prevBadge.style.display = "none";
+                    prevContent.innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fa-solid fa-folder-open" style="font-size: 2.2rem; margin-bottom: 12px; opacity: 0.6; display: block;"></i>
+                            No previous month record found ${unitName ? `for "${unitName}"` : 'across all units'}.
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching previous month data:", err);
+                if (prevContent) {
+                    prevContent.innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 20px; color: var(--danger);">
+                            <i class="fa-solid fa-exclamation-triangle" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
+                            Failed to load previous month data.
+                        </div>
+                    `;
+                }
+            });
+    }
+
+    window.currentAvailableFodStock = null;
+
+    function fetchAvailableFodStock() {
+        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
+        const stockContainer = document.getElementById("eccAvailableStockContainer");
+        const stockVal = document.getElementById("eccAvailableStockVal");
+        const errStockExceeded = document.getElementById("errEccStockExceeded");
+        const submitBtn = document.querySelector("#eccForm button[type='submit']");
+
+        if (!itemId) {
+            window.currentAvailableFodStock = null;
+            if (stockContainer) stockContainer.style.display = "none";
+            if (errStockExceeded) errStockExceeded.style.display = "none";
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
+        fetch(`/scme/api/available-stock/${itemId}`)
+            .then(res => res.json())
+            .then(data => {
+                window.currentAvailableFodStock = data.has_fod_stock ? data.available_qty : null;
+                if (stockContainer && stockVal && data.has_fod_stock) {
+                    stockVal.textContent = data.available_qty;
+                    stockContainer.style.display = "block";
+                } else if (stockContainer) {
+                    stockContainer.style.display = "none";
+                }
+                validateFodStockLimit();
+            })
+            .catch(err => console.error("Error fetching available stock:", err));
+    }
+
+    function validateFodStockLimit() {
+        const issueCountInput = document.getElementById("ecc_issue_count");
+        const stockSerInput = document.getElementById("ecc_stock_ser");
+        const stockPwsInput = document.getElementById("ecc_stock_pws");
+        const errStockExceeded = document.getElementById("errEccStockExceeded");
+        const submitBtn = document.querySelector("#eccForm button[type='submit']");
+
+        if (window.currentAvailableFodStock === null) {
+            if (errStockExceeded) errStockExceeded.style.display = "none";
+            if (issueCountInput) issueCountInput.classList.remove("input-error");
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
+        const issueVal = parseInt(issueCountInput ? issueCountInput.value : 0, 10) || 0;
+        const serVal = parseInt(stockSerInput ? stockSerInput.value : 0, 10) || 0;
+        const pwsVal = parseInt(stockPwsInput ? stockPwsInput.value : 0, 10) || 0;
+        const enteredQty = issueVal > 0 ? issueVal : (serVal + pwsVal);
+
+        if (enteredQty > window.currentAvailableFodStock) {
+            if (errStockExceeded) {
+                errStockExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Issue quantity (${enteredQty}) exceeds Available Stock (${window.currentAvailableFodStock})!`;
+                errStockExceeded.style.display = "flex";
+            }
+            if (issueCountInput) issueCountInput.classList.add("input-error");
+            if (submitBtn) submitBtn.disabled = true;
+        } else {
+            if (errStockExceeded) errStockExceeded.style.display = "none";
+            if (issueCountInput) issueCountInput.classList.remove("input-error");
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    function onUnitOrItemSelectionChange() {
+        fetchExistingItemAuth();
+        fetchPreviousMonthData();
+        fetchAvailableFodStock();
+    }
+
+    if (divisionSel) divisionSel.addEventListener("change", onUnitOrItemSelectionChange);
+    if (eccItemIdSel) eccItemIdSel.addEventListener("change", onUnitOrItemSelectionChange);
+
+    // Initial load: fetch all units previous month data
+    fetchPreviousMonthData();
+
+    // ── 3. Auto-calculate Held (DB Held + Issue Count) and Deficiency (Auth - Held) with SER/PWS split ──
     const unitAuthInput = document.getElementById("ecc_unit_auth");
+    const issueCountInput = document.getElementById("ecc_issue_count");
     const stockSerInput = document.getElementById("ecc_stock_ser");
     const stockPwsInput = document.getElementById("ecc_stock_pws");
+    const stockTotalInput = document.getElementById("ecc_stock_total");
     const deficiencyInput = document.getElementById("ecc_deficiency");
 
-    function recalcDeficiency() {
-        const auth = parseFloat(unitAuthInput.value) || 0;
+    function handleIssueCountInput() {
+        const issueCount = parseFloat(issueCountInput.value) || 0;
+        const ser = parseFloat(stockSerInput.value) || 0;
+        if (ser > issueCount) {
+            stockSerInput.value = issueCount;
+            stockPwsInput.value = 0;
+        } else {
+            stockPwsInput.value = Math.max(0, issueCount - ser);
+        }
+        recalcDeficiency();
+        validateFodStockLimit();
+    }
+
+    function handleSerInput() {
         const ser = parseFloat(stockSerInput.value) || 0;
         const pws = parseFloat(stockPwsInput.value) || 0;
-        const totalStock = ser + pws;
-        deficiencyInput.value = auth - totalStock;
+        const sum = ser + pws;
+        if (issueCountInput) issueCountInput.value = sum;
+        recalcDeficiency();
+        validateFodStockLimit();
     }
-    if (unitAuthInput && stockSerInput && stockPwsInput && deficiencyInput) {
-        unitAuthInput.addEventListener("input", recalcDeficiency);
-        stockSerInput.addEventListener("input", recalcDeficiency);
-        stockPwsInput.addEventListener("input", recalcDeficiency);
+
+    function handlePwsInput() {
+        const ser = parseFloat(stockSerInput.value) || 0;
+        const pws = parseFloat(stockPwsInput.value) || 0;
+        const sum = ser + pws;
+        if (issueCountInput) issueCountInput.value = sum;
         recalcDeficiency();
     }
 
-    // ── 3. Section specific SER + PWS -> Total (auto-calc) ──
-    function setupSectionTotal(serId, pwsId, totalId) {
-        const ser = document.getElementById(serId);
-        const pws = document.getElementById(pwsId);
-        const total = document.getElementById(totalId);
-        function calc() {
-            const s = parseFloat(ser.value) || 0;
-            const p = parseFloat(pws.value) || 0;
-            total.value = s + p;
+    function recalcDeficiency() {
+        const auth = parseFloat(unitAuthInput ? unitAuthInput.value : 0) || 0;
+        const dbHeld = window.currentDbHeld || 0;
+        const ser = parseFloat(stockSerInput ? stockSerInput.value : 0) || 0;
+        const pws = parseFloat(stockPwsInput ? stockPwsInput.value : 0) || 0;
+        
+        const issueCount = (stockSerInput && stockSerInput.value !== "" || stockPwsInput && stockPwsInput.value !== "") 
+            ? (ser + pws) 
+            : (parseFloat(issueCountInput ? issueCountInput.value : 0) || 0);
+
+        if (issueCountInput && (stockSerInput && stockSerInput.value !== "" || stockPwsInput && stockPwsInput.value !== "")) {
+            issueCountInput.value = issueCount;
         }
-        ser.addEventListener("input", calc);
-        pws.addEventListener("input", calc);
-        calc();
+
+        const newTotalHeld = dbHeld + issueCount;
+        if (stockTotalInput) stockTotalInput.value = newTotalHeld;
+        
+        const defi = auth - newTotalHeld;
+        if (deficiencyInput) deficiencyInput.value = defi;
     }
-    setupSectionTotal("ecc_bbf_ser", "ecc_bbf_pws", "ecc_bbf_total");
-    setupSectionTotal("ecc_recd_ser", "ecc_recd_pws", "ecc_recd_total");
-    setupSectionTotal("ecc_issd_ser", "ecc_issd_pws", "ecc_issd_total");
-    setupSectionTotal("ecc_stock_ser", "ecc_stock_pws", "ecc_stock_total");
 
-    // ── 4. Division = "2 FOD" → show Comd / IHQ fields ──
-    const divisionSel = document.getElementById("ecc_bbf_division");
-    const fodGroups   = document.querySelectorAll("[data-fod-group]");
+    if (unitAuthInput) unitAuthInput.addEventListener("input", recalcDeficiency);
+    if (issueCountInput) issueCountInput.addEventListener("input", handleIssueCountInput);
+    if (stockSerInput) stockSerInput.addEventListener("input", handleSerInput);
+    if (stockPwsInput) stockPwsInput.addEventListener("input", handlePwsInput);
+    recalcDeficiency();
 
-    function toggleFodFields() {
-        const opt   = divisionSel.options[divisionSel.selectedIndex];
-        const isFod = opt && opt.dataset.fod === "true";
-        fodGroups.forEach(el => {
-            el.classList.toggle("ecc-show", isFod);
-            if (!isFod) {
-                const input = el.querySelector("input");
-                if (input) input.value = "";
-            }
-        });
-    }
-    divisionSel.addEventListener("change", toggleFodFields);
-    toggleFodFields();
-
-    // ── 5. Numeric-only guard ──
+    // ── 4. Numeric-only guard ──
     eccForm.querySelectorAll('input[type="number"]').forEach(inp => {
         if (inp.hasAttribute("readonly")) return;
         inp.addEventListener("keydown", e => {
@@ -1972,21 +2164,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // ── 6. Form submit → POST to /scme/api/add-ecc-state ──
+    // ── 5. Form submit → POST to /scme/api/add-ecc-state ──
     eccForm.addEventListener("submit", function (e) {
         e.preventDefault();
 
         const itemId = document.getElementById("ecc_item_id").value;
         const bbfDivision = divisionSel.value;
 
+        if (!bbfDivision) {
+            Notify.warning("Please select a Division / Unit before saving.");
+            divisionSel.focus();
+            return;
+        }
         if (!itemId) {
             Notify.warning("Please select an Item before saving.");
             document.getElementById("ecc_item_id").focus();
-            return;
-        }
-        if (!bbfDivision) {
-            Notify.warning("Please select a Division before saving.");
-            divisionSel.focus();
             return;
         }
 
@@ -1995,30 +2187,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const payload = {
             item_id:            g("ecc_item_id"),
             scale:              g("ecc_scale"),
-            deficiency:         g("ecc_deficiency"),
-            auth_auth:          g("ecc_auth_auth"),
-            auth_res:           g("ecc_auth_res"),
-            auth_total:         g("ecc_auth_total"),
-            unit_auth:          g("ecc_unit_auth"),
             bbf_division:       g("ecc_bbf_division"),
-            bbf_ser:            g("ecc_bbf_ser"),
-            bbf_pws:            g("ecc_bbf_pws"),
-            bbf_comd:           g("ecc_bbf_comd"),
-            bbf_ihq:            g("ecc_bbf_ihq"),
-            recd_ser:           g("ecc_recd_ser"),
-            recd_pws:           g("ecc_recd_pws"),
-            issd_ser:           g("ecc_issd_ser"),
-            issd_pws:           g("ecc_issd_pws"),
-            stock_ser:          g("ecc_stock_ser"),
-            stock_pws:          g("ecc_stock_pws"),
-            stock_comd:         g("ecc_stock_comd"),
-            stock_ihq:          g("ecc_stock_ihq"),
-            add_knd:            g("ecc_add_knd"),
-            add_tn_model:       g("ecc_add_tn_model"),
-            add_n_area_otg:     g("ecc_add_n_area_otg"),
-            add_idt_ict:        g("ecc_add_idt_ict"),
-            add_remarks_ro_bal: g("ecc_add_remarks_ro_bal"),
-            tps:                g("ecc_tps")
+            unit_auth:          g("ecc_unit_auth") || 0,
+            issue_count:        g("ecc_issue_count") || 0,
+            stock_ser:          g("ecc_stock_ser") || 0,
+            stock_pws:          g("ecc_stock_pws") || 0,
+            deficiency:         g("ecc_deficiency") || 0,
+            add_knd:            g("ecc_add_knd") || 0,
+            add_tn_model:       g("ecc_add_tn_model") || 0,
+            add_n_area_otg:     g("ecc_add_n_area_otg") || 0,
+            add_idt_ict:        g("ecc_add_idt_ict") || 0
         };
 
         const submitBtn = eccForm.querySelector("[type=submit]");
@@ -2036,16 +2214,12 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                Notify.success("ECC monthly state recorded successfully.");
+                Notify.success("ECC item entry recorded & updated in TrackUnitItems.");
                 eccForm.reset();
                 eccItemIdSel.innerHTML = '<option value="">— Select Category First —</option>';
                 eccItemIdSel.disabled = true;
-                recalcTotal();
-                setupSectionTotal("ecc_bbf_ser", "ecc_bbf_pws", "ecc_bbf_total");
-                setupSectionTotal("ecc_recd_ser", "ecc_recd_pws", "ecc_recd_total");
-                setupSectionTotal("ecc_issd_ser", "ecc_issd_pws", "ecc_issd_total");
-                setupSectionTotal("ecc_stock_ser", "ecc_stock_pws", "ecc_stock_total");
-                toggleFodFields();
+                recalcDeficiency();
+                fetchPreviousMonthData();
 
                 // Add row to the table
                 const eccTableBody = document.getElementById("eccTableBody");
@@ -2065,24 +2239,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     <td>${st.item_name}</td>
                     <td>${st.scale || ""}</td>
                     <td style="text-align: center; font-weight: bold; color: var(--danger);">${st.deficiency || 0}</td>
-                    <td style="text-align: center;">${payload.auth_auth || 0}</td>
-                    <td style="text-align: center;">${payload.auth_res || 0}</td>
+                    <td style="text-align: center;">${payload.unit_auth || 0}</td>
+                    <td style="text-align: center;">0</td>
                     <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.auth_total}</td>
                     <td style="text-align: center;">${payload.unit_auth || 0}</td>
-                    <td style="text-align: center;">${payload.bbf_ser || 0}</td>
-                    <td style="text-align: center;">${payload.bbf_pws || 0}</td>
-                    <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.bbf_total || 0}</td>
-                    <td style="text-align: center;">${payload.recd_ser || 0}</td>
-                    <td style="text-align: center;">${payload.recd_pws || 0}</td>
-                    <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.recd_total || 0}</td>
-                    <td style="text-align: center;">${payload.issd_ser || 0}</td>
-                    <td style="text-align: center;">${payload.issd_pws || 0}</td>
-                    <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.issd_total || 0}</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">0</td>
                     <td style="text-align: center;">${payload.stock_ser || 0}</td>
                     <td style="text-align: center;">${payload.stock_pws || 0}</td>
                     <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.stock_total || 0}</td>
-                    <td style="text-align: center;">${payload.tps || 0}</td>
-                    <td style="text-align: center;">${payload.add_remarks_ro_bal || 0}</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
                     <td style="font-size: 0.82rem; color: var(--text-secondary);">${st.created_at}</td>
                 `;
                 eccTableBody.insertBefore(newRow, eccTableBody.firstChild);
@@ -2094,7 +2268,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     newRow.style.backgroundColor = "";
                 }, 1000);
             } else {
-                Notify.error(data.message || "Failed to save ECC monthly state.");
+                Notify.error(data.message || "Failed to save entry.");
             }
         })
         .catch(err => {
@@ -2103,7 +2277,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .finally(() => {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Monthly State';
+            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Entry';
         });
     });
 
