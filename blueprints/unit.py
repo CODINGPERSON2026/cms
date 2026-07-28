@@ -238,10 +238,12 @@ def get_admin_from_org_ladder(org_id):
 
 
 
-# THIS BELOW FUNCTINLAITY IS ONLY FOR ADD UNIT AND MANAGING DATA
+# THIS BELOW FUNCTIONALITY IS ONLY FOR ADD UNIT AND MANAGING DATA BY SUPER_ADMIN (ORD)
 @unit_bp.route("/org")
 def manage_org():
-    print(session)
+    if "user_id" not in session or session.get("role") != "super_admin":
+        return redirect("/")
+
     orgs = OrgLadder.query.order_by(
         OrgLadder.name
     ).all()
@@ -290,11 +292,21 @@ def create_org():
 @unit_bp.route("/api/create-user", methods=["POST"])
 def create_user():
     try:
-        data = request.get_json()
+        # ---------------- SESSION USER CHECK ----------------
+        if "user_id" not in session:
+            return jsonify({"success": False, "message": "Unauthorized."}), 401
+
+        current_user = LoginUser.query.get(session["user_id"])
+
+        if not current_user or current_user.role != "super_admin":
+            return jsonify({"success": False, "message": "Only ORD (super_admin) is authorized to create users."}), 403
+
+        data = request.get_json() or {}
 
         username = data.get("username", "").strip()
         password = data.get("password", "").strip()
         role = data.get("role", "").strip()
+        parent_id = data.get("parent_id")
 
         # ---------------- VALIDATION ----------------
         if not username:
@@ -311,15 +323,6 @@ def create_user():
         if existing_user:
             return jsonify({"success": False, "message": "Username already exists."}), 400
 
-        # ---------------- SESSION USER ----------------
-        if "user_id" not in session:
-            return jsonify({"success": False, "message": "Unauthorized."}), 401
-
-        current_user = LoginUser.query.get(session["user_id"])
-
-        if not current_user:
-            return jsonify({"success": False, "message": "Invalid session user."}), 401
-
         # ---------------- ROLE → ORG TYPE MAP ----------------
         org_type_map = {
             "division_admin": "division",
@@ -332,11 +335,24 @@ def create_user():
 
         org_type = org_type_map[role]
 
+        target_parent_id = parent_id if parent_id else current_user.org_id
+
+        # ---------------- VALIDATION: UNIT CAN ONLY HAVE DIVISION OR ORD AS PARENT ----------------
+        if role == "unit" and parent_id:
+            parent_org = OrgLadder.query.get(parent_id)
+            if parent_org:
+                parent_type = (parent_org.type or "").lower()
+                if parent_type not in ["division", "ord", "super_admin", "root"]:
+                    return jsonify({
+                        "success": False,
+                        "message": f"When role 'unit' is selected, parent organization must be Division or ORD (selected parent '{parent_org.name}' is {parent_org.type})."
+                    }), 400
+
         # ---------------- CREATE ORG ----------------
         new_org = OrgLadder(
             name=username,
             type=org_type,
-            parent_id=current_user.org_id
+            parent_id=target_parent_id
         )
 
         db.session.add(new_org)
@@ -352,8 +368,8 @@ def create_user():
 
         db.session.add(new_user)
 
-        # ---------------- INSERT INTO UNITS TABLE (ONLY WHEN CREATED BY ORD / SUPER_ADMIN) ----------------
-        if current_user.role == "super_admin":
+        # ---------------- INSERT INTO UNITS TABLE IF ROLE IS UNIT ----------------
+        if role == "unit":
             existing_unit_rec = Units.query.filter_by(name=username).first()
             if not existing_unit_rec:
                 new_unit_rec = Units(
@@ -367,7 +383,7 @@ def create_user():
 
         return jsonify({
             "success": True,
-            "message": f"{role} + organisation created successfully."
+            "message": f"{role} user and organization created successfully."
         }), 201
 
     except Exception as e:

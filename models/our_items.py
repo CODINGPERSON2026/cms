@@ -66,6 +66,17 @@ class ItemRequestTable(db.Model):
         server_default=db.func.now()
     )
 
+    def __init__(self, item_id=None, requested_by=None, admin_id=None, quantity=0, reason="", priority="normal", remarks="", status="pending", **kwargs):
+        super().__init__(**kwargs)
+        self.item_id = item_id
+        self.requested_by = requested_by
+        self.admin_id = admin_id
+        self.quantity = quantity
+        self.reason = reason
+        self.priority = priority
+        self.remarks = remarks
+        self.status = status
+
 
 class ScmeItems(db.Model):
     __tablename__ = "ecc_scme_items"

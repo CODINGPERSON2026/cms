@@ -1,21 +1,48 @@
 {% extends '/base.html' %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}Create User (ORD Only){% endblock %}
 {% block content %}
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
+        .create-user-container {
+            display: flex;
+            gap: 24px;
+            max-width: 1200px;
+            margin: 20px auto;
+            align-items: flex-start;
+        }
 
-       
+        .form-panel {
+            flex: 1 1 50%;
+            min-width: 320px;
+        }
+
+        .tree-panel {
+            flex: 1 1 50%;
+            min-width: 320px;
+            position: sticky;
+            top: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .create-user-container {
+                flex-direction: column;
+            }
+            .form-panel, .tree-panel {
+                width: 100%;
+                flex: none;
+                position: static;
+            }
+        }
 
         .card{
             width:100%;
-            max-width:650px;
             background:white;
             border-radius:20px;
             overflow:hidden;
-            box-shadow:0 15px 40px rgba(0,0,0,0.15);
+            box-shadow:0 15px 40px rgba(0,0,0,0.12);
         }
 
         .card-header{
@@ -26,11 +53,12 @@
         }
 
         .card-header h2{
-            font-size:28px;
+            font-size:26px;
+            margin: 0;
         }
 
         .card-body{
-            padding:35px;
+            padding:30px;
         }
 
         .info-box{
@@ -39,6 +67,16 @@
             padding:15px;
             border-radius:8px;
             margin-bottom:25px;
+        }
+
+        .alert-unauthorized{
+            background:#f8d7da;
+            color:#842029;
+            border:1px solid #f5c2c7;
+            padding:20px;
+            border-radius:10px;
+            text-align:center;
+            font-weight:bold;
         }
 
         .form-group{
@@ -75,10 +113,12 @@
             font-size:16px;
             font-weight:bold;
             cursor:pointer;
+            transition: all 0.2s ease;
         }
 
         .btn-create:hover{
             transform:translateY(-2px);
+            box-shadow: 0 5px 15px rgba(25, 135, 84, 0.3);
         }
 
         .btn-create:disabled{
@@ -92,92 +132,400 @@
             font-size:13px;
         }
 
+        /* RIGHT PANEL PREVIEW TREE ARROW STYLES */
+        .tree-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, .12);
+            overflow: hidden;
+        }
+
+        .tree-card-header {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: white;
+            padding: 20px 25px;
+        }
+
+        .tree-card-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tree-card-body {
+            padding: 24px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .arrow-tree-container {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 10px 5px;
+        }
+
+        .tree-step {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            position: relative;
+        }
+
+        .step-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 8px 0;
+            color: #0284c7;
+        }
+
+        .arrow-line {
+            width: 3px;
+            height: 18px;
+            background: linear-gradient(180deg, #38bdf8, #0284c7);
+            border-radius: 2px;
+        }
+
+        .arrow-head {
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 0.8;
+            margin-top: -3px;
+            color: #0284c7;
+            text-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+            animation: bounceArrow 1.8s infinite ease-in-out;
+        }
+
+        @keyframes bounceArrow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(3px); }
+        }
+
+        .node {
+            display: block;
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+            transition: all .2s ease;
+        }
+
+        .division { border-left: 6px solid #dc3545; }
+        .brigade  { border-left: 6px solid #0d6efd; }
+        .unit     { border-left: 6px solid #198754; }
+        .ord      { border-left: 6px solid #6f42c1; }
+
+        .new-creation-node {
+            background: #f0fdf4 !important;
+            border: 2px dashed #10b981 !important;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, .25) !important;
+        }
+
+        .node-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .node-type {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 700;
+            letter-spacing: .5px;
+            margin-top: 3px;
+        }
+
+        .node-level-tag {
+            font-size: 9.5px;
+            background: #f1f5f9;
+            color: #475569;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .new-node-badge {
+            background: #10b981;
+            color: white;
+            font-size: 10px;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-weight: 700;
+            letter-spacing: .4px;
+        }
     </style>
 
-</head>
-<body>
+<div class="create-user-container">
 
-<div class="card">
+    <!-- LEFT PANEL: Create User Form -->
+    <div class="form-panel">
+        <div class="card">
+            <div class="card-header">
+                <h2>Create User</h2>
+            </div>
 
-    {% if current_role == "super_admin" %}
-    <div class="card-header">
-        <h2>Create User</h2>
-    </div>
-                    
+            <div class="card-body">
+
+                <div class="info-box">
+                    Logged in as:
+                    <strong>{{ current_username }}</strong>
+                    ({{ current_role }})
+                </div>
+
+                {% if current_role != "super_admin" %}
+                    <div class="alert-unauthorized">
+                        ⛔ Access Restricted: Only ORD (`super_admin`) is authorized to create users.
+                    </div>
+                {% else %}
+
+                <div class="form-group">
+                    <label>Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        class="form-control"
+                        autocomplete="off">
+                    <div class="helper">
+                        This will be used for login credentials and organisation name.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        class="form-control"
+                        autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="role" class="form-control">
+                        <option value="" selected disabled>-- Select Role --</option>
+                        <option value="division_admin">Division Admin</option>
+                        <option value="brigade_admin">Brigade Admin</option>
+                        <option value="unit">Unit</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Parent Organization (Optional)</label>
+                    <select id="parent_id" class="form-control">
+                        <option value="" data-name="ORD HQ" data-type="ord" data-parent-id="" selected>-- Select Parent Organization --</option>
+                        {% for org in orgs %}
+                            <option value="{{ org.id }}" data-name="{{ org.name }}" data-type="{{ org.type|lower }}" data-parent-id="{{ org.parent_id or '' }}">{{ org.name }} ({{ org.type }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="helper" id="parent_helper">
+                        Select parent organisation (e.g. Division or ORD for a Unit).
+                    </div>
+                </div>
+
+                <button id="createUserBtn" class="btn-create">
+                    Create User
+                </button>
+
                 {% endif %}
 
-    <div class="card-body">
-
-        <div class="info-box">
-            Logged in as:
-            <strong>{{ current_username }}</strong>
-            ({{ current_role }})
-        </div>
-
-        <div class="form-group">
-            <label>Username</label>
-            <input
-                type="text"
-                id="username"
-                class="form-control"
-                placeholder="Example: 99_DIV">
-            <div class="helper">
-                Username must match an existing organisation name.
             </div>
         </div>
+    </div>
 
-        <div class="form-group">
-            <label>Password</label>
-            <input
-                type="password"
-                id="password"
-                class="form-control"
-                placeholder="Enter Password">
+    <!-- RIGHT PANEL: Live New Branch Preview with Arrows -->
+    <div class="tree-panel">
+        <div class="tree-card">
+            <div class="tree-card-header">
+                <h3>⬇️ Hierarchy Branch Preview</h3>
+            </div>
+
+            <div class="tree-card-body">
+                <div id="hierarchyPreviewArea">
+                    <!-- Dynamic Arrow Branch Preview rendered here -->
+                </div>
+            </div>
         </div>
-
-        <div class="form-group">
-            <label>Role</label>
-
-            <select id="role" class="form-control">
-
-                {% if current_role == "super_admin" %}
-                    <option value="division_admin">
-                        Division Admin
-                    </option>
-                {% endif %}
-
-                {% if current_role == "division_admin" %}
-                    <option value="brigade_admin">
-                        Brigade Admin
-                    </option>
-
-                    <option value="unit">
-                        Unit
-                    </option>
-                {% endif %}
-
-                {% if current_role == "brigade_admin" %}
-                    <option value="unit">
-                        Unit
-                    </option>
-                {% endif %}
-
-            </select>
-        </div>
-
-        <button id="createUserBtn" class="btn-create">
-            Create User
-        </button>
-
     </div>
 
 </div>
 
+{% if current_role == "super_admin" %}
 <script>
 
 const csrfToken = document
     .querySelector('meta[name="csrf-token"]')
     .getAttribute("content");
+
+const usernameInput = document.getElementById("username");
+const roleSelect = document.getElementById("role");
+const parentSelect = document.getElementById("parent_id");
+const parentHelper = document.getElementById("parent_helper");
+
+function filterParentOptions() {
+    const selectedRole = roleSelect.value;
+    const options = parentSelect.querySelectorAll("option");
+
+    options.forEach(opt => {
+        const type = opt.getAttribute("data-type") || "";
+        if (!opt.value) {
+            opt.hidden = false;
+            opt.disabled = false;
+            return;
+        }
+
+        if (!selectedRole) {
+            opt.hidden = false;
+            opt.disabled = false;
+        } else if (selectedRole === "unit") {
+            if (type === "division" || type === "ord" || type === "super_admin" || type === "root") {
+                opt.hidden = false;
+                opt.disabled = false;
+            } else {
+                opt.hidden = true;
+                opt.disabled = true;
+            }
+        } else if (selectedRole === "brigade_admin") {
+            if (type === "division" || type === "ord" || type === "super_admin" || type === "root") {
+                opt.hidden = false;
+                opt.disabled = false;
+            } else {
+                opt.hidden = true;
+                opt.disabled = true;
+            }
+        } else {
+            opt.hidden = false;
+            opt.disabled = false;
+        }
+    });
+
+    if (!selectedRole) {
+        parentHelper.innerText = "Select a role to view parent requirements.";
+    } else if (selectedRole === "unit") {
+        parentHelper.innerText = "Units can only have a Division or ORD as parent organization.";
+    } else if (selectedRole === "brigade_admin") {
+        parentHelper.innerText = "Brigades can have a Division or ORD as parent organization.";
+    } else {
+        parentHelper.innerText = "Division Admins belong directly under ORD.";
+    }
+
+    const currentOpt = parentSelect.options[parentSelect.selectedIndex];
+    if (currentOpt && currentOpt.hidden) {
+        parentSelect.value = "";
+    }
+
+    renderHierarchyPreview();
+}
+
+// ---------------- LIVE ARROW BRANCH PREVIEW RENDERER ----------------
+function getAncestryChain(parentId) {
+    const chain = [];
+    let currentId = parentId;
+
+    const orgMap = {};
+    parentSelect.querySelectorAll("option").forEach(opt => {
+        if (opt.value) {
+            orgMap[opt.value] = {
+                id: opt.value,
+                name: opt.getAttribute("data-name"),
+                type: opt.getAttribute("data-type") || "org",
+                parentId: opt.getAttribute("data-parent-id")
+            };
+        }
+    });
+
+    const visited = new Set();
+    while (currentId && orgMap[currentId] && !visited.has(currentId)) {
+        visited.add(currentId);
+        const item = orgMap[currentId];
+        chain.unshift(item);
+        currentId = item.parentId;
+    }
+
+    if (chain.length === 0 || (chain[0].type !== "ord" && chain[0].type !== "super_admin")) {
+        chain.unshift({ name: "{{ current_username }}", type: "ord" });
+    }
+
+    return chain;
+}
+
+function renderHierarchyPreview() {
+    const parentId = parentSelect.value;
+    const usernameVal = usernameInput.value.trim();
+    const newName = usernameVal !== "" ? usernameVal : "New User / Org";
+    const roleVal = roleSelect.value;
+
+    const roleLabelMap = {
+        "division_admin": "DIVISION ADMIN",
+        "brigade_admin": "BRIGADE ADMIN",
+        "unit": "UNIT"
+    };
+
+    const roleTypeMap = {
+        "division_admin": "division",
+        "brigade_admin": "brigade",
+        "unit": "unit"
+    };
+
+    const chain = getAncestryChain(parentId);
+
+    let html = `<div class="arrow-tree-container">`;
+    chain.forEach((item, idx) => {
+        html += `
+            <div class="tree-step">
+                <div class="node ${item.type}">
+                    <div class="node-title">
+                        <span>${item.name}</span>
+                        <span class="node-level-tag">LEVEL ${idx + 1}</span>
+                    </div>
+                    <div class="node-type">${(item.type || 'ORD').toUpperCase()}</div>
+                </div>
+                <div class="step-arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-head">↓</div>
+                </div>
+            </div>
+        `;
+    });
+
+    // Append the NEW user node being created
+    const newType = roleTypeMap[roleVal] || "unit";
+    const roleText = roleVal ? (roleLabelMap[roleVal] || 'NEW ROLE') : 'SELECT ROLE';
+    html += `
+        <div class="tree-step">
+            <div class="node ${newType} new-creation-node">
+                <div class="node-title">
+                    <span>✨ ${newName}</span>
+                    <span class="new-node-badge">CREATING</span>
+                </div>
+                <div class="node-type">${roleText}</div>
+            </div>
+        </div>
+    `;
+    html += `</div>`;
+
+    document.getElementById("hierarchyPreviewArea").innerHTML = html;
+}
+
+// Event Listeners for Live Preview
+roleSelect.addEventListener("change", filterParentOptions);
+parentSelect.addEventListener("change", renderHierarchyPreview);
+usernameInput.addEventListener("input", renderHierarchyPreview);
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", () => {
+    filterParentOptions();
+    renderHierarchyPreview();
+});
 
 document
     .getElementById("createUserBtn")
@@ -185,19 +533,10 @@ document
 
 async function createUser(){
 
-    const username = document
-        .getElementById("username")
-        .value
-        .trim();
-
-    const password = document
-        .getElementById("password")
-        .value
-        .trim();
-
-    const role = document
-        .getElementById("role")
-        .value;
+    const username = usernameInput.value.trim();
+    const password = document.getElementById("password").value.trim();
+    const role = roleSelect.value;
+    const parentId = parentSelect.value;
 
     if(username === ""){
         alert("Please enter username.");
@@ -206,6 +545,11 @@ async function createUser(){
 
     if(password === ""){
         alert("Please enter password.");
+        return;
+    }
+
+    if(!role){
+        alert("Please select a role.");
         return;
     }
 
@@ -227,7 +571,8 @@ async function createUser(){
                 body:JSON.stringify({
                     username:username,
                     password:password,
-                    role:role
+                    role:role,
+                    parent_id: parentId ? parseInt(parentId) : null
                 })
             }
         );
@@ -235,12 +580,13 @@ async function createUser(){
         const result = await response.json();
 
         if(result.success){
-
             alert(result.message);
-
-            document.getElementById("username").value = "";
+            usernameInput.value = "";
             document.getElementById("password").value = "";
-
+            roleSelect.value = "";
+            parentSelect.value = "";
+            filterParentOptions();
+            renderHierarchyPreview();
         }
         else{
             alert(result.message);
@@ -258,7 +604,6 @@ async function createUser(){
 }
 
 </script>
+{% endif %}
 
-</body>
-</html>
-{%endblock%}
+{% endblock %}

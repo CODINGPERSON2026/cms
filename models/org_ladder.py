@@ -31,3 +31,9 @@ class OrgLadder(db.Model):
         remote_side=[id],
         backref="children"
     )
+
+    def __init__(self, name=None, type=None, parent_id=None, **kwargs):
+        super().__init__(**kwargs)
+        self.name = name
+        self.type = type
+        self.parent_id = parent_id

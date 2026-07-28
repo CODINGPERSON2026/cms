@@ -37,6 +37,13 @@ class LoginUser(db.Model):
     backref="users"
 )
 
+    def __init__(self, username=None, password=None, role=None, org_id=None, **kwargs):
+        super().__init__(**kwargs)
+        self.username = username
+        self.password = password
+        self.role = role
+        self.org_id = org_id
+
 
 
 class User(db.Model):
