@@ -15,13 +15,25 @@ def create_app():
         try:
             from sqlalchemy import inspect, text
             inspector = inspect(db.engine)
+            if 'ecc_monthly_state' in inspector.get_table_names():
+                db.session.execute(text('DROP TABLE IF EXISTS ecc_monthly_state'))
+                db.session.commit()
+        except Exception as e:
+            print("Auto-drop ecc_monthly_state notice:", e)
+
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
             if 'track_unit_items' in inspector.get_table_names():
                 columns = [c['name'] for c in inspector.get_columns('track_unit_items')]
                 new_cols = [
                     ('add_knd', 'INT DEFAULT 0 NOT NULL'),
                     ('add_tn_model', 'INT DEFAULT 0 NOT NULL'),
                     ('add_n_area_otg', 'INT DEFAULT 0 NOT NULL'),
-                    ('add_idt_ict', 'INT DEFAULT 0 NOT NULL')
+                    ('add_idt_ict', 'INT DEFAULT 0 NOT NULL'),
+                    ('available_res', 'INT DEFAULT 0 NOT NULL'),
+                    ('available_ser', 'INT DEFAULT 0 NOT NULL'),
+                    ('available_pws', 'INT DEFAULT 0 NOT NULL')
                 ]
                 for col, col_type in new_cols:
                     if col not in columns:

@@ -1,7 +1,7 @@
 from imports import *
 from extensions import db
 from models import LoginUser, ActionLog
-from models.our_items import OurItems, ItemRequestTable, ScmeItems, Units, ScmeIssuedItems, EccMonthlyState, TrackUnitItems, FodStock
+from models.our_items import OurItems, ItemRequestTable, ScmeItems, Units, Divs, ScmeIssuedItems, TrackUnitItems, FodStock, ItemAuth
 from models.org_ladder import OrgLadder
 from validation import has_special_characters
 from datetime import datetime, timezone
@@ -183,9 +183,9 @@ def scme_home():
             self.deficiency = max(0, (rec.auth or 0) - (rec.held or 0))
             self.created_at = rec.issued_at
 
-    # Fetch usernames of users whose role is 'division_admin' in login_users table
-    div_admin_users = LoginUser.query.filter_by(role='division_admin').order_by(LoginUser.username).all()
-    div_admin_names = [u.username.strip() for u in div_admin_users if u.username]
+    # Fetch division names directly from Divs table
+    div_records = Divs.query.order_by(Divs.name).all()
+    div_admin_names = list(dict.fromkeys(d.name.strip() for d in div_records if d.name and d.name.strip()))
 
     track_query = TrackUnitItems.query
     if is_div_admin and user_div:
@@ -313,6 +313,10 @@ def scme_home():
             "auth": rec.auth or 0
         })
 
+    items = ScmeItems.query.order_by(ScmeItems.item_name).all()
+    categories = sorted(list(set(i.category for i in items if i.category)))
+    ecc_categories = categories
+
     return render_template(
         '/scme_dashboard/scme.html',
         total_items=total_items,
@@ -342,7 +346,10 @@ def scme_home():
         db_units_data=db_units_data,
         monthly_held_trend_data=monthly_held_trend_data,
         is_div_admin=is_div_admin,
-        user_div=user_div or ""
+        user_div=user_div or "",
+        items=items,
+        categories=categories,
+        ecc_categories=ecc_categories
     )
 @scme_bp.route('/enter-items')
 def enter_items():
@@ -358,13 +365,17 @@ def enter_items():
     scme_categories = [r[0] for r in db.session.query(ScmeItems.category).filter(ScmeItems.type == 'scme').distinct().all()]
     # ecc_categories are now derived after stocked_item_ids filter below
     
-    div_admin_users = LoginUser.query.filter_by(role='division_admin').order_by(LoginUser.username).all()
-    div_admin_names = [u.username.strip() for u in div_admin_users if u.username]
-
+    divs_query = Divs.query
     if is_div_admin and user_div:
-        units = [{"id": 1, "name": user_div}]
-    else:
-        units = [{"id": idx + 1, "name": name} for idx, name in enumerate(div_admin_names)]
+        divs_query = divs_query.filter(Divs.name == user_div)
+
+    divs_list = divs_query.order_by(Divs.name).all()
+    seen_names = set()
+    units = []
+    for d in divs_list:
+        if d.name and d.name.strip() and d.name.strip() not in seen_names:
+            seen_names.add(d.name.strip())
+            units.append({"id": d.id, "name": d.name.strip()})
     
     # Get all items to filter in frontend JS
     items = ScmeItems.query.order_by(ScmeItems.item_name).all()
@@ -388,9 +399,6 @@ def enter_items():
     # Get already issued items history
     issued_items = ScmeIssuedItems.query.order_by(ScmeIssuedItems.created_at.desc()).all()
     
-    # Get previously entered monthly states
-    ecc_states = EccMonthlyState.query.order_by(EccMonthlyState.created_at.desc()).all()
-    
     return render_template(
         '/scme_dashboard/enter_scme_items.html',
         categories=categories,
@@ -402,7 +410,6 @@ def enter_items():
         ecc_items=ecc_items,
         stocked_item_ids=stocked_item_ids,
         issued_items=issued_items,
-        ecc_states=ecc_states,
         is_div_admin=is_div_admin,
         user_div=user_div
     )
@@ -976,9 +983,9 @@ def api_add_ecc_state():
             # SAME UNIT, ITEM, & MONTH EXISTS -> ACCUMULATE / SUM VALUES INTO EXISTING ROW
             if unit_auth_val > 0:
                 current_month_rec.auth = unit_auth_val
-            current_month_rec.held = (current_month_rec.held or 0) + held_delta
-            current_month_rec.ser = (current_month_rec.ser or 0) + stock_ser_val
-            current_month_rec.pws = (current_month_rec.pws or 0) + stock_pws_val
+            current_month_rec.available_res = (current_month_rec.available_res or 0) + held_delta
+            current_month_rec.available_ser = (current_month_rec.available_ser or 0) + stock_ser_val
+            current_month_rec.available_pws = (current_month_rec.available_pws or 0) + stock_pws_val
             current_month_rec.add_knd = (current_month_rec.add_knd or 0) + add_knd_val
             current_month_rec.add_tn_model = (current_month_rec.add_tn_model or 0) + add_tn_model_val
             current_month_rec.add_n_area_otg = (current_month_rec.add_n_area_otg or 0) + add_n_area_otg_val
@@ -990,9 +997,12 @@ def api_add_ecc_state():
                 unit_name=bbf_division,
                 item_id=item_id_val,
                 auth=unit_auth_val,
-                held=held_delta,
-                ser=stock_ser_val,
-                pws=stock_pws_val,
+                held=0,
+                ser=0,
+                pws=0,
+                available_res=held_delta,
+                available_ser=stock_ser_val,
+                available_pws=stock_pws_val,
                 issued_at=now_dt,
                 add_knd=add_knd_val,
                 add_tn_model=add_tn_model_val,
@@ -1003,41 +1013,6 @@ def api_add_ecc_state():
 
         db.session.commit()
             
-        # Create EccMonthlyState record
-        new_state = EccMonthlyState(
-            item_id=item_id_val,
-            scale=scale,
-            auth_auth=auth_auth_val,
-            auth_res=auth_res_val,
-            auth_total=auth_total_val,
-            bbf_division=bbf_division,
-            bbf_ser=bbf_ser_val,
-            bbf_pws=bbf_pws_val,
-            bbf_total=bbf_total_val,
-            bbf_comd=bbf_comd_val,
-            bbf_ihq=bbf_ihq_val,
-            recd_ser=recd_ser_val,
-            recd_pws=recd_pws_val,
-            recd_total=recd_total_val,
-            issd_ser=issd_ser_val,
-            issd_pws=issd_pws_val,
-            issd_total=issd_total_val,
-            stock_ser=stock_ser_val,
-            stock_pws=stock_pws_val,
-            stock_total=stock_total_val,
-            stock_comd=stock_comd_val,
-            stock_ihq=stock_ihq_val,
-            add_knd=add_knd_val,
-            add_tn_model=add_tn_model_val,
-            add_n_area_otg=add_n_area_otg_val,
-            add_idt_ict=add_idt_ict_val,
-            add_remarks_ro_bal=add_remarks_ro_bal_val,
-            tps=tps_val,
-            deficiency=deficiency_val,
-            unit_auth=unit_auth_val
-        )
-        db.session.add(new_state)
-        
         # Log action
         log_entry = ActionLog(
             user_id=session.get("user_id"),
@@ -1050,21 +1025,23 @@ def api_add_ecc_state():
         db.session.add(log_entry)
         db.session.commit()
         
+        target_rec = current_month_rec if current_month_rec else new_rec
+        
         return jsonify({
             "success": True,
             "message": "ECC monthly state recorded & updated in TrackUnitItems successfully.",
             "state": {
-                "id": new_state.id,
+                "id": target_rec.id if target_rec else 0,
                 "item_name": item_exists.item_name,
-                "scale": new_state.scale,
-                "bbf_division": new_state.bbf_division,
-                "auth_total": new_state.auth_total,
-                "bbf_total": new_state.bbf_total,
-                "recd_total": new_state.recd_total,
-                "issd_total": new_state.issd_total,
-                "stock_total": new_state.stock_total,
-                "deficiency": new_state.deficiency,
-                "created_at": new_state.created_at.strftime('%d %b %Y, %H:%M') if new_state.created_at else ""
+                "scale": scale,
+                "bbf_division": bbf_division,
+                "auth_total": unit_auth_val,
+                "bbf_total": bbf_total_val,
+                "recd_total": recd_total_val,
+                "issd_total": issd_total_val,
+                "stock_total": stock_total_val,
+                "deficiency": deficiency_val,
+                "created_at": datetime.now().strftime('%d %b %Y, %H:%M')
             }
         }), 201
         
@@ -1078,14 +1055,14 @@ def api_ecc_state_actions(state_id):
     if "user_id" not in session or session.get("role") != "scme":
         return jsonify({"success": False, "message": "Unauthorized"}), 401
         
-    record = EccMonthlyState.query.get(state_id)
+    record = TrackUnitItems.query.get(state_id)
     if not record:
         return jsonify({"success": False, "message": "Record not found."}), 404
         
     if request.method == 'DELETE':
         try:
             item_name = record.item.item_name if record.item else f"Item ID {record.item_id}"
-            div_name = record.bbf_division
+            div_name = record.unit_name
             
             db.session.delete(record)
             
@@ -1096,7 +1073,7 @@ def api_ecc_state_actions(state_id):
                 role=session.get("role", "scme"),
                 action_type="DELETE",
                 module="ECC",
-                details=f"Deleted ECC monthly state for Item: '{item_name}', Division: {div_name}"
+                details=f"Deleted TrackUnitItems record for Item: '{item_name}', Division: {div_name}"
             )
             db.session.add(log_entry)
             db.session.commit()
@@ -1272,10 +1249,10 @@ def add_stock():
         voucher_no = request.form.get('voucher_no', '').strip()
         category = request.form.get('category', '').strip()
         item_id = request.form.get('item_id', type=int)
-        quantity = request.form.get('quantity', type=int, default=0)
+        pws = request.form.get('pws', type=int, default=0) or 0
+        ser = request.form.get('ser', type=int, default=0) or 0
+        quantity = ser + pws
         source = request.form.get('source', '').strip()  # Depo / LP
-        pws = request.form.get('pws', type=int, default=0)
-        ser = request.form.get('ser', type=int, default=0)
         stock_type = request.form.get('type', '').strip()  # RES / IHQ / CMD
 
         if not voucher_no or not category or not item_id or not source or not stock_type:
@@ -1348,4 +1325,92 @@ def api_get_available_stock(item_id):
         "has_fod_stock": (fod_total > 0),
         "fod_total": fod_total,
         "available_qty": available_qty
+    })
+
+
+@scme_bp.route('/api/set-item-auth', methods=['POST'])
+def api_set_item_auth():
+    if "user_id" not in session or session.get("role") not in ["scme", "super_admin", "division_admin"]:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        data = request.get_json() or {}
+        unit_name = (data.get("unit_name") or "").strip()
+        item_id = data.get("item_id")
+        auth_val = data.get("auth")
+
+        if not unit_name or not item_id or auth_val is None:
+            return jsonify({"success": False, "message": "Division, Item, and Authorized Quantity (AUTH) are required."}), 400
+
+        try:
+            auth_int = int(auth_val)
+            if auth_int < 0:
+                return jsonify({"success": False, "message": "AUTH cannot be negative."}), 400
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "AUTH must be a valid integer."}), 400
+
+        item_exists = ScmeItems.query.get(item_id)
+        if not item_exists:
+            return jsonify({"success": False, "message": "Selected Item does not exist."}), 400
+
+        # Update/Save ONLY in dedicated ItemAuth table
+        item_auth_rec = ItemAuth.query.filter_by(unit_name=unit_name, item_id=item_id).first()
+        if item_auth_rec:
+            item_auth_rec.auth = auth_int
+        else:
+            item_auth_rec = ItemAuth(unit_name=unit_name, item_id=item_id, auth=auth_int)
+            db.session.add(item_auth_rec)
+
+        db.session.commit()
+
+        try:
+            log_entry = ActionLog(
+                user_id=session.get("user_id"),
+                username=session.get("username", "Unknown"),
+                role=session.get("role", "scme"),
+                action_type="UPDATE",
+                module="SCME",
+                details=f"Set Item Authorization (AUTH={auth_int}) for Item: '{item_exists.item_name}', Division: {unit_name}"
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+        except Exception:
+            pass
+
+        return jsonify({
+            "success": True,
+            "message": f"Successfully set AUTH = {auth_int} for item '{item_exists.item_name}' under {unit_name}.",
+            "data": {
+                "unit_name": unit_name,
+                "item_id": item_id,
+                "item_name": item_exists.item_name,
+                "auth": auth_int
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@scme_bp.route('/api/get-item-auth', methods=['GET'])
+def api_get_item_auth():
+    if "user_id" not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    unit_name = (request.args.get("unit_name") or "").strip()
+    item_id = request.args.get("item_id", type=int)
+
+    if not unit_name or not item_id:
+        return jsonify({"success": True, "auth": 0})
+
+    # Read strictly from ItemAuth table ONLY
+    auth_rec = ItemAuth.query.filter_by(unit_name=unit_name, item_id=item_id).first()
+    auth_val = auth_rec.auth if (auth_rec and auth_rec.auth is not None) else 0
+
+    return jsonify({
+        "success": True,
+        "unit_name": unit_name,
+        "item_id": item_id,
+        "auth": auth_val
     })

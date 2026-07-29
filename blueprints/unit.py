@@ -41,6 +41,12 @@ def unit_dashboard():
             held_qty = rec.held or 0
             ser_qty = getattr(rec, 'ser', 0) or 0
             pws_qty = getattr(rec, 'pws', 0) or 0
+            avail_res = getattr(rec, 'available_res', 0) or 0
+            avail_ser = getattr(rec, 'available_ser', 0) or 0
+            avail_pws = getattr(rec, 'available_pws', 0) or 0
+            if avail_ser == 0 and avail_pws == 0 and avail_res > 0:
+                avail_ser = avail_res
+
             defi = max(0, auth - held_qty)
             unit_records.append({
                 "id": rec.id,
@@ -50,6 +56,9 @@ def unit_dashboard():
                 "held": held_qty,
                 "ser": ser_qty,
                 "pws": pws_qty,
+                "available_res": avail_res,
+                "available_ser": avail_ser,
+                "available_pws": avail_pws,
                 "deficiency": defi,
                 "issued_at": rec.issued_at
             })

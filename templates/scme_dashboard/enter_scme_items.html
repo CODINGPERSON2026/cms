@@ -948,21 +948,24 @@
                             </div>
                             <div class="ecc-section-body" style="grid-template-columns: repeat(3,1fr);">
                                 <div class="ecc-field">
-                                    <label for="ecc_unit_auth">Auth <span class="req">*</span></label>
-                                    <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                    <label for="ecc_unit_auth"><i class="fa-solid fa-calculator"></i> Auth <span class="req">*</span></label>
+                                    <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input ecc-num ecc-readonly" min="0" step="1" value="0" placeholder="0" readonly tabindex="-1" style="background:var(--bg-raised); cursor:not-allowed; font-weight:700; color:var(--accent);">
+                                    <span id="errEccAuthZero" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:3px;align-items:center;gap:4px;">
+                                        <i class="fa-solid fa-lock"></i> Auth is 0. Set Auth first to enable fields.
+                                    </span>
                                 </div>
                                 <div class="ecc-field">
-                                    <label for="ecc_issue_count">Issued <span class="req">*</span></label>
-                                    <input type="number" name="issue_count" id="ecc_issue_count" class="ecc-input ecc-num" min="0" step="1" value="0" placeholder="0">
+                                    <label for="ecc_stock_ser">SER <span class="req">*</span></label>
+                                    <input type="number" name="stock_ser" id="ecc_stock_ser" class="ecc-input ecc-num" min="0" step="1" placeholder="0" value="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_stock_pws">PWS <span class="req">*</span></label>
+                                    <input type="number" name="stock_pws" id="ecc_stock_pws" class="ecc-input ecc-num" min="0" step="1" placeholder="0" value="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_issue_count"><i class="fa-solid fa-calculator"></i> Issue Count</label>
+                                    <input type="number" name="issue_count" id="ecc_issue_count" class="ecc-input ecc-num ecc-readonly" min="0" step="1" value="0" placeholder="0" readonly tabindex="-1" style="background:var(--bg-raised); cursor:not-allowed; font-weight:700; color:var(--accent);">
                                     <span id="errEccStockExceeded" style="color:var(--danger);font-size:0.6rem;font-weight:700;display:none;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds!</span>
-                                </div>
-                                <div class="ecc-field">
-                                    <label for="ecc_stock_ser">SER</label>
-                                    <input type="number" name="stock_ser" id="ecc_stock_ser" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
-                                </div>
-                                <div class="ecc-field">
-                                    <label for="ecc_stock_pws">PWS</label>
-                                    <input type="number" name="stock_pws" id="ecc_stock_pws" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
                                 </div>
                                 <div class="ecc-field">
                                     <label for="ecc_stock_total"><i class="fa-solid fa-calculator"></i> Held</label>
@@ -2152,6 +2155,51 @@ document.addEventListener("DOMContentLoaded", function () {
             if (issueCountInput) issueCountInput.classList.remove("input-error");
             if (submitBtn) submitBtn.disabled = false;
         }
+    }
+
+    function fetchExistingItemAuth() {
+        const unitName = divisionSel ? divisionSel.value : "";
+        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
+        const unitAuthInput = document.getElementById("ecc_unit_auth");
+        const errAuthZero = document.getElementById("errEccAuthZero");
+        const eccForm = document.getElementById("eccForm");
+        const submitBtn = eccForm ? eccForm.querySelector("button[type='submit']") : null;
+
+        if (!unitName || !itemId) {
+            if (unitAuthInput) unitAuthInput.value = 0;
+            if (errAuthZero) errAuthZero.style.display = "none";
+            recalcDeficiency();
+            return;
+        }
+
+        fetch(`/scme/api/get-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`)
+            .then(res => res.json())
+            .then(data => {
+                const authVal = data.auth || 0;
+                if (unitAuthInput) unitAuthInput.value = authVal;
+
+                const formInputs = eccForm ? eccForm.querySelectorAll("input:not([name='bbf_division']):not(#ecc_unit_auth):not([readonly])") : [];
+
+                if (authVal <= 0) {
+                    formInputs.forEach(inp => {
+                        inp.disabled = true;
+                        inp.style.opacity = "0.5";
+                        inp.style.cursor = "not-allowed";
+                    });
+                    if (submitBtn) submitBtn.disabled = true;
+                    if (errAuthZero) errAuthZero.style.display = "flex";
+                } else {
+                    formInputs.forEach(inp => {
+                        inp.disabled = false;
+                        inp.style.opacity = "1";
+                        inp.style.cursor = "initial";
+                    });
+                    if (submitBtn) submitBtn.disabled = false;
+                    if (errAuthZero) errAuthZero.style.display = "none";
+                }
+                recalcDeficiency();
+            })
+            .catch(err => console.error("Error fetching item auth:", err));
     }
 
     function onUnitOrItemSelectionChange() {

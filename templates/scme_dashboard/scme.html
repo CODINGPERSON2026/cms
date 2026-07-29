@@ -3474,6 +3474,107 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Make sure initial state matches selected theme
     updateAllChartsTheme();
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SET ITEM AUTHORIZATION MODAL LOGIC
+    // ══════════════════════════════════════════════════════════════════════════
+    const modalActiveDivs = document.getElementById('modalActiveDivisions');
+    const modalSetAuth = document.getElementById('modalSetItemAuth');
+    const formSetAuth = document.getElementById('formSetItemAuth');
+    const catSelectAuth = document.getElementById('setItemAuthCategory');
+    const itemSelectAuth = document.getElementById('setItemAuthItem');
+    const divSelectAuth = document.getElementById('setItemAuthDiv');
+    const alertSetAuth = document.getElementById('setItemAuthAlert');
+    const allItemOptsAuth = Array.from(itemSelectAuth ? itemSelectAuth.querySelectorAll('option') : []).slice(1);
+
+    if (modalActiveDivs && modalSetAuth) {
+        modalActiveDivs.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-open-add-item-auth') || e.target.closest('#btnHeaderAddItemAuth');
+            if (btn) {
+                if (formSetAuth) formSetAuth.reset();
+                if (alertSetAuth) alertSetAuth.classList.add('d-none');
+                
+                const activeDivModalBs = bootstrap.Modal.getInstance(modalActiveDivs);
+                if (activeDivModalBs) activeDivModalBs.hide();
+
+                const setAuthModalBs = new bootstrap.Modal(modalSetAuth);
+                setAuthModalBs.show();
+            }
+        });
+    }
+
+    if (catSelectAuth && itemSelectAuth) {
+        catSelectAuth.addEventListener('change', function () {
+            const selCat = this.value;
+            itemSelectAuth.innerHTML = '<option value="">-- Choose Item --</option>';
+            allItemOptsAuth.forEach(opt => {
+                if (!selCat || opt.dataset.category === selCat) {
+                    itemSelectAuth.appendChild(opt.cloneNode(true));
+                }
+            });
+        });
+    }
+
+    if (formSetAuth) {
+        formSetAuth.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const unitName = divSelectAuth ? divSelectAuth.value : '';
+            const itemId = itemSelectAuth ? itemSelectAuth.value : '';
+            const authVal = document.getElementById('setItemAuthValue') ? document.getElementById('setItemAuthValue').value : '';
+
+            if (!unitName || !itemId || authVal === '') {
+                if (alertSetAuth) {
+                    alertSetAuth.className = 'alert alert-danger mt-2';
+                    alertSetAuth.textContent = 'Please fill in all required fields.';
+                    alertSetAuth.classList.remove('d-none');
+                }
+                return;
+            }
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            fetch('/scme/api/set-item-auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    unit_name: unitName,
+                    item_id: parseInt(itemId),
+                    auth: parseInt(authVal)
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (alertSetAuth) {
+                        alertSetAuth.className = 'alert alert-success mt-2';
+                        alertSetAuth.textContent = data.message;
+                        alertSetAuth.classList.remove('d-none');
+                    }
+                    setTimeout(() => {
+                        const setAuthModalBs = bootstrap.Modal.getInstance(modalSetAuth);
+                        if (setAuthModalBs) setAuthModalBs.hide();
+                        window.location.reload();
+                    }, 1200);
+                } else {
+                    if (alertSetAuth) {
+                        alertSetAuth.className = 'alert alert-danger mt-2';
+                        alertSetAuth.textContent = data.message || 'Error saving authorization.';
+                        alertSetAuth.classList.remove('d-none');
+                    }
+                }
+            })
+            .catch(err => {
+                if (alertSetAuth) {
+                    alertSetAuth.className = 'alert alert-danger mt-2';
+                    alertSetAuth.textContent = 'Server error occurred.';
+                    alertSetAuth.classList.remove('d-none');
+                }
+            });
+        });
+    }
 });
 </script>
 {% endblock %}

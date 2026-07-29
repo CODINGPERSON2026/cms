@@ -1,7 +1,7 @@
 from imports import *
 from extensions import db
 from models import LoginUser
-from models.our_items import OurItems, ItemRequestTable, Strength, ScmeItems, EccMonthlyState, ScmeIssuedItems, Units, TrackUnitItems
+from models.our_items import OurItems, ItemRequestTable, Strength, ScmeItems, ScmeIssuedItems, Units, TrackUnitItems
 from models.org_ladder import OrgLadder
 from validation import get_parent_admin,has_special_characters
 from datetime import datetime, timezone, timedelta
@@ -126,31 +126,38 @@ def div_home():
     total_stock_held = 0
     stock_records = []
     if possible_names:
-        records = EccMonthlyState.query.filter(
-            db.func.lower(EccMonthlyState.bbf_division).in_([n.lower() for n in possible_names])
+        records = TrackUnitItems.query.filter(
+            db.func.lower(TrackUnitItems.unit_name).in_([n.lower() for n in possible_names])
         ).all()
-
-        if not records and user and user.username:
-            prefix = user.username.split('_')[0]
-            if prefix and prefix.isdigit():
-                records = EccMonthlyState.query.filter(
-                    EccMonthlyState.bbf_division.ilike(f"{prefix}%")
-                ).all()
 
         for rec in records:
             item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+            avail_res_val = getattr(rec, 'available_res', 0) or 0
+            avail_ser_val = getattr(rec, 'available_ser', 0) or 0
+            avail_pws_val = getattr(rec, 'available_pws', 0) or 0
+            if avail_ser_val == 0 and avail_pws_val == 0 and avail_res_val > 0:
+                avail_ser_val = avail_res_val
+
             stock_records.append({
                 "id": rec.id,
                 "item_id": rec.item_id,
                 "item_name": item_name,
-                "scale": rec.scale or "-",
-                "auth_res": rec.auth_res or 0,
-                "stock_total": rec.stock_total or 0,
-                "stock_ser": rec.stock_ser or 0,
-                "stock_pws": rec.stock_pws or 0
+                "scale": getattr(rec, 'scale', None) or "N/A",
+                "auth": getattr(rec, 'auth', 0) or 0,
+                "auth_res": getattr(rec, 'auth_res', 0) or 0,
+                "auth_total": getattr(rec, 'auth', 0) or 0,
+                "available_res": avail_res_val,
+                "available_ser": avail_ser_val,
+                "available_pws": avail_pws_val,
+                "stock_total": getattr(rec, 'held', 0) or 0,
+                "stock_ser": getattr(rec, 'ser', 0) or 0,
+                "stock_pws": getattr(rec, 'pws', 0) or 0
             })
 
-        total_stock = sum(r["stock_total"] for r in stock_records)
+        total_stock = sum(
+            (r["available_ser"] or 0) + (r["available_pws"] or 0) + (r["stock_ser"] or 0) + (r["stock_pws"] or 0)
+            for r in stock_records
+        )
         total_stock_held = total_stock or 0
 
     # Build equipment map for subordinate units to populate graphs
@@ -495,107 +502,117 @@ def issue_item():
             possible_names.add(user.org.name.replace('_', ' ').strip())
             possible_names.add(user.org.name.replace(' ', '_').strip())
 
-        # Find EccMonthlyState record
-        ecc_record = EccMonthlyState.query.filter(
-            EccMonthlyState.item_id == item_id,
-            db.func.lower(EccMonthlyState.bbf_division).in_([n.lower() for n in possible_names])
+        # Target unit possible names for case-insensitive matching
+        target_names = [
+            unit_name.lower().strip(),
+            unit_name.replace('_', ' ').lower().strip(),
+            unit_name.replace(' ', '_').lower().strip()
+        ]
+
+        # Add or update ScmeIssuedItems for the target unit (update auth, leave held untouched for later issue by subordinate unit)
+        issued_rec = ScmeIssuedItems.query.filter(
+            db.func.lower(ScmeIssuedItems.unit_name).in_(target_names),
+            ScmeIssuedItems.item_id == item_id
         ).first()
 
-        if not ecc_record and user.username:
-            prefix = user.username.split('_')[0]
-            if prefix and prefix.isdigit():
-                ecc_record = EccMonthlyState.query.filter(
-                    EccMonthlyState.item_id == item_id,
-                    EccMonthlyState.bbf_division.ilike(f"{prefix}%")
-                ).first()
-
-        if not ecc_record or (ecc_record.auth_res or 0) < val_qty:
-            curr_res = ecc_record.auth_res if ecc_record else 0
-            return jsonify({"success": False, "message": f"Insufficient reserve available. Current reserve: {curr_res}."}), 400
-
-        # Deduct issued quantity from reserve (auth_res) and update stock totals in division EccMonthlyState
-        ecc_record.auth_res = (ecc_record.auth_res or 0) - val_qty
-        ecc_record.issd_total = (ecc_record.issd_total or 0) + val_qty
-        ecc_record.issd_ser = (ecc_record.issd_ser or 0) + val_ser
-        ecc_record.issd_pws = (ecc_record.issd_pws or 0) + val_pws
-        ecc_record.stock_total = (ecc_record.stock_total or 0) + val_qty
-        ecc_record.stock_ser = (ecc_record.stock_ser or 0) + val_ser
-        ecc_record.stock_pws = (ecc_record.stock_pws or 0) + val_pws
-        if ecc_record.auth_auth is not None:
-            ecc_record.auth_total = (ecc_record.auth_auth or 0) + ecc_record.auth_res
-
-        # Add or update ScmeIssuedItems for the target unit
-        issued_rec = ScmeIssuedItems.query.filter_by(unit_name=unit_name, item_id=item_id).first()
         if issued_rec:
-            issued_rec.held = (issued_rec.held or 0) + val_qty
             if val_auth is not None:
                 issued_rec.unit_authorized = val_auth
-            else:
-                issued_rec.unit_authorized = max((issued_rec.unit_authorized or 0), issued_rec.held)
-            issued_rec.deficiency = max(0, (issued_rec.unit_authorized or 0) - issued_rec.held)
+            issued_rec.deficiency = max(0, (issued_rec.unit_authorized or 0) - (issued_rec.held or 0))
         else:
-            initial_auth = val_auth if val_auth is not None else val_qty
+            initial_auth = val_auth if val_auth is not None else 0
             issued_rec = ScmeIssuedItems(
                 unit_name=unit_name,
                 item_id=item_id,
                 a_u="Nos",
                 unit_authorized=initial_auth,
                 scale="100%",
-                held=val_qty,
-                deficiency=max(0, initial_auth - val_qty)
+                held=0,
+                deficiency=initial_auth
             )
             db.session.add(issued_rec)
 
-        # Update item in TrackUnitItems table
+        # Update item in TrackUnitItems table for the target unit (update available reserve and auth, leave ser/pws/held untouched)
         now_dt = datetime.now(timezone.utc) if hasattr(timezone, 'utc') else datetime.utcnow()
-        track_rec = TrackUnitItems.query.filter_by(unit_name=unit_name, item_id=item_id).first()
+        track_rec = TrackUnitItems.query.filter(
+            db.func.lower(TrackUnitItems.unit_name).in_(target_names),
+            TrackUnitItems.item_id == item_id
+        ).first()
+
         if track_rec:
-            track_rec.held = (track_rec.held or 0) + val_qty
-            track_rec.ser = (track_rec.ser or 0) + val_ser
-            track_rec.pws = (track_rec.pws or 0) + val_pws
+            # Update subordinate unit's available reserve columns only
+            track_rec.available_ser = (track_rec.available_ser or 0) + val_ser
+            track_rec.available_pws = (track_rec.available_pws or 0) + val_pws
+            track_rec.available_res = (track_rec.available_ser or 0) + (track_rec.available_pws or 0)
+
             if val_auth is not None:
                 track_rec.auth = val_auth
-            else:
-                track_rec.auth = max(track_rec.auth or 0, track_rec.held)
             track_rec.issued_at = now_dt
         else:
-            initial_auth = val_auth if val_auth is not None else val_qty
+            initial_auth = val_auth if val_auth is not None else 0
             track_rec = TrackUnitItems(
                 unit_name=unit_name,
                 item_id=item_id,
                 auth=initial_auth,
-                held=val_qty,
-                ser=val_ser,
-                pws=val_pws,
+                held=0,
+                ser=0,
+                pws=0,
+                available_ser=val_ser,
+                available_pws=val_pws,
+                available_res=val_qty,
                 issued_at=now_dt
             )
             db.session.add(track_rec)
 
+        # Update the DOU (issuing division) stock record as well
+        dou_rec = TrackUnitItems.query.filter(
+            db.func.lower(TrackUnitItems.unit_name).in_([n.lower() for n in possible_names]),
+            TrackUnitItems.item_id == item_id
+        ).first()
+
+        if dou_rec and (not track_rec or dou_rec.id != track_rec.id):
+            # 1. Deduct issued counts from DOU's available reserve columns
+            dou_rec.available_ser = max(0, (dou_rec.available_ser or 0) - val_ser)
+            dou_rec.available_pws = max(0, (dou_rec.available_pws or 0) - val_pws)
+            dou_rec.available_res = max(0, (dou_rec.available_res or 0) - val_qty)
+
+            # 2. Accumulate issued counts into DOU's stock held columns
+            dou_rec.ser = (dou_rec.ser or 0) + val_ser
+            dou_rec.pws = (dou_rec.pws or 0) + val_pws
+            dou_rec.held = (dou_rec.held or 0) + val_qty
+
         db.session.commit()
 
         # Recalculate total stock held across division
-        records = EccMonthlyState.query.filter(
-            db.func.lower(EccMonthlyState.bbf_division).in_([n.lower() for n in possible_names])
+        records = TrackUnitItems.query.filter(
+            db.func.lower(TrackUnitItems.unit_name).in_([n.lower() for n in possible_names])
         ).all()
-        new_total_stock = sum(r.stock_total or 0 for r in records)
+        new_total_stock = sum(
+            (r.available_ser or 0) + (r.available_pws or 0) + (r.ser or 0) + (r.pws or 0)
+            for r in records
+        )
 
         item_obj = ScmeItems.query.get(item_id)
         item_name = item_obj.item_name if item_obj else f"Item #{item_id}"
 
+        res_ser_now = getattr(dou_rec, 'available_ser', 0) if dou_rec else 0
+        res_pws_now = getattr(dou_rec, 'available_pws', 0) if dou_rec else 0
+        held_ser_now = getattr(dou_rec, 'ser', 0) if dou_rec else 0
+        held_pws_now = getattr(dou_rec, 'pws', 0) if dou_rec else 0
+
         return jsonify({
             "success": True,
-            "message": f"Successfully issued {val_qty} unit(s) of '{item_name}' to {unit_name}.",
+            "message": f"Successfully issued {val_qty} unit(s) ({val_ser} SER, {val_pws} PWS) of '{item_name}' to {unit_name}.",
             "item_id": item_id,
-            "new_item_reserve": ecc_record.auth_res,
-            "new_item_stock": ecc_record.stock_total,
-            "new_item_stock_ser": ecc_record.stock_ser,
-            "new_item_stock_pws": ecc_record.stock_pws,
-            "new_total_stock": new_total_stock
+            "new_total_stock": new_total_stock,
+            "new_item_reserve": (res_ser_now + res_pws_now),
+            "new_item_stock": (held_ser_now + held_pws_now),
+            "new_item_stock_ser": held_ser_now,
+            "new_item_stock_pws": held_pws_now
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
 
 
 

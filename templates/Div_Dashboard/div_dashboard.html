@@ -67,6 +67,36 @@
         transform: translateY(0);
     }
 
+    .btn-stock-held-action {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 14px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: 0.92rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        width: 100%;
+        text-align: left;
+    }
+
+    .btn-stock-held-action:hover {
+        transform: translateY(-2px);
+        border-color: #6f42c1;
+        background: rgba(111, 66, 193, 0.08);
+        box-shadow: 0 6px 20px rgba(111, 66, 193, 0.15);
+        color: #6f42c1;
+    }
+
+    .btn-stock-held-action:active {
+        transform: translateY(0);
+    }
+
     .metric-icon-wrap {
         width: 44px;
         height: 44px;
@@ -223,12 +253,16 @@
         display: inline-block;
     }
 
-    /* Modal Backdrop Layer Fix */
+    /* Modal Backdrop & Top Alignment Fix */
     .modal-backdrop {
         z-index: 1050 !important;
     }
     #updateStrengthModal {
         z-index: 1055 !important;
+    }
+    .modal .modal-dialog {
+        margin-top: 10px !important;
+        margin-bottom: 20px !important;
     }
 </style>
 
@@ -276,19 +310,16 @@
             </div>
         </div>
 
-        <!-- CARD 4: TOTAL STOCK HELD (Clickable) -->
-        <div class="metric-card clickable" id="stockHeldCard" onclick="openStockHeldModal()">
+        <!-- BUTTON 4: TOTAL STOCK HELD (Button look, no count) -->
+        <button type="button" class="btn-stock-held-action" id="stockHeldCard" onclick="openStockHeldModal()">
             <div class="metric-icon-wrap icon-stock">
                 <i class="fa-solid fa-cubes-stacked"></i>
             </div>
-            <div class="metric-content">
-                <div class="metric-header-row">
-                    <span class="metric-title">TOTAL STOCK HELD</span>
-                    <span class="click-hint"><i class="fa-solid fa-hand-pointer"></i> Click</span>
-                </div>
-                <div class="metric-value">{{ total_stock_held }}</div>
+            <div class="d-flex flex-column gap-1">
+                <span style="font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Total Stock Held</span>
+                <span style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> View Stock Details</span>
             </div>
-        </div>
+        </button>
 
     </div>
 
@@ -436,7 +467,7 @@
 
 <!-- SUBORDINATE UNITS MODAL -->
 <div class="modal fade" id="modalUnits" tabindex="-1" aria-labelledby="modalUnitsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top: 1.5rem;">
         <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
                 <h5 class="modal-title font-weight-bold" id="modalUnitsLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
@@ -499,7 +530,7 @@
 
 <!-- UPDATE STRENGTH MODAL -->
 <div class="modal fade" id="modalUpdateAuth" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+    <div class="modal-dialog" style="max-width: 420px; margin-top: 10px !important;">
         <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
                 <h5 class="modal-title" style="color: var(--text-primary); font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
@@ -537,7 +568,7 @@
 
 <!-- UNIT EQUIPMENT BREAKDOWN MODAL -->
 <div class="modal fade" id="modalUnitBreakdown" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top: 1.5rem;">
         <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
                 <h5 class="modal-title font-weight-bold" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
@@ -576,7 +607,7 @@
 
 <!-- REGISTERED CATALOG ITEMS MODAL -->
 <div class="modal fade" id="modalRegisteredItems" tabindex="-1" aria-labelledby="modalRegisteredItemsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top: 1.5rem;">
         <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
                 <h5 class="modal-title font-weight-bold" id="modalRegisteredItemsLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
@@ -630,63 +661,84 @@
 
 <!-- TOTAL STOCK HELD DETAILS MODAL -->
 <div class="modal fade" id="modalStockHeld" tabindex="-1" aria-labelledby="modalStockHeldLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="margin-top: 1.5rem;">
         <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
-                <h5 class="modal-title font-weight-bold" id="modalStockHeldLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+            <div class="modal-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-bottom: 1px solid var(--border-dim); padding: 16px 24px;">
+                <h5 class="modal-title font-weight-bold mb-0" id="modalStockHeldLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-cubes-stacked" style="color: #6f42c1;"></i> Total Stock Held Details
                 </h5>
+                <div class="d-flex align-items-center gap-2 ms-auto me-2">
+                    <input type="text" id="searchStockInput" onkeyup="filterStockItems()" class="form-control form-control-sm" placeholder="Search stock item..." style="width: 230px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" style="padding: 24px;">
-                <div class="d-flex align-items-center justify-content-between mb-3 pb-3" style="border-bottom: 1px solid var(--border-dim);">
-                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);">
-                        Total Stock Items: <strong style="color: var(--text-primary);">{{ stock_records | length }}</strong> | Qty Held: <strong style="color: #6f42c1;">{{ total_stock_held }}</strong>
-                    </span>
-                    <input type="text" id="searchStockInput" onkeyup="filterStockItems()" class="form-control form-control-sm" placeholder="Search stock item..." style="max-width: 250px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary);">
-                </div>
-
-                <div class="table-responsive" style="max-height: 400px;">
-                    <table class="custom-table" id="stockItemsTable">
+            <div class="modal-body" style="padding: 20px 24px;">
+                <div class="table-responsive" style="max-height: 520px;">
+                    <table class="table table-bordered align-middle custom-table" id="stockItemsTable" style="border-collapse: collapse; width: 100%; border: 1px solid var(--border-dim);">
                         <thead>
+                            <tr style="background: var(--bg-raised); color: var(--text-primary);">
+                                <th rowspan="2" style="width: 45px; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised);">#</th>
+                                <th rowspan="2" style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised);">ITEM NAME</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); color: #0d6efd; font-weight: 700;">AUTH</th>
+                                <!-- Res Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #93c5fd; background: rgba(13, 110, 253, 0.12); color: #0d6efd; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;">Res</th>
+                                <!-- STOCK HELD Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #6ee7b7; background: rgba(16, 185, 129, 0.12); color: #059669; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;">STOCK HELD</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(111, 66, 193, 0.08); color: #6f42c1; font-weight: 800;">TOTAL STOCK</th>
+                                <th rowspan="2" style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised);">ACTION</th>
+                            </tr>
                             <tr>
-                                <th style="width: 50px;">#</th>
-                                <th>ITEM NAME</th>
-                                <th style="text-align: center;">AUTH RES</th>
-                                <th style="text-align: center;">STOCK HELD</th>
-                                <th style="text-align: center;">STOCK SER</th>
-                                <th style="text-align: center;">STOCK PWS</th>
-                                <th style="text-align: right;">ACTION</th>
+                                <!-- Res Subheaders -->
+                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(13, 110, 253, 0.06); color: #10b981; font-weight: 700; font-size: 0.78rem;">SER</th>
+                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(13, 110, 253, 0.06); color: #f59e0b; font-weight: 700; font-size: 0.78rem;">PWS</th>
+                                <!-- Stock Held Subheaders -->
+                                <th style="text-align: center; border: 1px solid #6ee7b7; background: rgba(16, 185, 129, 0.06); color: #10b981; font-weight: 700; font-size: 0.78rem;">SER</th>
+                                <th style="text-align: center; border: 1px solid #6ee7b7; background: rgba(16, 185, 129, 0.06); color: #f59e0b; font-weight: 700; font-size: 0.78rem;">PWS</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in stock_records %}
+                            {% set res_ser = item.available_ser or 0 %}
+                            {% set res_pws = item.available_pws or 0 %}
+                            {% set held_ser = item.stock_ser or 0 %}
+                            {% set held_pws = item.stock_pws or 0 %}
+                            {% set row_total_stock = res_ser + res_pws + held_ser + held_pws %}
+                            {% set avail_res_total = res_ser + res_pws %}
                             <tr>
-                                <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
-                                <td style="font-weight: 600; color: var(--text-primary);">{{ item.item_name }}</td>
-                                <td style="text-align: center;">
-                                    <span class="strength-pill" style="color: #0d6efd;">{{ item.auth_res }}</span>
+                                <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim);">{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim);">{{ item.item_name }}</td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim);">
+                                    <span class="strength-pill" style="color: #0d6efd; font-weight: 700;">{{ item.auth }}</span>
                                 </td>
-                                <td style="text-align: center;">
-                                    <span class="badge" style="background: rgba(111, 66, 193, 0.15); color: #6f42c1; border: 1px solid rgba(111, 66, 193, 0.3); border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 0.88rem;">
-                                        {{ item.stock_total }}
+                                <!-- Res Sub-columns: SER & PWS -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(13, 110, 253, 0.02);">
+                                    <span class="strength-pill" style="color: #10b981; font-weight: 700;">{{ res_ser }}</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(13, 110, 253, 0.02);">
+                                    <span class="strength-pill" style="color: #f59e0b; font-weight: 700;">{{ res_pws }}</span>
+                                </td>
+                                <!-- Stock Held Sub-columns: SER & PWS -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(16, 185, 129, 0.02);">
+                                    <span class="strength-pill" style="color: #10b981; font-weight: 700;">{{ held_ser }}</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(16, 185, 129, 0.02);">
+                                    <span class="strength-pill" style="color: #f59e0b; font-weight: 700;">{{ held_pws }}</span>
+                                </td>
+                                <!-- TOTAL STOCK (Sum of above 4 sub columns: Res SER + Res PWS + Held SER + Held PWS) -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(111, 66, 193, 0.04);">
+                                    <span class="badge" style="background: rgba(111, 66, 193, 0.15); color: #6f42c1; border: 1px solid rgba(111, 66, 193, 0.3); border-radius: 6px; padding: 5px 12px; font-weight: 800; font-size: 0.9rem;">
+                                        {{ row_total_stock }}
                                     </span>
                                 </td>
-                                <td style="text-align: center;">
-                                    <span class="strength-pill">{{ item.stock_ser }}</span>
-                                </td>
-                                <td style="text-align: center;">
-                                    <span class="strength-pill">{{ item.stock_pws }}</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" onclick="handleIssueItem({{ item.item_id }}, '{{ item.item_name }}', {{ item.auth_res }}, this)">
+                                <td style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim);">
+                                    <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" onclick="handleIssueItem({{ item.item_id }}, '{{ item.item_name }}', {{ avail_res_total }}, this)">
                                         <i class="fa-solid fa-hand-holding-hand"></i> Issue
                                     </button>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No stock held items found for this division.</td>
+                                <td colspan="9" class="text-center text-muted py-4" style="border: 1px solid var(--border-dim);">No stock held items found for this division.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -702,7 +754,7 @@
 
 <!-- ISSUE ITEM TO SUBORDINATE UNIT MODAL -->
 <div class="modal fade" id="modalIssueItem" tabindex="-1" aria-labelledby="modalIssueItemLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog" style="margin-top: 10px !important;">
         <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
                 <h5 class="modal-title font-weight-bold" id="modalIssueItemLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
@@ -741,23 +793,23 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label mb-0" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Issue Qty</label>
-                            <span class="badge bg-secondary" style="font-size: 0.75rem;" id="displayAvailStockBadge">Available Reserve: 0</span>
-                        </div>
-                        <input type="number" id="issueCountInput" class="form-control" min="1" required placeholder="Enter total quantity to issue (e.g. 70)" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 1rem;" oninput="onTotalIssueQtyChanged()">
-                    </div>
-
                     <div class="row mb-3">
                         <div class="col-6">
-                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">SER Qty (Split)</label>
-                            <input type="number" id="issueSerInput" class="form-control" min="0" value="0" placeholder="SER Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="onSerQtyChanged()">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">SER Qty</label>
+                            <input type="number" id="issueSerInput" class="form-control" min="0" value="0" placeholder="SER Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="updateIssueQtyFromSplit()">
                         </div>
                         <div class="col-6">
-                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">PWS Qty (Split)</label>
-                            <input type="number" id="issuePwsInput" class="form-control" min="0" value="0" placeholder="PWS Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="onPwsQtyChanged()">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">PWS Qty</label>
+                            <input type="number" id="issuePwsInput" class="form-control" min="0" value="0" placeholder="PWS Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="updateIssueQtyFromSplit()">
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label mb-0" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Issue Qty (SER + PWS)</label>
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;" id="displayAvailStockBadge">Available Reserve: 0</span>
+                        </div>
+                        <input type="number" id="issueCountInput" class="form-control" readonly placeholder="0" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: #6f42c1; font-weight: 800; font-size: 1.05rem; cursor: not-allowed;">
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -905,35 +957,10 @@
     }
 
     // ---- Issue Item from Stock Held Modal ----
-    function onTotalIssueQtyChanged() {
-        const total = parseInt(document.getElementById("issueCountInput").value, 10) || 0;
-        let pws = parseInt(document.getElementById("issuePwsInput").value, 10) || 0;
-        if (pws > total) pws = 0;
-        const ser = Math.max(0, total - pws);
-        document.getElementById("issueSerInput").value = ser;
-        document.getElementById("issuePwsInput").value = pws;
-    }
-
-    function onSerQtyChanged() {
-        const total = parseInt(document.getElementById("issueCountInput").value, 10) || 0;
-        let ser = parseInt(document.getElementById("issueSerInput").value, 10) || 0;
-        if (ser > total) {
-            document.getElementById("issueCountInput").value = ser;
-            document.getElementById("issuePwsInput").value = 0;
-        } else {
-            document.getElementById("issuePwsInput").value = Math.max(0, total - ser);
-        }
-    }
-
-    function onPwsQtyChanged() {
-        const total = parseInt(document.getElementById("issueCountInput").value, 10) || 0;
-        let pws = parseInt(document.getElementById("issuePwsInput").value, 10) || 0;
-        if (pws > total) {
-            document.getElementById("issueCountInput").value = pws;
-            document.getElementById("issueSerInput").value = 0;
-        } else {
-            document.getElementById("issueSerInput").value = Math.max(0, total - pws);
-        }
+    function updateIssueQtyFromSplit() {
+        const ser = Math.max(0, parseInt(document.getElementById("issueSerInput").value, 10) || 0);
+        const pws = Math.max(0, parseInt(document.getElementById("issuePwsInput").value, 10) || 0);
+        document.getElementById("issueCountInput").value = ser + pws;
     }
 
     async function fetchExistingUnitItemAuth() {
@@ -965,9 +992,9 @@
         document.getElementById("displayIssueItemName").value = itemName;
         document.getElementById("issueItemAuthInput").value = "";
         document.getElementById("issueItemHeldInput").value = "0";
-        document.getElementById("issueCountInput").value = "1";
-        document.getElementById("issueSerInput").value = "1";
+        document.getElementById("issueSerInput").value = "0";
         document.getElementById("issuePwsInput").value = "0";
+        document.getElementById("issueCountInput").value = "0";
         document.getElementById("displayAvailStockBadge").textContent = `Available Reserve: ${currentReserve}`;
 
         currentActiveStockRow = btnElement ? btnElement.closest("tr") : null;

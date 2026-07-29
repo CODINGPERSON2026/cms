@@ -171,13 +171,7 @@
                     </select>
                 </div>
 
-                <!-- 4. Quantity -->
-                <div class="col-md-3">
-                    <label class="form-label-custom">Quantity <span class="text-danger">*</span></label>
-                    <input type="number" name="quantity" id="stockQtyInput" class="form-control form-control-custom" placeholder="Total Qty" min="0" required>
-                </div>
-
-                <!-- 5. Source (Depo / LP) -->
+                <!-- 4. Source (Depo / LP) -->
                 <div class="col-md-3">
                     <label class="form-label-custom">Source <span class="text-danger">*</span></label>
                     <select name="source" class="form-select form-select-custom" required>
@@ -186,16 +180,22 @@
                     </select>
                 </div>
 
-                <!-- 6. SER -->
+                <!-- 5. SER Quantity -->
                 <div class="col-md-3">
                     <label class="form-label-custom">SER Quantity <span class="text-danger">*</span></label>
-                    <input type="number" name="ser" class="form-control form-control-custom" placeholder="Serviceable Qty" min="0" value="0" required>
+                    <input type="number" name="ser" id="stockSerInput" class="form-control form-control-custom" placeholder="Serviceable Qty" min="0" value="0" required>
                 </div>
 
-                <!-- 7. PWS -->
+                <!-- 6. PWS Quantity -->
                 <div class="col-md-3">
                     <label class="form-label-custom">PWS Quantity <span class="text-danger">*</span></label>
-                    <input type="number" name="pws" class="form-control form-control-custom" placeholder="Pre-reparable Qty" min="0" value="0" required>
+                    <input type="number" name="pws" id="stockPwsInput" class="form-control form-control-custom" placeholder="Pre-reparable Qty" min="0" value="0" required>
+                </div>
+
+                <!-- 7. Quantity (Auto Calculated: SER + PWS) -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">Quantity <span class="text-danger">*</span></label>
+                    <input type="number" name="quantity" id="stockQtyInput" class="form-control form-control-custom" placeholder="Total Qty (SER + PWS)" min="0" readonly style="background: var(--bg-raised); cursor: not-allowed; font-weight: 700; color: var(--accent);">
                 </div>
 
                 <!-- 8. Type (RES / IHQ / CMD) -->
@@ -297,6 +297,25 @@
                 }
             });
         });
+
+        // Auto-calculate Quantity = SER + PWS
+        const qtyInput = document.getElementById('stockQtyInput');
+        const serInput = document.getElementById('stockSerInput');
+        const pwsInput = document.getElementById('stockPwsInput');
+
+        function updateCalculatedQty() {
+            const serVal = parseInt(serInput.value, 10) || 0;
+            const pwsVal = parseInt(pwsInput.value, 10) || 0;
+            qtyInput.value = serVal + pwsVal;
+        }
+
+        if (serInput && pwsInput && qtyInput) {
+            serInput.addEventListener('input', updateCalculatedQty);
+            pwsInput.addEventListener('input', updateCalculatedQty);
+            serInput.addEventListener('change', updateCalculatedQty);
+            pwsInput.addEventListener('change', updateCalculatedQty);
+            updateCalculatedQty();
+        }
     });
 </script>
 {% endblock %}
