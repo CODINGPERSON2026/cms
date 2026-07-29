@@ -7,10 +7,6 @@
     <i class="fa-solid fa-gauge-high"></i>
     <span class="nav-tooltip">Dashboard</span>
 </a>
-<a href="/scme/enter-items" class="nav-item active">
-    <i class="fa-solid fa-file-signature"></i>
-    <span class="nav-tooltip">Enter Ledgers</span>
-</a>
 <a href="/scme/add-stock" class="nav-item">
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
@@ -25,9 +21,25 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
     .enter-page {
-        padding: 8px;
+        padding: 10px 20px 20px 20px;
         max-width: 100%;
         margin: 0 auto;
+        position: relative;
+    }
+
+    /* ── Tab Switch Loader Bar ── */
+    .tab-loader-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), #38bdf8, var(--accent));
+        box-shadow: 0 0 10px var(--accent-glow), 0 0 6px #38bdf8;
+        z-index: 1000;
+        opacity: 0;
+        transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+        border-radius: 2px;
     }
 
     .ecc-top-row-grid {
@@ -75,30 +87,33 @@
     /* ── Tab bar ── */
     .ledger-tabs {
         display: flex;
-        gap: 6px;
-        margin-bottom: 4px;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 0;
+        margin-bottom: 16px;
         border-bottom: 1px solid var(--border-dim);
     }
 
     .ledger-tab {
         display: inline-flex;
         align-items: center;
-        gap: 9px;
-        padding: 13px 24px;
-        border: none;
+        gap: 8px;
+        padding: 7px 22px;
+        border: 1px solid transparent;
         background: transparent;
         color: var(--text-secondary);
-        font-size: 0.92rem;
+        font-size: 0.86rem;
         font-weight: 700;
         cursor: pointer;
-        border-radius: 10px 10px 0 0;
+        border-radius: 8px 8px 0 0;
         position: relative;
         transition: all 0.2s;
         top: 1px;
     }
 
     .ledger-tab i {
-        font-size: 0.9rem;
+        font-size: 0.82rem;
     }
 
     .ledger-tab:hover {
@@ -111,6 +126,16 @@
         background: var(--bg-surface);
         border: 1px solid var(--border-dim);
         border-bottom: 1px solid var(--bg-surface);
+    }
+
+    .tab-panel {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-panel.active {
+        display: block;
+        opacity: 1;
     }
 
     .ledger-tab .tab-soon {
@@ -616,6 +641,7 @@
 
 {% block content %}
 <div class="enter-page">
+    <div id="tabLoaderBar" class="tab-loader-bar"></div>
     <!-- Back Button -->
    
 
@@ -983,7 +1009,7 @@
                             <i class="fa-solid fa-rotate-left"></i> Reset
                         </button>
                         <button type="submit" class="ecc-btn ecc-btn-primary btn-submit" style="margin:0;padding:6px 16px;font-size:0.78rem;">
-                            <i class="fa-solid fa-floppy-disk"></i> Save Entry
+                            <i class="fa-solid fa-boxes-packing"></i> Update Stock
                         </button>
                     </div>
                 </form>
@@ -1231,23 +1257,74 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // ── Tab switching ──
+    // ── Tab switching with smooth loader progress bar ──
     const tabs = document.querySelectorAll(".ledger-tab");
     const panels = {
         scme: document.getElementById("panelScme"),
         ecc: document.getElementById("panelEcc")
     };
+    const loaderBar = document.getElementById("tabLoaderBar");
+    let isTabSwitching = false;
+
     tabs.forEach(tab => {
         tab.addEventListener("click", function () {
             const target = this.dataset.tab;
+
+            if (this.classList.contains("active") || isTabSwitching) return;
+            isTabSwitching = true;
+
+            if (loaderBar) {
+                loaderBar.style.transition = 'none';
+                loaderBar.style.width = '0%';
+                loaderBar.style.opacity = '1';
+                void loaderBar.offsetWidth;
+                loaderBar.style.transition = 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease';
+                loaderBar.style.width = '70%';
+            }
+
             tabs.forEach(t => {
                 const on = t === this;
                 t.classList.toggle("active", on);
                 t.setAttribute("aria-selected", on ? "true" : "false");
             });
-            Object.keys(panels).forEach(key => {
-                panels[key].classList.toggle("active", key === target);
-            });
+
+            const currentPanel = document.querySelector(".tab-panel.active");
+            if (currentPanel) {
+                currentPanel.style.opacity = '0';
+            }
+
+            setTimeout(() => {
+                Object.keys(panels).forEach(key => {
+                    if (panels[key]) {
+                        if (key === target) {
+                            panels[key].classList.add("active");
+                            panels[key].style.display = "block";
+                            void panels[key].offsetWidth;
+                            panels[key].style.opacity = "1";
+                        } else {
+                            panels[key].classList.remove("active");
+                            panels[key].style.display = "none";
+                            panels[key].style.opacity = "0";
+                        }
+                    }
+                });
+
+                if (loaderBar) {
+                    loaderBar.style.width = '100%';
+                }
+
+                setTimeout(() => {
+                    if (loaderBar) {
+                        loaderBar.style.opacity = '0';
+                        setTimeout(() => {
+                            loaderBar.style.width = '0%';
+                            isTabSwitching = false;
+                        }, 200);
+                    } else {
+                        isTabSwitching = false;
+                    }
+                }, 160);
+            }, 100);
         });
     });
 
@@ -2277,7 +2354,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .finally(() => {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Entry';
+            submitBtn.innerHTML = '<i class="fa-solid fa-boxes-packing"></i> Update Stock';
         });
     });
 

@@ -23,8 +23,9 @@ def scme_home():
     # 1. Total Catalog Items
     total_items = ScmeItems.query.filter(ScmeItems.type == 'scme').count()
 
-    # 2. Active Units Tracked
-    active_units = db.session.query(ScmeIssuedItems.unit_name).distinct().count()
+    # 2. Active Units Tracked (Unique count of units in Units table)
+    units_table_unique_count = db.session.query(func.count(func.distinct(Units.name))).filter(Units.name != '', Units.name.isnot(None)).scalar() or 0
+    active_units = units_table_unique_count
 
     # 3. Global Deficiency (Deafy)
     global_deficiency = db.session.query(func.sum(ScmeIssuedItems.deficiency)).scalar() or 0
@@ -249,7 +250,7 @@ def scme_home():
             "tps": 0,
             "deficiency": defi_val
         })
-    active_ecc_divisions = len(ecc_divisions)
+    active_ecc_divisions = units_table_unique_count
 
     # Compute ECC Supply Readiness by Division
     from collections import defaultdict

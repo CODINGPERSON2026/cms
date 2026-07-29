@@ -7,10 +7,6 @@
     <i class="fa-solid fa-gauge-high"></i>
     <span class="nav-tooltip">Dashboard</span>
 </a>
-<a href="/scme/enter-items" class="nav-item">
-    <i class="fa-solid fa-file-signature"></i>
-    <span class="nav-tooltip">Enter Ledgers</span>
-</a>
 <a href="/scme/add-stock" class="nav-item">
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
@@ -24,36 +20,39 @@
 {% block head %}
 <style>
     .dashboard-container {
-        padding: 24px;
+        padding: 10px 20px 20px 20px;
     }
 
     /* ── Tab bar ── */
     .ledger-tabs {
         display: flex;
-        gap: 6px;
-        margin-bottom: 24px;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 0;
+        margin-bottom: 16px;
         border-bottom: 1px solid var(--border-dim);
     }
 
     .ledger-tab {
         display: inline-flex;
         align-items: center;
-        gap: 9px;
-        padding: 13px 24px;
-        border: none;
+        gap: 8px;
+        padding: 7px 22px;
+        border: 1px solid transparent;
         background: transparent;
         color: var(--text-secondary);
-        font-size: 0.92rem;
+        font-size: 0.86rem;
         font-weight: 700;
         cursor: pointer;
-        border-radius: 10px 10px 0 0;
+        border-radius: 8px 8px 0 0;
         position: relative;
         transition: all 0.2s;
         top: 1px;
     }
 
     .ledger-tab i {
-        font-size: 0.9rem;
+        font-size: 0.82rem;
     }
 
     .ledger-tab:hover {
@@ -68,6 +67,57 @@
         border-bottom: 1px solid var(--bg-surface);
     }
 
+    /* ── Action Buttons in Metric Row ── */
+    .card-row-btn-action {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.82rem;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        background: transparent;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 14px;
+        box-sizing: border-box;
+    }
+    .card-row-btn-action:hover, .card-row-btn-action:focus {
+        background-color: var(--accent);
+        color: #ffffff !important;
+        border-color: var(--accent);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .card-row-btn-info {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.82rem;
+        border: 1px solid #38bdf8;
+        color: #0ea5e9;
+        background: transparent;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 14px;
+        box-sizing: border-box;
+    }
+    .card-row-btn-info:hover, .card-row-btn-info:focus {
+        background-color: #0ea5e9;
+        color: #ffffff !important;
+        border-color: #0ea5e9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+    }
+
     .ledger-tab .tab-soon {
         font-size: 0.6rem;
         font-weight: 800;
@@ -80,8 +130,30 @@
         border: 1px solid var(--border-dim);
     }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    /* ── Tab Switch Loader Bar ── */
+    .tab-loader-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), #38bdf8, var(--accent));
+        box-shadow: 0 0 10px var(--accent-glow), 0 0 6px #38bdf8;
+        z-index: 1000;
+        opacity: 0;
+        transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+        border-radius: 2px;
+    }
+
+    .tab-panel {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-panel.active {
+        display: block;
+        opacity: 1;
+    }
 
     /* ── ECC placeholder panel ── */
     .coming-soon {
@@ -116,18 +188,18 @@
     .metric-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
+        gap: 14px;
+        margin-bottom: 16px;
     }
 
     .metric-card {
         background: var(--bg-surface);
         border: 1px solid var(--border-dim);
-        border-radius: 16px;
-        padding: 20px;
+        border-radius: 14px;
+        padding: 14px 16px;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 14px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.01);
         transition: all var(--transition);
         position: relative;
@@ -653,7 +725,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="dashboard-container" style="position: relative;">
+    <div id="tabLoaderBar" class="tab-loader-bar"></div>
 
     <!-- Tab bar -->
     <div class="ledger-tabs" role="tablist">
@@ -670,54 +743,53 @@
     <!-- ══════════════════════════ SCME TAB PANEL ══════════════════════════ -->
     <div class="tab-panel" id="panelScme" role="tabpanel">
 
-    <!-- Top metrics grid -->
-    <div class="metric-grid">
-        <!-- 1. Catalog Items -->
-        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredItems">
-            <div class="metric-icon-box icon-box-primary">
-                <i class="fa-solid fa-boxes-stacked"></i>
+    <!-- Top metrics & actions row -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+        <div class="metric-grid" style="flex: 1; margin-bottom: 0; min-width: 280px;">
+            <!-- 1. Catalog Items -->
+            <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredItems">
+                <div class="metric-icon-box icon-box-primary">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Registered Items</span>
+                    <span class="metric-value">{{ total_items }}</span>
+                </div>
             </div>
-            <div class="metric-content">
-                <span class="metric-label">Registered Items</span>
-                <span class="metric-value">{{ total_items }}</span>
+
+            <!-- 2. Active Units -->
+            <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveUnits">
+                <div class="metric-icon-box icon-box-primary">
+                    <i class="fa-solid fa-sitemap"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Active Units</span>
+                    <span class="metric-value">{{ active_units }}</span>
+                </div>
+            </div>
+
+            <!-- 3. Critical Alerts -->
+            <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalCriticalAlerts">
+                <div class="metric-icon-box {% if critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Critical Alerts</span>
+                    <span class="metric-value" {% if critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ critical_alerts }}</span>
+                </div>
             </div>
         </div>
 
-
-        <!-- 2. Active Units -->
-        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveUnits">
-            <div class="metric-icon-box icon-box-primary">
-                <i class="fa-solid fa-sitemap"></i>
-            </div>
-            <div class="metric-content">
-                <span class="metric-label">Active Units</span>
-                <span class="metric-value">{{ active_units }}</span>
-            </div>
-        </div>
-
-
-
-        <!-- 4. Global Deficiency
-        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalGlobalDeficiency">
-            <div class="metric-icon-box icon-box-danger">
-                <i class="fa-solid fa-arrow-trend-down"></i>
-            </div>
-            <div class="metric-content">
-                <span class="metric-label">Defi</span>
-                <span class="metric-value" style="color: var(--danger);">{{ global_deficiency }}</span>
-            </div>
-        </div>
-        -->
-
-        <!-- 5. Critical Alerts -->
-        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalCriticalAlerts">
-            <div class="metric-icon-box {% if critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
-                <i class="fa-solid fa-bell"></i>
-            </div>
-            <div class="metric-content">
-                <span class="metric-label">Critical Alerts</span>
-                <span class="metric-value" {% if critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ critical_alerts }}</span>
-            </div>
+        <!-- Minimal Action Buttons in Cards Row (Vertically Stacked) -->
+        <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; justify-content: center;">
+            <a href="/scme/enter-items" class="card-row-btn-action">
+                <i class="fa-solid fa-file-signature"></i>
+                <span>Record Issued Item</span>
+            </a>
+            <button type="button" class="card-row-btn-info" data-bs-toggle="modal" data-bs-target="#ledgerTableModal">
+                <i class="fa-solid fa-table"></i>
+                <span>Tabular View</span>
+            </button>
         </div>
     </div>
 
@@ -812,37 +884,7 @@
         </div>
     </div>
 
-    <!-- Quick Actions Banner Row (Row 4) -->
-    <div class="chart-panel-card" style="margin-top: 24px;">
-        <div class="chart-panel-header">
-            <h3 class="chart-panel-title">
-                <i class="fa-solid fa-list-check"></i>
-                Quick Action Ledgers
-            </h3>
-        </div>
-        <div class="chart-canvas-wrapper" style="padding: 24px; min-height: auto; display: block;">
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">
-                Manage supply levels, authorized scales, and defi records for units under command.
-            </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-                <a href="/scme/enter-items" class="btn btn-outline-success text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
-                    <span><i class="fa-solid fa-file-signature me-2"></i>Record New Issued Item</span>
-                    <i class="fa-solid fa-chevron-right"></i>
-                </a>
 
-                <!-- View Table Format Popup Button -->
-                <button type="button" class="btn btn-outline-info text-start py-3 px-3 d-flex align-items-center justify-content-between" data-bs-toggle="modal" data-bs-target="#ledgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
-                    <span><i class="fa-solid fa-table me-2"></i>View Table Format</span>
-                    <i class="fa-solid fa-chevron-right"></i>
-                </button>
-
-                <!-- <a href="/mgt" class="btn btn-outline-secondary text-start py-3 px-3 d-flex align-items-center justify-content-between" style="border-radius:12px; border-color: var(--border-dim); color: var(--text-primary); font-weight:600; text-decoration: none;">
-                    <span><i class="fa-solid fa-sitemap me-2"></i>View Management Tree</span>
-                    <i class="fa-solid fa-chevron-right"></i>
-                </a> -->
-            </div>
-        </div>
-    </div>
 
     <!-- Bootstrap Modal for Table View -->
     <div class="modal fade" id="ledgerTableModal" tabindex="-1" aria-labelledby="ledgerTableModalLabel" aria-hidden="true">
@@ -938,52 +980,54 @@
     <!-- ══════════════════════════ ECC TAB PANEL ══════════════════════════ -->
     <div class="tab-panel active" id="panelEcc" role="tabpanel">
 
-    <!-- Top metrics grid -->
-    <div class="metric-grid">
-        <!-- 1. Catalog Items -->
-        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredEccItems">
-            <div class="metric-icon-box icon-box-primary">
-                <i class="fa-solid fa-boxes-stacked"></i>
+    <!-- Top metrics & actions row -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+        <div class="metric-grid" style="flex: 1; margin-bottom: 0; min-width: 280px;">
+            <!-- 1. Catalog Items -->
+            <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredEccItems">
+                <div class="metric-icon-box icon-box-primary">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Registered ECC Items</span>
+                    <span class="metric-value">{{ total_ecc_items }}</span>
+                </div>
             </div>
-            <div class="metric-content">
-                <span class="metric-label">Registered ECC Items</span>
-                <span class="metric-value">{{ total_ecc_items }}</span>
+
+            <!-- 2. Active Divisions -->
+            <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveDivisions">
+                <div class="metric-icon-box icon-box-primary">
+                    <i class="fa-solid fa-sitemap"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Active DIV</span>
+                    <span class="metric-value">{{ active_ecc_divisions }}</span>
+                </div>
+            </div>
+
+            <!-- 3. Critical Alerts -->
+            <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalEccCriticalAlerts">
+                <div class="metric-icon-box {% if ecc_critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Critical Alerts</span>
+                    <span class="metric-value" {% if ecc_critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ ecc_critical_alerts }}</span>
+                </div>
             </div>
         </div>
 
-
-        <!-- 2. Active Divisions -->
-        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveDivisions">
-            <div class="metric-icon-box icon-box-primary">
-                <i class="fa-solid fa-sitemap"></i>
-            </div>
-            <div class="metric-content">
-                <span class="metric-label">Active DIV</span>
-                <span class="metric-value">{{ active_ecc_divisions }}</span>
-            </div>
+        <!-- Minimal Action Buttons in Cards Row (Vertically Stacked) -->
+        <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; justify-content: center;">
+            <a href="/scme/enter-items" class="card-row-btn-action">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span>Issue Item</span>
+            </a>
+            <button type="button" class="card-row-btn-info" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal">
+                <i class="fa-solid fa-table"></i>
+                <span>Tabular View</span>
+            </button>
         </div>
-
-        <!-- 3. Critical Alerts -->
-        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalEccCriticalAlerts">
-            <div class="metric-icon-box {% if ecc_critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
-                <i class="fa-solid fa-bell"></i>
-            </div>
-            <div class="metric-content">
-                <span class="metric-label">Critical Alerts</span>
-                <span class="metric-value" {% if ecc_critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ ecc_critical_alerts }}</span>
-            </div>
-        </div>
-
-        <!-- 3. Total auth -->
-        <!-- <div class="metric-card">
-            <div class="metric-icon-box icon-box-success">
-                <i class="fa-solid fa-calculator"></i>
-            </div>
-            <div class="metric-content">
-                <span class="metric-label">Total Scale Auth</span>
-                <span class="metric-value">{{ total_ecc_auth }}</span>
-            </div>
-        </div> -->
     </div>
 
     <!-- Main Chart Row -->
@@ -1126,32 +1170,7 @@
         </div>
     </div>
 
-    <!-- Quick Actions Banner Card (Full Width Bar Below Charts) -->
-    <div class="chart-panel-card animate-fade-in" style="margin-top: 24px;">
-        <div class="chart-canvas-wrapper" style="padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-            <div>
-                <h3 class="chart-panel-title" style="margin: 0 0 6px 0;">
-                    <i class="fa-solid fa-list-check" style="color: var(--accent); margin-right: 8px;"></i>
-                    Quick Action Ledgers
-                </h3>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
-                    Enter monthly states for ECC inventory, track assets, and manage deficiency logs.
-                </p>
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                <a href="/scme/enter-items" class="btn btn-outline-success py-2.5 px-4 d-flex align-items-center gap-2" style="border-radius:12px; border-color: var(--accent); color: var(--accent); font-weight:600; text-decoration: none;">
-                    <i class="fa-solid fa-clipboard-list me-1"></i>Enter ECC Monthly State
-                    <i class="fa-solid fa-chevron-right ms-1"></i>
-                </a>
 
-                <!-- View Table Format Popup Button -->
-                <button type="button" class="btn btn-outline-info py-2.5 px-4 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius:12px; border-color: #38bdf8; color: #0ea5e9; font-weight:600; background: transparent;">
-                    <i class="fa-solid fa-table me-1"></i>View Table Format
-                    <i class="fa-solid fa-chevron-right ms-1"></i>
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Bootstrap Modal for ECC Table View -->
     <div class="modal fade" id="eccLedgerTableModal" tabindex="-1" aria-labelledby="eccLedgerTableModalLabel" aria-hidden="true">
@@ -1777,23 +1796,88 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-    // ── Tab switching ──
+    // ── Tab switching with smooth loader progress bar & anti-flicker reflow ──
     const tabs = document.querySelectorAll(".ledger-tab");
     const panels = {
         scme: document.getElementById("panelScme"),
         ecc: document.getElementById("panelEcc")
     };
+    const loaderBar = document.getElementById("tabLoaderBar");
+    let isTabSwitching = false;
+
     tabs.forEach(tab => {
         tab.addEventListener("click", function () {
             const target = this.dataset.tab;
+
+            if (this.classList.contains("active") || isTabSwitching) return;
+            isTabSwitching = true;
+
+            // 1. Start top loader progress bar
+            if (loaderBar) {
+                loaderBar.style.transition = 'none';
+                loaderBar.style.width = '0%';
+                loaderBar.style.opacity = '1';
+                void loaderBar.offsetWidth; // force reflow
+                loaderBar.style.transition = 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease';
+                loaderBar.style.width = '70%';
+            }
+
+            // Update tab button active states
             tabs.forEach(t => {
                 const on = t === this;
                 t.classList.toggle("active", on);
                 t.setAttribute("aria-selected", on ? "true" : "false");
             });
-            Object.keys(panels).forEach(key => {
-                panels[key].classList.toggle("active", key === target);
-            });
+
+            // Fade out active panel
+            const currentPanel = document.querySelector(".tab-panel.active");
+            if (currentPanel) {
+                currentPanel.style.opacity = '0';
+            }
+
+            setTimeout(() => {
+                // Toggle tab panels
+                Object.keys(panels).forEach(key => {
+                    if (panels[key]) {
+                        if (key === target) {
+                            panels[key].classList.add("active");
+                            panels[key].style.display = "block";
+                            void panels[key].offsetWidth; // force reflow
+                            panels[key].style.opacity = "1";
+                        } else {
+                            panels[key].classList.remove("active");
+                            panels[key].style.display = "none";
+                            panels[key].style.opacity = "0";
+                        }
+                    }
+                });
+
+                // Finish progress bar to 100%
+                if (loaderBar) {
+                    loaderBar.style.width = '100%';
+                }
+
+                // Reflow Highcharts instantly to prevent visual pops/glitches
+                if (window.Highcharts && Highcharts.charts) {
+                    Highcharts.charts.forEach(chart => {
+                        if (chart) chart.reflow();
+                    });
+                }
+                window.dispatchEvent(new Event('resize'));
+
+                // Fade out loader bar
+                setTimeout(() => {
+                    if (loaderBar) {
+                        loaderBar.style.opacity = '0';
+                        setTimeout(() => {
+                            loaderBar.style.width = '0%';
+                            isTabSwitching = false;
+                        }, 200);
+                    } else {
+                        isTabSwitching = false;
+                    }
+                }, 160);
+            }, 100);
         });
     });
 

@@ -368,8 +368,8 @@ def create_user():
 
         db.session.add(new_user)
 
-        # ---------------- INSERT INTO UNITS TABLE IF ROLE IS UNIT ----------------
-        if role == "unit":
+        # ---------------- INSERT INTO UNITS TABLE ONLY IF ROLE IS DIVISION_ADMIN ----------------
+        if role == "division_admin":
             existing_unit_rec = Units.query.filter_by(name=username).first()
             if not existing_unit_rec:
                 new_unit_rec = Units(
@@ -378,6 +378,17 @@ def create_user():
                     posted_strength=0
                 )
                 db.session.add(new_unit_rec)
+
+        # ---------------- INSERT INTO UNIT_STRENGTH TABLE ONLY IF ROLE IS UNIT ----------------
+        if role == "unit":
+            existing_strength_rec = Strength.query.filter_by(unit_name=username).first()
+            if not existing_strength_rec:
+                new_strength_rec = Strength(
+                    unit_name=username,
+                    posted_strength=0,
+                    authorized_strength=0
+                )
+                db.session.add(new_strength_rec)
 
         db.session.commit()
 

@@ -781,7 +781,7 @@
         }
 
         /* =========================================
-           FLOATING AI ASSISTANT WIDGET STYLES
+           FLOATING AI ASSISTANT WIDGET STYLES (THEME SYNCED)
         ========================================= */
         .ai-chat-launcher {
             position: fixed;
@@ -793,17 +793,17 @@
             gap: 10px;
             padding: 12px 20px;
             border-radius: 50px;
-            background: linear-gradient(135deg, #0d6efd, #0056d2);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
             color: #ffffff;
             border: none;
-            box-shadow: 0 8px 25px rgba(13, 110, 253, 0.4);
+            box-shadow: 0 8px 25px var(--accent-glow);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .ai-chat-launcher:hover {
             transform: translateY(-3px) scale(1.03);
-            box-shadow: 0 12px 30px rgba(13, 110, 253, 0.55);
+            box-shadow: 0 12px 30px var(--accent-glow);
         }
 
         .ai-launcher-icon {
@@ -828,8 +828,8 @@
             height: 520px;
             max-height: calc(100vh - 120px);
             z-index: 9995;
-            background: var(--bg-surface, #ffffff);
-            border: 1px solid var(--border-dim, #e2e7e4);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
             border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
             display: flex;
@@ -848,9 +848,9 @@
         }
 
         .ai-chat-header {
-            background: var(--bg-raised, #f0f2f1);
+            background: var(--bg-raised);
             padding: 14px 18px;
-            border-bottom: 1px solid var(--border-dim, #e2e7e4);
+            border-bottom: 1px solid var(--border-dim);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -867,7 +867,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #0d6efd, #0056d2);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
             color: white;
             display: flex;
             align-items: center;
@@ -881,15 +881,15 @@
             right: 0;
             width: 10px;
             height: 10px;
-            background: #10b981;
-            border: 2px solid white;
+            background: var(--success-color, #10b981);
+            border: 2px solid var(--bg-surface);
             border-radius: 50%;
         }
 
         .ai-chat-close-btn {
             background: transparent;
             border: none;
-            color: var(--text-muted, #8fa99a);
+            color: var(--text-muted);
             font-size: 18px;
             cursor: pointer;
             padding: 4px 8px;
@@ -898,8 +898,8 @@
         }
 
         .ai-chat-close-btn:hover {
-            color: var(--text-primary, #1a2420);
-            background: rgba(0,0,0,0.08);
+            color: var(--text-primary);
+            background: var(--accent-muted);
         }
 
         .ai-chat-body {
@@ -909,7 +909,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            background: var(--bg-base, #f4f6f5);
+            background: var(--bg-base);
         }
 
         .ai-msg {
@@ -931,7 +931,7 @@
             width: 30px;
             height: 30px;
             border-radius: 50%;
-            background: #0d6efd;
+            background: var(--accent);
             color: white;
             display: flex;
             align-items: center;
@@ -941,7 +941,9 @@
         }
 
         .ai-msg-user .ai-msg-avatar {
-            background: #198754;
+            background: var(--bg-raised);
+            color: var(--accent);
+            border: 1px solid var(--border-dim);
         }
 
         .ai-msg-content {
@@ -953,14 +955,14 @@
         }
 
         .ai-msg-bot .ai-msg-content {
-            background: var(--bg-surface, #ffffff);
-            color: var(--text-primary, #1a2420);
-            border: 1px solid var(--border-dim, #e2e7e4);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-dim);
             border-top-left-radius: 4px;
         }
 
         .ai-msg-user .ai-msg-content {
-            background: #0d6efd;
+            background: var(--accent);
             color: #ffffff;
             border-top-right-radius: 4px;
         }
@@ -970,8 +972,8 @@
             align-items: center;
             gap: 4px;
             padding: 10px 14px;
-            background: var(--bg-surface, #ffffff);
-            border: 1px solid var(--border-dim, #e2e7e4);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
             border-radius: 16px;
             border-top-left-radius: 4px;
             width: fit-content;
@@ -980,7 +982,7 @@
         .ai-typing-dot {
             width: 6px;
             height: 6px;
-            background: #8fa99a;
+            background: var(--text-muted);
             border-radius: 50%;
             animation: aiTypingBounce 1.4s infinite ease-in-out both;
         }
@@ -995,18 +997,23 @@
 
         .ai-chat-footer {
             padding: 12px 16px;
-            background: var(--bg-surface, #ffffff);
-            border-top: 1px solid var(--border-dim, #e2e7e4);
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border-dim);
         }
 
         .ai-chat-input-wrapper {
             display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--bg-raised, #f0f2f1);
-            border: 1px solid var(--border-dim, #e2e7e4);
+            background: var(--bg-raised);
+            border: 1px solid var(--border-dim);
             border-radius: 30px;
             padding: 4px 6px 4px 16px;
+        }
+
+        .ai-chat-input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
         }
 
         .ai-chat-input {
@@ -1015,14 +1022,14 @@
             background: transparent;
             font-size: 13.5px;
             outline: none;
-            color: var(--text-primary, #1a2420);
+            color: var(--text-primary);
         }
 
         .ai-chat-send-btn {
             width: 34px;
             height: 34px;
             border-radius: 50%;
-            background: #0d6efd;
+            background: var(--accent);
             color: white;
             border: none;
             display: flex;
@@ -1034,7 +1041,7 @@
         }
 
         .ai-chat-send-btn:hover {
-            background: #0056d2;
+            background: var(--accent-dim);
             transform: scale(1.05);
         }
 
@@ -1046,14 +1053,14 @@
         /* FAQ Suggestion Chips */
         .ai-faq-container {
             padding: 8px 16px 6px 16px;
-            background: var(--bg-surface, #ffffff);
-            border-top: 1px solid var(--border-dim, #e2e7e4);
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border-dim);
         }
 
         .ai-faq-label {
             font-size: 11px;
             font-weight: 700;
-            color: var(--text-muted, #8fa99a);
+            color: var(--text-muted);
             display: flex;
             align-items: center;
             gap: 5px;
@@ -1073,9 +1080,9 @@
         }
 
         .ai-faq-chip {
-            background: var(--bg-raised, #f0f2f1);
-            color: var(--text-primary, #1a2420);
-            border: 1px solid var(--border-dim, #e2e7e4);
+            background: var(--bg-raised);
+            color: var(--text-primary);
+            border: 1px solid var(--border-dim);
             border-radius: 20px;
             padding: 4px 12px;
             font-size: 11.5px;
@@ -1087,9 +1094,9 @@
         }
 
         .ai-faq-chip:hover {
-            background: #0d6efd;
+            background: var(--accent);
             color: #ffffff;
-            border-color: #0d6efd;
+            border-color: var(--accent);
             transform: translateY(-1px);
         }
     </style>
