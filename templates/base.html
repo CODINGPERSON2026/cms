@@ -780,6 +780,14 @@
             transition: width 0.1s ease-out;
         }
 
+        /* Ensure all Modals, Backdrops & Popups render ABOVE floating AI Assistant */
+        .modal-backdrop {
+            z-index: 100000 !important;
+        }
+        .modal {
+            z-index: 100005 !important;
+        }
+
         /* =========================================
            FLOATING AI ASSISTANT WIDGET STYLES (THEME SYNCED)
         ========================================= */
@@ -787,7 +795,7 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
-            z-index: 9990;
+            z-index: 1020 !important;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -827,7 +835,7 @@
             max-width: calc(100vw - 32px);
             height: 520px;
             max-height: calc(100vh - 120px);
-            z-index: 9995;
+            z-index: 1025 !important;
             background: var(--bg-surface);
             border: 1px solid var(--border-dim);
             border-radius: 20px;

@@ -27,6 +27,7 @@ def create_app():
             if 'track_unit_items' in inspector.get_table_names():
                 columns = [c['name'] for c in inspector.get_columns('track_unit_items')]
                 new_cols = [
+                    ('scale', 'VARCHAR(255) NULL AFTER item_id'),
                     ('add_knd', 'INT DEFAULT 0 NOT NULL'),
                     ('add_tn_model', 'INT DEFAULT 0 NOT NULL'),
                     ('add_n_area_otg', 'INT DEFAULT 0 NOT NULL'),

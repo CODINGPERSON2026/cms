@@ -1,7 +1,7 @@
 from imports import *
 from extensions import db
 from models import LoginUser, ActionLog
-from models.our_items import OurItems, ItemRequestTable, ScmeItems, Units, Divs, ScmeIssuedItems, TrackUnitItems, FodStock, ItemAuth
+from models.our_items import OurItems, ItemRequestTable, ScmeItems, Units, Divs, ScmeIssuedItems, TrackUnitItems, FodStock, ItemAuth, Transactions
 from models.org_ladder import OrgLadder
 from validation import has_special_characters
 from datetime import datetime, timezone
@@ -145,7 +145,7 @@ def scme_home():
             self.bbf_division = rec.unit_name or ''
             self.unit_name = rec.unit_name or ''
             self.item = rec.item
-            self.scale = "N/A"
+            self.scale = getattr(rec, 'scale', None) or "N/A"
             self.auth_auth = 0
             self.auth_res = 0
             self.auth_total = rec.auth or 0
@@ -168,10 +168,16 @@ def scme_home():
             self.issd_pws = 0
             self.issd_total = 0
             
-            # CURRENT MONTH DATA
-            self.stock_ser = rec.ser or 0
-            self.stock_pws = rec.pws or 0
-            self.stock_total = rec.held or 0
+            # CURRENT MONTH DATA (STOCK HELD: Ser = ser + available_ser, PWS = pws + available_pws)
+            a_ser = getattr(rec, 'available_ser', 0) or 0
+            a_pws = getattr(rec, 'available_pws', 0) or 0
+            a_res = getattr(rec, 'available_res', 0) or 0
+            if a_ser == 0 and a_pws == 0 and a_res > 0:
+                a_ser = a_res
+
+            self.stock_ser = (rec.ser or 0) + a_ser
+            self.stock_pws = (rec.pws or 0) + a_pws
+            self.stock_total = self.stock_ser + self.stock_pws
             self.stock_comd = 0
             self.stock_ihq = 0
             self.add_knd = getattr(rec, 'add_knd', 0) or 0
@@ -179,8 +185,8 @@ def scme_home():
             self.add_n_area_otg = getattr(rec, 'add_n_area_otg', 0) or 0
             self.add_idt_ict = getattr(rec, 'add_idt_ict', 0) or 0
             self.add_remarks_ro_bal = 0
-            self.tps = rec.held or 0
-            self.deficiency = max(0, (rec.auth or 0) - (rec.held or 0))
+            self.tps = self.stock_total
+            self.deficiency = (rec.auth or 0) - self.stock_total
             self.created_at = rec.issued_at
 
     # Fetch division names directly from Divs table
@@ -226,7 +232,7 @@ def scme_home():
         if div:
             ecc_divisions.add(div)
         auth_val = rec.auth or 0
-        held_val = rec.held or 0
+        held_val = rec.calc_held()
         defi_val = max(0, auth_val - held_val)
 
         total_ecc_auth += auth_val
@@ -246,6 +252,8 @@ def scme_home():
             "issd_total": 0,
             "stock_ser": rec.ser or 0,
             "stock_pws": rec.pws or 0,
+            "available_ser": getattr(rec, 'available_ser', 0) or 0,
+            "available_pws": getattr(rec, 'available_pws', 0) or 0,
             "stock_total": held_val,
             "tps": 0,
             "deficiency": defi_val
@@ -258,7 +266,7 @@ def scme_home():
     for rec in track_records:
         if rec.unit_name:
             ecc_div_readiness[rec.unit_name]["auth"] += (rec.auth or 0)
-            ecc_div_readiness[rec.unit_name]["held"] += (rec.held or 0)
+            ecc_div_readiness[rec.unit_name]["held"] += rec.calc_held()
 
     ecc_readiness_data = [
         {
@@ -733,8 +741,8 @@ def api_get_unit_item_auth():
         return jsonify({"success": False, "message": "Unauthorized"}), 401
     
     unit_name = (request.args.get("unit_name") or "").strip()
-    if user_role == "division_admin":
-        unit_name = session.get("username", "").strip()
+    if not unit_name and user_role == "division_admin":
+        unit_name = (session.get("user_div") or session.get("username") or "").strip()
 
     item_id = request.args.get("item_id")
     
@@ -743,10 +751,28 @@ def api_get_unit_item_auth():
         
     try:
         item_id_val = int(item_id)
-        record = TrackUnitItems.query.filter_by(
-            unit_name=unit_name, 
-            item_id=item_id_val
+        from sqlalchemy import func
+        record = TrackUnitItems.query.filter(
+            func.lower(func.trim(TrackUnitItems.unit_name)) == unit_name.lower().strip(),
+            TrackUnitItems.item_id == item_id_val
         ).order_by(TrackUnitItems.id.desc()).first()
+
+        auth_val = (record.auth or 0) if record else 0
+        if auth_val == 0:
+            auth_rec = ItemAuth.query.filter(
+                func.lower(func.trim(ItemAuth.unit_name)) == unit_name.lower().strip(),
+                ItemAuth.item_id == item_id_val
+            ).first()
+            if auth_rec and (auth_rec.auth or 0) > 0:
+                auth_val = auth_rec.auth
+            else:
+                issued_rec = ScmeIssuedItems.query.filter(
+                    func.lower(func.trim(ScmeIssuedItems.unit_name)) == unit_name.lower().strip(),
+                    ScmeIssuedItems.item_id == item_id_val
+                ).first()
+                if issued_rec and (issued_rec.unit_authorized or 0) > 0:
+                    auth_val = issued_rec.unit_authorized
+
         if record:
             now = datetime.now()
             first_day_of_current_month = datetime(now.year, now.month, 1)
@@ -757,14 +783,22 @@ def api_get_unit_item_auth():
             else:
                 is_current_month = False
 
+            calc_held = record.calc_held()
+            if (record.held or 0) == 0 and calc_held > 0:
+                record.held = calc_held
+                db.session.commit()
+
             return jsonify({
                 "success": True,
                 "exists": True,
                 "is_current_month": is_current_month,
-                "auth": record.auth or 0,
+                "auth": auth_val,
+                "scale": getattr(record, 'scale', '') or "",
                 "ser": record.ser or 0,
                 "pws": record.pws or 0,
-                "held": record.held or 0,
+                "available_ser": record.available_ser or 0,
+                "available_pws": record.available_pws or 0,
+                "held": calc_held,
                 "add_knd": getattr(record, 'add_knd', 0) or 0,
                 "add_tn_model": getattr(record, 'add_tn_model', 0) or 0,
                 "add_n_area_otg": getattr(record, 'add_n_area_otg', 0) or 0,
@@ -775,9 +809,12 @@ def api_get_unit_item_auth():
                 "success": True,
                 "exists": False,
                 "is_current_month": False,
-                "auth": 0,
+                "auth": auth_val,
+                "scale": "",
                 "ser": 0,
                 "pws": 0,
+                "available_ser": 0,
+                "available_pws": 0,
                 "held": 0,
                 "add_knd": 0,
                 "add_tn_model": 0,
@@ -795,8 +832,8 @@ def api_get_previous_month_data():
         return jsonify({"success": False, "message": "Unauthorized"}), 401
     
     unit_name = (request.args.get("unit_name") or "").strip()
-    if user_role == "division_admin":
-        unit_name = session.get("username", "").strip()
+    if not unit_name and user_role == "division_admin":
+        unit_name = (session.get("user_div") or session.get("username") or "").strip()
 
     item_id = request.args.get("item_id")
     
@@ -968,7 +1005,10 @@ def api_add_ecc_state():
         first_day_of_current_month = datetime(now_local.year, now_local.month, 1)
 
         # Query existing records for this unit & item
-        all_recs = TrackUnitItems.query.filter_by(unit_name=bbf_division, item_id=item_id_val).all()
+        all_recs = TrackUnitItems.query.filter(
+            func.lower(func.trim(TrackUnitItems.unit_name)) == bbf_division.lower().strip(),
+            TrackUnitItems.item_id == item_id_val
+        ).all()
         
         current_month_rec = None
         for r in all_recs:
@@ -983,9 +1023,12 @@ def api_add_ecc_state():
             # SAME UNIT, ITEM, & MONTH EXISTS -> ACCUMULATE / SUM VALUES INTO EXISTING ROW
             if unit_auth_val > 0:
                 current_month_rec.auth = unit_auth_val
+            if scale:
+                current_month_rec.scale = scale
             current_month_rec.available_res = (current_month_rec.available_res or 0) + held_delta
             current_month_rec.available_ser = (current_month_rec.available_ser or 0) + stock_ser_val
             current_month_rec.available_pws = (current_month_rec.available_pws or 0) + stock_pws_val
+            current_month_rec.held = current_month_rec.calc_held()
             current_month_rec.add_knd = (current_month_rec.add_knd or 0) + add_knd_val
             current_month_rec.add_tn_model = (current_month_rec.add_tn_model or 0) + add_tn_model_val
             current_month_rec.add_n_area_otg = (current_month_rec.add_n_area_otg or 0) + add_n_area_otg_val
@@ -996,8 +1039,9 @@ def api_add_ecc_state():
             new_rec = TrackUnitItems(
                 unit_name=bbf_division,
                 item_id=item_id_val,
+                scale=scale,
                 auth=unit_auth_val,
-                held=0,
+                held=(stock_ser_val + stock_pws_val),
                 ser=0,
                 pws=0,
                 available_res=held_delta,
@@ -1010,6 +1054,21 @@ def api_add_ecc_state():
                 add_idt_ict=add_idt_ict_val
             )
             db.session.add(new_rec)
+
+        # Record Transaction entry in transactions table
+        trans_ser = stock_ser_val if stock_ser_val > 0 else held_delta
+        trans_pws = stock_pws_val
+        if trans_ser > 0 or trans_pws > 0:
+            trans_rec = Transactions(
+                issued_by=session.get("username") or "2_FOD",
+                received_by=bbf_division,
+                item_id=item_id_val,
+                ser=trans_ser,
+                pws=trans_pws,
+                scale=scale,
+                timestamp=now_dt
+            )
+            db.session.add(trans_rec)
 
         db.session.commit()
             

@@ -1945,6 +1945,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const addIdtInput = document.getElementById("ecc_add_idt_ict");
 
         if (!unitName || !itemId) {
+            window.currentDbSer = 0;
+            window.currentDbPws = 0;
+            window.currentDbAvailSer = 0;
+            window.currentDbAvailPws = 0;
             window.currentDbHeld = 0;
             if (unitAuthInput) unitAuthInput.value = 0;
             if (issueCountInput) issueCountInput.value = "";
@@ -1961,18 +1965,55 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(`/scme/api/get-unit-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`)
             .then(res => res.json())
             .then(data => {
+                const errAuthZero = document.getElementById("errEccAuthZero");
+                const eccForm = document.getElementById("eccForm");
+                const submitBtn = eccForm ? eccForm.querySelector("button[type='submit']") : null;
+
                 if (data.success && data.exists) {
-                    window.currentDbHeld = data.held || 0;
+                    window.currentDbSer = data.ser || 0;
+                    window.currentDbPws = data.pws || 0;
+                    window.currentDbAvailSer = data.available_ser || 0;
+                    window.currentDbAvailPws = data.available_pws || 0;
+                    window.currentDbHeld = (data.held !== undefined && data.held !== null) ? data.held : (window.currentDbSer + window.currentDbPws + window.currentDbAvailSer + window.currentDbAvailPws);
+                    const authVal = data.auth || 0;
                     if (unitAuthInput) {
-                        unitAuthInput.value = data.auth || 0;
+                        unitAuthInput.value = authVal;
                         unitAuthInput.readOnly = false;
+                    }
+                    const scaleInput = document.getElementById("ecc_scale");
+                    if (scaleInput && data.scale) {
+                        scaleInput.value = data.scale;
+                    }
+
+                    const formInputs = eccForm ? eccForm.querySelectorAll("input:not([name='bbf_division']):not(#ecc_unit_auth):not([readonly])") : [];
+                    if (authVal <= 0) {
+                        formInputs.forEach(inp => {
+                            inp.disabled = true;
+                            inp.style.opacity = "0.5";
+                            inp.style.cursor = "not-allowed";
+                        });
+                        if (submitBtn) submitBtn.disabled = true;
+                        if (errAuthZero) errAuthZero.style.display = "flex";
+                    } else {
+                        formInputs.forEach(inp => {
+                            inp.disabled = false;
+                            inp.style.opacity = "1";
+                            inp.style.cursor = "initial";
+                        });
+                        if (submitBtn) submitBtn.disabled = false;
+                        if (errAuthZero) errAuthZero.style.display = "none";
                     }
                 } else {
-                    window.currentDbHeld = 0;
+                    window.currentDbSer = 0;
+                    window.currentDbPws = 0;
+                    window.currentDbAvailSer = 0;
+                    window.currentDbAvailPws = 0;
+                    const authVal = data.auth || 0;
                     if (unitAuthInput) {
-                        unitAuthInput.value = 0;
+                        unitAuthInput.value = authVal;
                         unitAuthInput.readOnly = false;
                     }
+                    if (errAuthZero) errAuthZero.style.display = authVal <= 0 ? "flex" : "none";
                 }
 
                 // Inputs stay clean for entering new issue quantities now
@@ -2157,50 +2198,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function fetchExistingItemAuth() {
-        const unitName = divisionSel ? divisionSel.value : "";
-        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
-        const unitAuthInput = document.getElementById("ecc_unit_auth");
-        const errAuthZero = document.getElementById("errEccAuthZero");
-        const eccForm = document.getElementById("eccForm");
-        const submitBtn = eccForm ? eccForm.querySelector("button[type='submit']") : null;
-
-        if (!unitName || !itemId) {
-            if (unitAuthInput) unitAuthInput.value = 0;
-            if (errAuthZero) errAuthZero.style.display = "none";
-            recalcDeficiency();
-            return;
-        }
-
-        fetch(`/scme/api/get-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`)
-            .then(res => res.json())
-            .then(data => {
-                const authVal = data.auth || 0;
-                if (unitAuthInput) unitAuthInput.value = authVal;
-
-                const formInputs = eccForm ? eccForm.querySelectorAll("input:not([name='bbf_division']):not(#ecc_unit_auth):not([readonly])") : [];
-
-                if (authVal <= 0) {
-                    formInputs.forEach(inp => {
-                        inp.disabled = true;
-                        inp.style.opacity = "0.5";
-                        inp.style.cursor = "not-allowed";
-                    });
-                    if (submitBtn) submitBtn.disabled = true;
-                    if (errAuthZero) errAuthZero.style.display = "flex";
-                } else {
-                    formInputs.forEach(inp => {
-                        inp.disabled = false;
-                        inp.style.opacity = "1";
-                        inp.style.cursor = "initial";
-                    });
-                    if (submitBtn) submitBtn.disabled = false;
-                    if (errAuthZero) errAuthZero.style.display = "none";
-                }
-                recalcDeficiency();
-            })
-            .catch(err => console.error("Error fetching item auth:", err));
-    }
 
     function onUnitOrItemSelectionChange() {
         fetchExistingItemAuth();
@@ -2254,7 +2251,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function recalcDeficiency() {
         const auth = parseFloat(unitAuthInput ? unitAuthInput.value : 0) || 0;
-        const dbHeld = window.currentDbHeld || 0;
+        const dbHeld = (window.currentDbHeld !== undefined && window.currentDbHeld !== null) 
+            ? window.currentDbHeld 
+            : ((window.currentDbSer || 0) + (window.currentDbPws || 0) + (window.currentDbAvailSer || 0) + (window.currentDbAvailPws || 0));
         const ser = parseFloat(stockSerInput ? stockSerInput.value : 0) || 0;
         const pws = parseFloat(stockPwsInput ? stockPwsInput.value : 0) || 0;
         

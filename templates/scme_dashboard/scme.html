@@ -1263,7 +1263,7 @@
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_ser or 0 }}</td>
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_pws or 0 }}</td>
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #15803d; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #22c55e; background: rgba(220, 252, 231, 0.45); white-space: nowrap;">{{ record.stock_total or 0 }}</td>
-                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 800; border: 1px solid var(--border-dim); background: rgba(254, 226, 226, 0.3); white-space: nowrap; color: {% if record.deficiency <= 0 %}#059669{% else %}#b91c1c{% endif %};">{{ record.deficiency or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 800; border: 1px solid var(--border-dim); background: {% if record.deficiency <= 0 %}rgba(220, 252, 231, 0.3){% else %}rgba(254, 226, 226, 0.3){% endif %}; white-space: nowrap; color: {% if record.deficiency <= 0 %}#059669{% else %}#b91c1c{% endif %};">{{ record.deficiency or 0 }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
@@ -2016,7 +2016,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 (!itemFilter || d.item_name === itemFilter)
             );
             const totalAuth = rows.reduce((sum, r) => sum + (r.unit_auth || 0), 0);
-            const totalHeld = rows.reduce((sum, r) => sum + (r.stock_ser || 0) + (r.stock_pws || 0), 0);
+            const totalHeld = rows.reduce((sum, r) => sum + (r.stock_total !== undefined ? r.stock_total : ((r.stock_ser || 0) + (r.stock_pws || 0))), 0);
             const totalDef = rows.reduce((sum, r) => sum + Math.max(0, r.deficiency || 0), 0);
             return {
                 auth: totalAuth,
@@ -2768,8 +2768,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (!itemTotals[d.item_name]) {
                         itemTotals[d.item_name] = { ser: 0, pws: 0 };
                     }
-                    itemTotals[d.item_name].ser += (d.stock_ser || 0);
-                    itemTotals[d.item_name].pws += (d.stock_pws || 0);
+                    let totalSer = (d.available_ser || 0) + (d.stock_ser || 0);
+                    let totalPws = (d.available_pws || 0) + (d.stock_pws || 0);
+                    if (totalSer === 0 && totalPws === 0 && (d.stock_total || 0) > 0) {
+                        totalSer = d.stock_total;
+                    }
+                    itemTotals[d.item_name].ser += totalSer;
+                    itemTotals[d.item_name].pws += totalPws;
                 }
             });
             const categories = Object.keys(itemTotals).sort();

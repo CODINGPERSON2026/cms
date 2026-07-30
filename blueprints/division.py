@@ -1,7 +1,7 @@
 from imports import *
 from extensions import db
 from models import LoginUser
-from models.our_items import OurItems, ItemRequestTable, Strength, ScmeItems, ScmeIssuedItems, Units, TrackUnitItems
+from models.our_items import OurItems, ItemRequestTable, Strength, ScmeItems, ScmeIssuedItems, Units, TrackUnitItems, Transactions, UnitTpsStock
 from models.org_ladder import OrgLadder
 from validation import get_parent_admin,has_special_characters
 from datetime import datetime, timezone, timedelta
@@ -123,6 +123,83 @@ def div_home():
             possible_names.add(user.org.name.replace('_', ' ').strip())
             possible_names.add(user.org.name.replace(' ', '_').strip())
 
+    # Pre-calculate Received During this year (strictly for the Division itself)
+    div_scope_names = list(possible_names)
+
+    now_dt_curr = datetime.now()
+    first_day_of_current_year = datetime(now_dt_curr.year, 1, 1)
+
+    recd_year_map = {}
+    if div_scope_names:
+        # 1. Primary Ledger Source: transactions table for received_by == Division
+        trans_records = Transactions.query.filter(
+            db.func.lower(Transactions.received_by).in_([n.lower().strip() for n in div_scope_names if n]),
+            Transactions.timestamp >= first_day_of_current_year
+        ).all()
+
+        for t in trans_records:
+            iid = t.item_id
+            if iid not in recd_year_map:
+                recd_year_map[iid] = {"ser": 0, "pws": 0}
+            recd_year_map[iid]["ser"] += (t.ser or 0)
+            recd_year_map[iid]["pws"] += (t.pws or 0)
+
+        # 2. Fallback for baseline items where transactions ledger has no entries yet
+        scope_records = TrackUnitItems.query.filter(
+            db.func.lower(TrackUnitItems.unit_name).in_([n.lower().strip() for n in div_scope_names if n])
+        ).all()
+        for r in scope_records:
+            rec_dt = r.issued_at
+            if rec_dt:
+                rec_naive = rec_dt.astimezone(timezone.utc).replace(tzinfo=None) if rec_dt.tzinfo else rec_dt
+                if rec_naive < first_day_of_current_year:
+                    continue
+
+            iid = r.item_id
+            if iid not in recd_year_map:
+                recd_year_map[iid] = {"ser": 0, "pws": 0}
+                a_ser = getattr(r, 'available_ser', 0) or 0
+                a_pws = getattr(r, 'available_pws', 0) or 0
+                a_res = getattr(r, 'available_res', 0) or 0
+                if a_ser == 0 and a_pws == 0 and a_res > 0:
+                    a_ser = a_res
+                recd_year_map[iid]["ser"] += a_ser
+                recd_year_map[iid]["pws"] += a_pws
+
+    # Pre-calculate Issued During this year using transactions table (strictly for the Division itself)
+    issd_year_map = {}
+    if div_scope_names:
+        issd_trans_records = Transactions.query.filter(
+            db.func.lower(Transactions.issued_by).in_([n.lower().strip() for n in div_scope_names if n]),
+            Transactions.timestamp >= first_day_of_current_year
+        ).all()
+
+        for t in issd_trans_records:
+            iid = t.item_id
+            if iid not in issd_year_map:
+                issd_year_map[iid] = {"ser": 0, "pws": 0}
+            issd_year_map[iid]["ser"] += (t.ser or 0)
+            issd_year_map[iid]["pws"] += (t.pws or 0)
+
+    # Calculate Stock with TPS (sum of all subordinate units under this division)
+    tps_stock_map = {}
+    all_sub_names = list(set([u["name"].strip() for u in subordinate_units if u.get("name")] + list(possible_names)))
+
+    if all_sub_names:
+        tps_records = db.session.query(
+            UnitTpsStock.item_id,
+            db.func.sum(UnitTpsStock.tps_ser).label("total_tps_ser"),
+            db.func.sum(UnitTpsStock.tps_pws).label("total_tps_pws")
+        ).filter(
+            db.func.lower(UnitTpsStock.unit_name).in_([n.lower().strip() for n in all_sub_names if n])
+        ).group_by(UnitTpsStock.item_id).all()
+
+        for t in tps_records:
+            tps_stock_map[t.item_id] = {
+                "tps_ser": int(t.total_tps_ser or 0),
+                "tps_pws": int(t.total_tps_pws or 0)
+            }
+
     total_stock_held = 0
     stock_records = []
     if possible_names:
@@ -138,6 +215,10 @@ def div_home():
             if avail_ser_val == 0 and avail_pws_val == 0 and avail_res_val > 0:
                 avail_ser_val = avail_res_val
 
+            r_info = recd_year_map.get(rec.item_id, {"ser": avail_ser_val, "pws": avail_pws_val})
+            i_info = issd_year_map.get(rec.item_id, {"ser": getattr(rec, 'ser', 0) or 0, "pws": getattr(rec, 'pws', 0) or 0})
+            t_info = tps_stock_map.get(rec.item_id, {"tps_ser": 0, "tps_pws": 0})
+
             stock_records.append({
                 "id": rec.id,
                 "item_id": rec.item_id,
@@ -149,16 +230,18 @@ def div_home():
                 "available_res": avail_res_val,
                 "available_ser": avail_ser_val,
                 "available_pws": avail_pws_val,
-                "stock_total": getattr(rec, 'held', 0) or 0,
+                "recd_year_ser": r_info["ser"],
+                "recd_year_pws": r_info["pws"],
+                "issd_year_ser": i_info["ser"],
+                "issd_year_pws": i_info["pws"],
+                "tps_ser": t_info["tps_ser"],
+                "tps_pws": t_info["tps_pws"],
+                "stock_total": rec.calc_held(),
                 "stock_ser": getattr(rec, 'ser', 0) or 0,
                 "stock_pws": getattr(rec, 'pws', 0) or 0
             })
 
-        total_stock = sum(
-            (r["available_ser"] or 0) + (r["available_pws"] or 0) + (r["stock_ser"] or 0) + (r["stock_pws"] or 0)
-            for r in stock_records
-        )
-        total_stock_held = total_stock or 0
+        total_stock_held = sum(r["stock_total"] for r in stock_records) or 0
 
     # Build equipment map for subordinate units to populate graphs
     unit_equipment_map = {}
@@ -176,7 +259,7 @@ def div_home():
 
                 item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
                 auth = rec.auth or 0
-                held_qty = rec.held or 0
+                held_qty = rec.calc_held()
                 ser_qty = getattr(rec, 'ser', 0) or 0
                 pws_qty = getattr(rec, 'pws', 0) or 0
                 defi = max(0, auth - held_qty)
@@ -204,41 +287,81 @@ def div_home():
 
     issued_unit_items.sort(key=lambda x: x["item_name"])
 
-    # Build Day-Wise Issue Trending Data
-    daily_issue_totals = {}
-    daily_item_issue_map = {}
+    # Build Day-Wise Dual Trend Data (Received vs Issued) from transactions table
+    daily_recd_totals = {}
+    daily_issd_totals = {}
+    div_scope_names = list(possible_names)
 
-    if subordinate_units:
-        all_unit_names = [u["name"] for u in subordinate_units if "name" in u]
-        if all_unit_names:
-            all_track_recs = TrackUnitItems.query.filter(
-                TrackUnitItems.unit_name.in_(all_unit_names)
-            ).all()
+    if div_scope_names:
+        div_scope_lower = [n.lower().strip() for n in div_scope_names if n]
+        
+        # 1. Received transactions
+        recd_trans = Transactions.query.filter(
+            db.func.lower(Transactions.received_by).in_(div_scope_lower)
+        ).all()
+        for t in recd_trans:
+            if t.timestamp:
+                dt_str = t.timestamp.strftime("%Y-%m-%d")
+                qty = (t.ser or 0) + (t.pws or 0)
+                daily_recd_totals[dt_str] = daily_recd_totals.get(dt_str, 0) + qty
 
-            for rec in all_track_recs:
-                if rec.issued_at and (rec.held or 0) > 0:
-                    dt_str = rec.issued_at.strftime("%Y-%m-%d")
-                    item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
-                    held_qty = rec.held or 0
+        # 2. Issued transactions
+        issd_trans = Transactions.query.filter(
+            db.func.lower(Transactions.issued_by).in_(div_scope_lower)
+        ).all()
+        for t in issd_trans:
+            if t.timestamp:
+                dt_str = t.timestamp.strftime("%Y-%m-%d")
+                qty = (t.ser or 0) + (t.pws or 0)
+                daily_issd_totals[dt_str] = daily_issd_totals.get(dt_str, 0) + qty
 
-                    daily_issue_totals[dt_str] = daily_issue_totals.get(dt_str, 0) + held_qty
-
-                    if item_name not in daily_item_issue_map:
-                        daily_item_issue_map[item_name] = {}
-                    daily_item_issue_map[item_name][dt_str] = daily_item_issue_map[item_name].get(dt_str, 0) + held_qty
-
-    sorted_dates = sorted(daily_issue_totals.keys())
+    all_dates = set(daily_recd_totals.keys()).union(set(daily_issd_totals.keys()))
+    sorted_dates = sorted(all_dates)
 
     if not sorted_dates:
         today = datetime.now()
         sorted_dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
 
     daily_trend_labels = [datetime.strptime(d, "%Y-%m-%d").strftime("%d %b") for d in sorted_dates]
-    daily_trend_data = [daily_issue_totals.get(d, 0) for d in sorted_dates]
+    daily_recd_data = [daily_recd_totals.get(d, 0) for d in sorted_dates]
+    daily_issd_data = [daily_issd_totals.get(d, 0) for d in sorted_dates]
 
-    daily_item_trend_map = {}
-    for item_name, d_map in daily_item_issue_map.items():
-        daily_item_trend_map[item_name] = [d_map.get(d, 0) for d in sorted_dates]
+    # SER vs PWS dataset from transactions table
+    trans_records_all = Transactions.query.all()
+    trans_ser_pws_data = []
+    for t in trans_records_all:
+        i_name = t.item.item_name if t.item else f"Item #{t.item_id}"
+        trans_ser_pws_data.append({
+            "issued_by": t.issued_by or "",
+            "received_by": t.received_by or "",
+            "item_name": i_name,
+            "ser": t.ser or 0,
+            "pws": t.pws or 0
+        })
+
+    # Aggregated TPS chart data per subordinate unit
+    tps_chart_data = {}
+    if subordinate_units:
+        sub_names = [u["name"].strip() for u in subordinate_units if "name" in u]
+        if sub_names:
+            tps_query = db.session.query(
+                UnitTpsStock.unit_name,
+                db.func.sum(UnitTpsStock.tps_ser).label("total_ser"),
+                db.func.sum(UnitTpsStock.tps_pws).label("total_pws")
+            ).filter(
+                db.func.lower(UnitTpsStock.unit_name).in_([n.lower() for n in sub_names])
+            ).group_by(UnitTpsStock.unit_name).all()
+
+            for row in tps_query:
+                tps_chart_data[row.unit_name] = {
+                    "ser": int(row.total_ser or 0),
+                    "pws": int(row.total_pws or 0)
+                }
+
+        for u in subordinate_units:
+            u_name = u.get("name")
+            if u_name and u_name not in tps_chart_data:
+                tps_chart_data[u_name] = {"ser": 0, "pws": 0}
 
     return render_template(
         '/Div_Dashboard/div_dashboard.html',
@@ -253,8 +376,10 @@ def div_home():
         unit_equipment_map=unit_equipment_map,
         issued_unit_items=issued_unit_items,
         daily_trend_labels=daily_trend_labels,
-        daily_trend_data=daily_trend_data,
-        daily_item_trend_map=daily_item_trend_map
+        daily_recd_data=daily_recd_data,
+        daily_issd_data=daily_issd_data,
+        trans_ser_pws_data=trans_ser_pws_data,
+        tps_chart_data=tps_chart_data
     )
 
 
@@ -540,10 +665,11 @@ def issue_item():
         ).first()
 
         if track_rec:
-            # Update subordinate unit's available reserve columns only
+            # Update subordinate unit's available reserve columns
             track_rec.available_ser = (track_rec.available_ser or 0) + val_ser
             track_rec.available_pws = (track_rec.available_pws or 0) + val_pws
             track_rec.available_res = (track_rec.available_ser or 0) + (track_rec.available_pws or 0)
+            track_rec.held = track_rec.calc_held()
 
             if val_auth is not None:
                 track_rec.auth = val_auth
@@ -554,7 +680,7 @@ def issue_item():
                 unit_name=unit_name,
                 item_id=item_id,
                 auth=initial_auth,
-                held=0,
+                held=(val_ser + val_pws),
                 ser=0,
                 pws=0,
                 available_ser=val_ser,
@@ -562,6 +688,7 @@ def issue_item():
                 available_res=val_qty,
                 issued_at=now_dt
             )
+            track_rec.held = track_rec.calc_held()
             db.session.add(track_rec)
 
         # Update the DOU (issuing division) stock record as well
@@ -580,6 +707,17 @@ def issue_item():
             dou_rec.ser = (dou_rec.ser or 0) + val_ser
             dou_rec.pws = (dou_rec.pws or 0) + val_pws
             dou_rec.held = (dou_rec.held or 0) + val_qty
+
+        # Record transaction entry in transactions table
+        trans_rec = Transactions(
+            issued_by=user.username or "Division",
+            received_by=unit_name,
+            item_id=item_id,
+            ser=val_ser,
+            pws=val_pws,
+            timestamp=now_dt
+        )
+        db.session.add(trans_rec)
 
         db.session.commit()
 

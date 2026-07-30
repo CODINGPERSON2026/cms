@@ -169,37 +169,90 @@
         border-top: 1px solid var(--border-dim);
         padding: 14px 24px;
     }
+
+    /* Toast Container z-index Override (Appears above all modals) */
+    #notify-container {
+        z-index: 999999 !important;
+    }
+
+    /* Synced View Stock Button with Theme (Compact & Color-only Hover Effect) */
+    .btn-view-stock {
+        background: var(--accent);
+        color: #ffffff;
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 6px 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 3px 10px var(--accent-glow);
+    }
+
+    .btn-view-stock:hover {
+        background: var(--accent-dim, #1b4d2e);
+        border-color: var(--accent-dim, #1b4d2e);
+        color: #ffffff;
+    }
+
+    .btn-view-tps {
+        background: linear-gradient(135deg, #d97706, #f59e0b);
+        border-color: #d97706;
+        box-shadow: 0 3px 10px rgba(245, 158, 11, 0.2);
+    }
+    .btn-view-tps:hover {
+        background: #b45309;
+        border-color: #b45309;
+        color: #ffffff;
+    }
+
+    .btn-view-strength {
+        background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+        border-color: #1d4ed8;
+        box-shadow: 0 3px 10px rgba(59, 130, 246, 0.2);
+    }
+    .btn-view-strength:hover {
+        background: #1e40af;
+        border-color: #1e40af;
+        color: #ffffff;
+    }
+
+    .btn-view-stock i {
+        font-size: 0.85rem;
+    }
 </style>
 
 <div class="unit-dash-container">
 
-    <!-- SINGLE STOCK CARD -->
-    <div class="metrics-row">
-        <div class="metric-card-compact" onclick="openEquipmentModal()" title="Click to view stock">
-            <div class="card-icon icon-green">
-                <i class="fa-solid fa-boxes-stacked"></i>
-            </div>
-            <div class="card-body-text">
-                <div class="card-val">{{ unit_records | length }}</div>
-                <div class="card-lbl">Stock (Click to View)</div>
-            </div>
-        </div>
+    <!-- ACTION BUTTONS: VIEW STOCK & STRENGTH -->
+    <div class="mb-3 d-flex align-items-center justify-content-start gap-2">
+        <button type="button" class="btn-view-stock" onclick="openEquipmentModal()">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>View Stock</span>
+        </button>
+        <button type="button" class="btn-view-stock btn-view-strength" onclick="openStrengthModal()">
+            <i class="fa-solid fa-users"></i>
+            <span>Strength</span>
+        </button>
     </div>
 
-    <!-- CHARTS SECTION: BAR GRAPH & PIE CHART -->
+    <!-- CHARTS SECTION: BAR GRAPH, PIE CHART & STOCK WITH TPS -->
     <script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
 
+    <!-- ROW 1: ITEM AUTH vs HELD, STOCK DISTRIBUTION & STOCK WITH TPS -->
     <div class="row g-4 mb-4">
         <!-- LEFT: BAR GRAPH CARD WITH ITEM FILTER -->
-        <div class="col-lg-7">
+        <div class="col-lg-4">
             <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
-                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-chart-column text-primary"></i> Item Auth vs Held vs Deficiency
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i class="fa-solid fa-chart-column text-primary"></i> Item Analysis
                     </h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Select Item:</label>
-                        <select id="barItemFilter" class="form-select form-select-sm" onchange="updateBarChart(this.value)" style="width: auto; min-width: 160px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                    <div class="d-flex align-items-center gap-1">
+                        <select id="barItemFilter" class="form-select form-select-sm" onchange="updateBarChart(this.value)" style="width: auto; max-width: 130px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
                             {% for rec in unit_records %}
                             <option value="{{ loop.index0 }}" {% if loop.first %}selected{% endif %}>{{ rec.item_name }}</option>
                             {% endfor %}
@@ -208,7 +261,7 @@
                 </div>
                 <div class="card-body" style="padding: 20px; position: relative;">
                     {% if unit_records %}
-                    <div style="height: 300px; position: relative;">
+                    <div style="height: 280px; position: relative;">
                         <canvas id="itemBarChart"></canvas>
                     </div>
                     {% else %}
@@ -221,42 +274,15 @@
             </div>
         </div>
 
-        <!-- RIGHT: PIE CHART CARD -->
-        <div class="col-lg-5">
+        <!-- MIDDLE: SER VS PWS CONDITION PIE CHART -->
+        <div class="col-lg-4">
             <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
-                <div class="card-header" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
-                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-chart-pie text-success"></i> Stock Items Distribution (Held)
-                    </h6>
-                </div>
-                <div class="card-body" style="padding: 20px; position: relative;">
-                    {% if unit_records %}
-                    <div style="height: 300px; position: relative;">
-                        <canvas id="stockPieChart"></canvas>
-                    </div>
-                    {% else %}
-                    <div class="text-center text-muted py-5">
-                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
-                        No stock data available to plot pie chart.
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ROW 2 CHARTS: SER VS PWS DONUT & READINESS % METER -->
-    <div class="row g-4 mb-4">
-        <!-- GRAPH A: SER VS PWS CONDITION DONUT CHART -->
-        <div class="col-lg-6">
-            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
-                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
-                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-chart-pie text-warning"></i> SER vs PWS Condition
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i class="fa-solid fa-chart-pie text-warning"></i> SER vs PWS
                     </h6>
                     <div class="d-flex align-items-center gap-1">
-                        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Select Item:</label>
-                        <select id="unitSerPwsItemFilter" class="form-select form-select-sm" onchange="updateUnitSerPwsChart(this.value)" style="width: auto; max-width: 160px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                        <select id="unitSerPwsItemFilter" class="form-select form-select-sm" onchange="updateUnitSerPwsChart(this.value)" style="width: auto; max-width: 130px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
                             <option value="__ALL__" selected>All Items</option>
                             {% for rec in unit_records %}
                             <option value="{{ loop.index0 }}">{{ rec.item_name }}</option>
@@ -273,6 +299,66 @@
                     <div class="text-center text-muted py-5">
                         <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
                         No condition records available.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: STOCK WITH TPS PIE CHART (WITH ITEM FILTER) -->
+        <div class="col-lg-4">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i class="fa-solid fa-chart-pie" style="color: #8b5cf6;"></i> Stock with TPS
+                    </h6>
+                    <div class="d-flex align-items-center gap-1">
+                        <select id="unitTpsItemFilter" class="form-select form-select-sm" onchange="updateUnitTpsChart(this.value)" style="width: auto; max-width: 140px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            {% for rec in unit_records %}
+                            <option value="{{ rec.item_name }}" {% if loop.first %}selected{% endif %}>{{ rec.item_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    {% if unit_records %}
+                    <div id="unitTpsChartWrap" style="height: 280px; position: relative;">
+                        <canvas id="unitTpsPieChart"></canvas>
+                    </div>
+                    <div id="unitTpsEmptyState" class="text-center text-muted py-5 d-none">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No Stock with TPS issued for this item.
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No stock data available.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2 CHARTS: STOCK DISTRIBUTION & TOP 5 ITEMS READINESS -->
+    <div class="row g-4 mb-4">
+        <!-- GRAPH A: STOCK ITEMS DISTRIBUTION (HELD) -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-pie text-success"></i> Stock Items Distribution (Held)
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    {% if unit_records %}
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="stockPieChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No stock data available to plot pie chart.
                     </div>
                     {% endif %}
                 </div>
@@ -354,40 +440,136 @@
         </div>
     </div>
 
+    <!-- ROW 4: COMPANY BASED STOCK WITH TPS + RECENT ISSUE LOGS -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i class="fa-solid fa-people-group" style="color: #8b5cf6;"></i> Company Stock with TPS
+                    </h6>
+                    <div class="d-flex align-items-center gap-1">
+                        <select id="unitCoyTpsFilter" class="form-select form-select-sm" onchange="updateUnitCoyTpsChart(this.value)" style="width: auto; max-width: 130px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            <!-- Populated dynamically by JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div id="unitCoyTpsWrap" style="height: 280px; position: relative;">
+                        <canvas id="unitCoyTpsChart"></canvas>
+                    </div>
+                    <div id="unitCoyTpsEmpty" class="text-center text-muted py-5 d-none">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No Stock with TPS for this company.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENT ISSUE LOGS CARD -->
+        <div class="col-lg-8">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: #0d6efd;"></i> Recent Issue Logs
+                    </h6>
+                    <span class="badge" style="background: linear-gradient(135deg, #0d6efd, #6366f1); color: #fff; font-size: 0.7rem; border-radius: 20px; padding: 4px 10px; font-weight: 600;">Top 5 Latest</span>
+                </div>
+                <div class="card-body" style="padding: 16px 20px;">
+                    {% if recent_issues %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" style="font-size: 0.82rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--bg-raised); color: var(--text-secondary);">
+                                    <th style="padding: 8px 10px; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">#</th>
+                                    <th style="padding: 8px 10px; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Item</th>
+                                    <th style="padding: 8px 10px; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Army No.</th>
+                                    <th style="text-align: center; padding: 8px 10px; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); color: #10b981;">SER</th>
+                                    <th style="text-align: center; padding: 8px 10px; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); color: #f59e0b;">PWS</th>
+                                    <th style="padding: 8px 10px; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Date &amp; Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in recent_issues %}
+                                <tr style="border-bottom: 1px solid var(--border-dim); transition: background 0.15s;">
+                                    <td style="padding: 10px 10px; color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                                    <td style="padding: 10px 10px; font-weight: 600; color: var(--text-primary);">
+                                        <i class="fa-solid fa-box-open" style="color: #6366f1; font-size: 0.75rem; margin-right: 5px;"></i>
+                                        {{ issue.item_name }}
+                                    </td>
+                                    <td style="padding: 10px 10px;">
+                                        <span style="font-family: monospace; font-size: 0.82rem; background: var(--bg-raised); border-radius: 6px; padding: 2px 8px; color: var(--text-primary); font-weight: 600; border: 1px solid var(--border-dim);">{{ issue.received_by }}</span>
+                                    </td>
+                                    <td style="text-align: center; padding: 10px 10px;">
+                                        {% if issue.ser > 0 %}
+                                        <span style="background: rgba(16,185,129,0.12); color: #10b981; font-weight: 700; border-radius: 6px; padding: 2px 10px; font-size: 0.82rem;">{{ issue.ser }}</span>
+                                        {% else %}
+                                        <span style="color: var(--text-secondary);">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: center; padding: 10px 10px;">
+                                        {% if issue.pws > 0 %}
+                                        <span style="background: rgba(245,158,11,0.12); color: #f59e0b; font-weight: 700; border-radius: 6px; padding: 2px 10px; font-size: 0.82rem;">{{ issue.pws }}</span>
+                                        {% else %}
+                                        <span style="color: var(--text-secondary);">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 10px 10px; color: var(--text-secondary); font-size: 0.78rem;">
+                                        <i class="fa-regular fa-clock" style="margin-right: 4px;"></i>{{ issue.timestamp }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-inbox fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        <p style="font-size: 0.85rem;">No issue transactions found yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- =========== EQUIPMENT MODAL =========== -->
-<div class="modal fade" id="modalEquipment" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="margin-top: 10px !important;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" style="font-weight: 700; display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-boxes-packing text-success"></i>
-                    {{ username }} — Issued Equipment
+<div class="modal fade" id="modalEquipment" tabindex="-1" aria-labelledby="modalEquipmentLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 1120px; width: 92%; margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.2); max-height: 85vh;">
+            <div class="modal-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-bottom: 1px solid var(--border-dim); padding: 12px 20px;">
+                <h5 class="modal-title font-weight-bold mb-0" id="modalEquipmentLabel" style="color: var(--text-primary); font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-boxes-packing" style="color: #10b981;"></i> {{ username }} — Issued Equipment
                 </h5>
+                <div class="d-flex align-items-center gap-2 ms-auto me-2">
+                    <input type="text" id="searchUnitEquipmentInput" onkeyup="filterUnitEquipmentTable()" class="form-control form-control-sm" placeholder="Search equipment..." style="width: 220px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-size: 0.8rem;">
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle custom-table" style="border-collapse: collapse; width: 100%; border: 1px solid var(--border-dim); margin-bottom: 0;">
+            <div class="modal-body" style="padding: 14px 18px;">
+                <div class="table-responsive" style="max-height: calc(85vh - 120px);">
+                    <table class="table table-bordered align-middle custom-table" id="unitEquipmentTable" style="border-collapse: collapse; width: 100%; border: 1px solid var(--border-dim); font-size: 0.82rem; margin-bottom: 0;">
                         <thead>
                             <tr style="background: var(--bg-raised); color: var(--text-primary);">
-                                <th rowspan="2" style="width: 45px; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised);">#</th>
-                                <th rowspan="2" style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised);">ITEM NAME</th>
-                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); color: #0d6efd; font-weight: 700;">AUTH</th>
+                                <th rowspan="2" style="width: 40px; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 8px;">#</th>
+                                <th rowspan="2" style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">ITEM NAME</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); color: #0d6efd; font-weight: 700; padding: 6px 8px;">AUTH</th>
                                 <!-- Res Main Group Header -->
-                                <th colspan="2" style="text-align: center; border: 1px solid #93c5fd; background: rgba(13, 110, 253, 0.12); color: #0d6efd; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;">Res</th>
-                                <!-- STOCK HELD Main Group Header -->
-                                <th colspan="2" style="text-align: center; border: 1px solid #6ee7b7; background: rgba(16, 185, 129, 0.12); color: #059669; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;">STOCK HELD</th>
-                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(111, 66, 193, 0.08); color: #6f42c1; font-weight: 800;">TOTAL STOCK</th>
+                                <th colspan="2" style="text-align: center; border: 1px solid #3b82f6; background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 5px 6px;">Res</th>
+                                <!-- STOCK WITH TPS Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #f59e0b; background: linear-gradient(135deg, #78350f, #d97706); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 5px 6px;">STOCK WITH TPS</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid #8b5cf6; background: linear-gradient(135deg, #581c87, #7c3aed); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 6px 10px;">TOTAL STOCK</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">ACTION</th>
                             </tr>
                             <tr>
                                 <!-- Res Subheaders -->
-                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(13, 110, 253, 0.06); color: #10b981; font-weight: 700; font-size: 0.78rem;">SER</th>
-                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(13, 110, 253, 0.06); color: #f59e0b; font-weight: 700; font-size: 0.78rem;">PWS</th>
-                                <!-- Stock Held Subheaders -->
-                                <th style="text-align: center; border: 1px solid #6ee7b7; background: rgba(16, 185, 129, 0.06); color: #10b981; font-weight: 700; font-size: 0.78rem;">SER</th>
-                                <th style="text-align: center; border: 1px solid #6ee7b7; background: rgba(16, 185, 129, 0.06); color: #f59e0b; font-weight: 700; font-size: 0.78rem;">PWS</th>
+                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(37, 99, 235, 0.12); color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">SER</th>
+                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(37, 99, 235, 0.12); color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">PWS</th>
+                                <!-- Stock with TPS Subheaders -->
+                                <th style="text-align: center; border: 1px solid #fde047; background: rgba(217, 119, 6, 0.12); color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">SER</th>
+                                <th style="text-align: center; border: 1px solid #fde047; background: rgba(217, 119, 6, 0.12); color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">PWS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -396,37 +578,44 @@
                             {% set res_pws = rec.available_pws or 0 %}
                             {% set held_ser = rec.ser or 0 %}
                             {% set held_pws = rec.pws or 0 %}
-                            {% set row_total_stock = res_ser + res_pws + held_ser + held_pws %}
+                            {% set tps_ser = rec.tps_ser or 0 %}
+                            {% set tps_pws = rec.tps_pws or 0 %}
+                            {% set row_total_stock = res_ser + res_pws + held_ser + held_pws + tps_ser + tps_pws %}
                             <tr>
-                                <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim);">{{ loop.index }}</td>
-                                <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim);">{{ rec.item_name }}</td>
-                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim);">
+                                <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ rec.item_name }}</td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
                                     <span class="number-pill" style="color: #0d6efd; font-weight: 700;">{{ rec.authorized }}</span>
                                 </td>
                                 <!-- Res Sub-columns: SER & PWS -->
-                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(13, 110, 253, 0.02);">
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(37, 99, 235, 0.02); padding: 5px 8px;">
                                     <span class="number-pill" style="color: #10b981; font-weight: 700;">{{ res_ser }}</span>
                                 </td>
-                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(13, 110, 253, 0.02);">
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(37, 99, 235, 0.02); padding: 5px 8px;">
                                     <span class="number-pill" style="color: #f59e0b; font-weight: 700;">{{ res_pws }}</span>
                                 </td>
-                                <!-- Stock Held Sub-columns: SER & PWS -->
-                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(16, 185, 129, 0.02);">
-                                    <span class="number-pill" style="color: #10b981; font-weight: 700;">{{ held_ser }}</span>
+                                <!-- Stock with TPS Sub-columns: SER & PWS (Dynamic TPS stock held by personnel) -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(217, 119, 6, 0.02); padding: 5px 8px;">
+                                    <span class="number-pill" style="color: #10b981; font-weight: 700;">{{ tps_ser }}</span>
                                 </td>
-                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(16, 185, 129, 0.02);">
-                                    <span class="number-pill" style="color: #f59e0b; font-weight: 700;">{{ held_pws }}</span>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(217, 119, 6, 0.02); padding: 5px 8px;">
+                                    <span class="number-pill" style="color: #f59e0b; font-weight: 700;">{{ tps_pws }}</span>
                                 </td>
                                 <!-- TOTAL STOCK -->
-                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(111, 66, 193, 0.04);">
-                                    <span class="badge" style="background: rgba(111, 66, 193, 0.15); color: #6f42c1; border: 1px solid rgba(111, 66, 193, 0.3); border-radius: 6px; padding: 5px 12px; font-weight: 800; font-size: 0.9rem;">
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(124, 58, 237, 0.04); padding: 5px 8px;">
+                                    <span class="badge" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; padding: 4px 10px; font-weight: 800; font-size: 0.85rem;">
                                         {{ row_total_stock }}
                                     </span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
+                                    <button type="button" class="btn btn-sm btn-primary px-3 py-1" style="border-radius: 6px; font-weight: 700; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;" onclick="openIssueToPersonnelModal({{ rec.id }}, '{{ rec.item_name }}')">
+                                        <i class="fa-solid fa-paper-plane"></i> Issue
+                                    </button>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-5" style="border: 1px solid var(--border-dim);">
+                                <td colspan="9" class="text-center text-muted py-5" style="border: 1px solid var(--border-dim);">
                                     <i class="fa-solid fa-box-open fa-2x mb-2 d-block" style="opacity:0.3;"></i>
                                     No items have been issued to this unit yet.
                                 </td>
@@ -436,6 +625,264 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========== STOCK WITH TPS MODAL =========== -->
+<div class="modal fade" id="modalTpsStock" tabindex="-1" aria-labelledby="modalTpsStockLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 1120px; width: 92%; margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.2); max-height: 85vh;">
+            <div class="modal-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-bottom: 1px solid var(--border-dim); padding: 12px 20px;">
+                <h5 class="modal-title font-weight-bold mb-0" id="modalTpsStockLabel" style="color: var(--text-primary); font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-truck-ramp-box" style="color: #f59e0b;"></i> {{ username }} — Stock with TPS
+                </h5>
+                <div class="d-flex align-items-center gap-2 ms-auto me-2">
+                    <input type="text" id="searchTpsInput" onkeyup="filterTpsTable()" class="form-control form-control-sm" placeholder="Search TPS stock..." style="width: 220px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-size: 0.8rem;">
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 14px 18px;">
+                <div class="table-responsive" style="max-height: calc(85vh - 120px);">
+                    <table class="table table-bordered align-middle custom-table" id="unitTpsTable" style="border-collapse: collapse; width: 100%; border: 1px solid var(--border-dim); font-size: 0.82rem; margin-bottom: 0;">
+                        <thead>
+                            <tr style="background: var(--bg-raised); color: var(--text-primary);">
+                                <th rowspan="2" style="width: 40px; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 8px;">#</th>
+                                <th rowspan="2" style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">ITEM NAME</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); color: #0d6efd; font-weight: 700; padding: 6px 8px;">AUTH</th>
+                                <!-- STOCK WITH TPS Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #f59e0b; background: linear-gradient(135deg, #78350f, #d97706); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 5px 6px;">STOCK WITH TPS</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid #8b5cf6; background: linear-gradient(135deg, #581c87, #7c3aed); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 6px 10px;">TOTAL TPS STOCK</th>
+                                <th rowspan="2" style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">ACTION</th>
+                            </tr>
+                            <tr>
+                                <!-- Stock with TPS Subheaders -->
+                                <th style="text-align: center; border: 1px solid #fde047; background: rgba(217, 119, 6, 0.12); color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">SER</th>
+                                <th style="text-align: center; border: 1px solid #fde047; background: rgba(217, 119, 6, 0.12); color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">PWS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in unit_records %}
+                            <tr>
+                                <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ rec.item_name }}</td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
+                                    <span class="number-pill" style="color: #0d6efd; font-weight: 700;">{{ rec.authorized }}</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(217, 119, 6, 0.02); padding: 5px 8px;">
+                                    <span class="number-pill" style="color: #10b981; font-weight: 700;">0</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(217, 119, 6, 0.02); padding: 5px 8px;">
+                                    <span class="number-pill" style="color: #f59e0b; font-weight: 700;">0</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(124, 58, 237, 0.04); padding: 5px 8px;">
+                                    <span class="badge" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; padding: 4px 10px; font-weight: 800; font-size: 0.85rem;">
+                                        0
+                                    </span>
+                                </td>
+                                <td style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
+                                    <button class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="handleIssueToTps({{ rec.id }}, '{{ rec.item_name }}')">
+                                        <i class="fa-solid fa-truck-arrow-right"></i> Issue to TPS
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5" style="border: 1px solid var(--border-dim);">
+                                    <i class="fa-solid fa-box-open fa-2x mb-2 d-block" style="opacity:0.3;"></i>
+                                    No TPS stock records found.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========== UNIT STRENGTH & PERSONNEL MODAL =========== -->
+<div class="modal fade" id="modalStrength" tabindex="-1" aria-labelledby="modalStrengthLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 1120px; width: 92%; margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.2); max-height: 85vh;">
+            <div class="modal-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-bottom: 1px solid var(--border-dim); padding: 12px 20px;">
+                <h5 class="modal-title font-weight-bold mb-0" id="modalStrengthLabel" style="color: var(--text-primary); font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-users" style="color: #3b82f6;"></i> {{ username }} — Unit Strength & Personnel
+                </h5>
+                <div class="d-flex align-items-center gap-2 ms-auto me-2">
+                    <input type="text" id="searchPersonnelInput" onkeyup="filterPersonnelTable()" class="form-control form-control-sm" placeholder="Search personnel..." style="width: 220px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-size: 0.8rem;">
+                    <button type="button" class="btn btn-sm btn-primary px-3" onclick="toggleAddPersonnelForm()" style="border-radius: 8px; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                        <i class="fa-solid fa-user-plus"></i> Add Personnel
+                    </button>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 14px 18px;">
+                
+                <!-- INLINE ADD PERSONNEL FORM -->
+                <div id="addPersonnelFormContainer" class="card mb-3 shadow-sm" style="display: none; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <h6 class="font-weight-bold mb-3" style="color: var(--text-primary); font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-id-card text-primary"></i> Add Army Personnel Record
+                        </h6>
+                        <form id="addPersonnelForm" onsubmit="submitAddPersonnel(event)">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Army Number *</label>
+                                    <input type="text" id="pArmyNo" class="form-control form-control-sm" required placeholder="e.g. 1234567A" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Rank *</label>
+                                    <select id="pRank" class="form-select form-select-sm" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                                        <option value="" disabled selected>Select Rank</option>
+                                        <option value="Sepoy">Sepoy</option>
+                                        <option value="Lance Naik">Lance Naik</option>
+                                        <option value="Naik">Naik</option>
+                                        <option value="Havildar">Havildar</option>
+                                        <option value="Naib Subedar">Naib Subedar</option>
+                                        <option value="Subedar">Subedar</option>
+                                        <option value="Subedar Major">Subedar Major</option>
+                                        <option value="Lieutenant">Lieutenant</option>
+                                        <option value="Captain">Captain</option>
+                                        <option value="Major">Major</option>
+                                        <option value="Lt Col">Lt Col</option>
+                                        <option value="Col">Col</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Full Name *</label>
+                                    <input type="text" id="pName" class="form-control form-control-sm" required placeholder="Enter full name" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Company / Sub-Unit *</label>
+                                    <select id="pCompany" class="form-select form-select-sm" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                                        <option value="" disabled selected>Select Company</option>
+                                        <option value="1 COY">1 COY</option>
+                                        <option value="2 COY">2 COY</option>
+                                        <option value="3 COY">3 COY</option>
+                                        <option value="HQ COY">HQ COY</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="toggleAddPersonnelForm()">Cancel</button>
+                                <button type="submit" id="savePersonnelBtn" class="btn btn-sm btn-success px-4 font-weight-bold">
+                                    <i class="fa-solid fa-check me-1"></i> Save Personnel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- PERSONNEL DIRECTORY TABLE -->
+                <div class="table-responsive" style="max-height: calc(85vh - 120px);">
+                    <table class="table table-bordered align-middle custom-table" id="unitPersonnelTable" style="border-collapse: collapse; width: 100%; border: 1px solid var(--border-dim); font-size: 0.82rem; margin-bottom: 0;">
+                        <thead>
+                            <tr style="background: var(--bg-raised); color: var(--text-primary);">
+                                <th style="width: 40px; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 8px;">#</th>
+                                <th style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); color: #3b82f6; font-weight: 800; padding: 6px 10px;">ARMY NUMBER</th>
+                                <th style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">RANK</th>
+                                <th style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">NAME</th>
+                                <th style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">COMPANY</th>
+                                <th style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">DATE ADDED</th>
+                                <th style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personnelTableBody">
+                            {% for p in personnel_list %}
+                            <tr id="personnel-row-{{ p.id }}">
+                                <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">{{ loop.index }}</td>
+                                <td style="font-weight: 700; color: #3b82f6; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ p.army_number }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ p.rank }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ p.name }}</td>
+                                <td style="font-weight: 600; color: var(--text-secondary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ p.company or '-' }}</td>
+                                <td style="text-align: center; color: var(--text-secondary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ p.created_at }}</td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem; border-radius: 4px;" onclick="deletePersonnelRow({{ p.id }}, '{{ p.army_number }}')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr id="noPersonnelRow">
+                                <td colspan="7" class="text-center text-muted py-5" style="border: 1px solid var(--border-dim);">
+                                    <i class="fa-solid fa-users-slash fa-2x mb-2 d-block" style="opacity:0.3;"></i>
+                                    No personnel registered for this unit yet. Click "Add Personnel" above to add personnel records.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========== ISSUE TO PERSONNEL MODAL =========== -->
+<div class="modal fade" id="modalIssueToPersonnel" tabindex="-1" aria-labelledby="modalIssueToPersonnelLabel" aria-hidden="true">
+    <div class="modal-dialog" style="max-width: 540px; margin-top: 2rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.25);">
+            <div class="modal-header d-flex align-items-center justify-content-between" style="border-bottom: 1px solid var(--border-dim); padding: 14px 20px; background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #ffffff; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title font-weight-bold mb-0" id="modalIssueToPersonnelLabel" style="font-size: 1rem; display: flex; align-items: center; gap: 8px; color: #ffffff;">
+                    <i class="fa-solid fa-paper-plane"></i> Issue Equipment to Personnel
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form onsubmit="submitIssueToPersonnel(event)">
+                <div class="modal-body" style="padding: 20px;">
+                    <input type="hidden" id="issueRecId">
+                    
+                    <!-- Selected Item Banner -->
+                    <div class="p-2 mb-3 rounded" style="background: var(--bg-raised); border: 1px solid var(--border-dim); display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem;" id="issueItemNameDisplay">-</span>
+                    </div>
+
+                    <!-- Debounced Search for Army Personnel -->
+                    <div class="mb-3" style="position: relative;">
+                        <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Select Personnel (Search Name or Army No) *
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text" style="background: var(--bg-raised); border-color: var(--border-dim);"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                            <input type="text" id="personnelSearchInput" class="form-control form-control-sm" placeholder="Type Army No or Name to search..." autocomplete="off" oninput="onPersonnelSearchInput(event)" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
+                        <input type="hidden" id="selectedArmyNumber" required>
+
+                        <!-- Search Dropdown Results Container -->
+                        <div id="personnelSearchResults" class="list-group shadow-sm mt-1" style="display: none; position: absolute; width: 100%; z-index: 1050; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-dim); border-radius: 8px; background: var(--bg-surface);">
+                        </div>
+                        <div id="selectedPersonnelInfo" class="mt-2 p-2 rounded" style="display: none; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); font-size: 0.82rem;">
+                            <span class="fw-bold text-primary" id="selPersText">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Issue Quantity Breakdown -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 700; color: #10b981; text-transform: uppercase;">SER Qty (Serviceable)</label>
+                            <input type="number" id="issueSerInput" class="form-control form-control-sm" min="0" value="0" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 0.95rem;">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 700; color: #f59e0b; text-transform: uppercase;">PWS Qty (Partially Working)</label>
+                            <input type="number" id="issuePwsInput" class="form-control form-control-sm" min="0" value="0" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 0.95rem;">
+                        </div>
+                    </div>
+
+                    <!-- Remarks / Voucher -->
+                    <div class="mb-2">
+                        <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Remarks / Voucher No (Optional)</label>
+                        <input type="text" id="issueRemarksInput" class="form-control form-control-sm" placeholder="Enter voucher or remarks" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 12px 20px;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button type="submit" id="confirmIssueBtn" class="btn btn-sm btn-primary px-4 font-weight-bold" style="border-radius: 8px;">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Confirm Issue
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -476,6 +923,23 @@
 </div>
 
 <script>
+    function filterUnitEquipmentTable() {
+        const input = document.getElementById("searchUnitEquipmentInput");
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById("unitEquipmentTable");
+        if (!table) return;
+        const trs = table.getElementsByTagName("tr");
+        for (let i = 2; i < trs.length; i++) {
+            const tr = trs[i];
+            if (tr.children.length < 2) continue;
+            const itemNameTd = tr.children[1];
+            if (itemNameTd) {
+                const txtValue = itemNameTd.textContent || itemNameTd.innerText;
+                tr.style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+    }
+
     function openEquipmentModal() {
         const el = document.getElementById('modalEquipment');
         if (!el) return;
@@ -483,6 +947,321 @@
         if (el.parentElement !== document.body) document.body.appendChild(el);
         const m = bootstrap.Modal.getOrCreateInstance(el);
         m.show();
+    }
+
+    function openStrengthModal() {
+        const el = document.getElementById('modalStrength');
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+    }
+
+    function toggleAddPersonnelForm() {
+        const f = document.getElementById('addPersonnelFormContainer');
+        if (!f) return;
+        f.style.display = (f.style.display === 'none' || f.style.display === '') ? 'block' : 'none';
+    }
+
+    function filterPersonnelTable() {
+        const input = document.getElementById("searchPersonnelInput");
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById("unitPersonnelTable");
+        if (!table) return;
+        const trs = table.getElementsByTagName("tr");
+        for (let i = 1; i < trs.length; i++) {
+            const tr = trs[i];
+            if (tr.id === "noPersonnelRow") continue;
+            const txtValue = tr.textContent || tr.innerText;
+            tr.style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    function submitAddPersonnel(e) {
+        e.preventDefault();
+        const armyNumber = document.getElementById('pArmyNo').value.trim();
+        const rank = document.getElementById('pRank').value.trim();
+        const name = document.getElementById('pName').value.trim();
+        const company = document.getElementById('pCompany').value.trim();
+
+        if (!armyNumber || !rank || !name || !company) {
+            if (typeof Notify !== 'undefined') {
+                Notify.warning("Army Number, Rank, Name and Company are required.");
+            } else {
+                alert("Army Number, Rank, Name and Company are required.");
+            }
+            return;
+        }
+
+        const btn = document.getElementById('savePersonnelBtn');
+        btn.disabled = true;
+
+        fetch('/unit/add_personnel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                army_number: armyNumber,
+                rank: rank,
+                name: name,
+                company: company
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            if (data.success) {
+                if (typeof Notify !== 'undefined') {
+                    Notify.success(data.message || "Personnel added successfully!");
+                } else {
+                    alert(data.message || "Personnel added successfully!");
+                }
+                
+                // Hide form and reset
+                toggleAddPersonnelForm();
+                document.getElementById('addPersonnelForm').reset();
+
+                // Remove empty row if present
+                const noRow = document.getElementById('noPersonnelRow');
+                if (noRow) noRow.remove();
+
+                // Dynamically insert new personnel row into table
+                const tbody = document.getElementById('personnelTableBody');
+                if (tbody && data.personnel) {
+                    const rowCount = tbody.getElementsByTagName('tr').length + 1;
+                    const p = data.personnel;
+                    const todayStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                    const newTr = document.createElement('tr');
+                    newTr.id = `personnel-row-${p.id}`;
+                    newTr.innerHTML = `
+                        <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">${rowCount}</td>
+                        <td style="font-weight: 700; color: #3b82f6; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.army_number}</td>
+                        <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.rank}</td>
+                        <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.name}</td>
+                        <td style="font-weight: 600; color: var(--text-secondary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.company || '-'}</td>
+                        <td style="text-align: center; color: var(--text-secondary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${todayStr}</td>
+                        <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
+                            <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem; border-radius: 4px;" onclick="deletePersonnelRow(${p.id}, '${p.army_number}')">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.insertBefore(newTr, tbody.firstChild);
+                }
+            } else {
+                if (typeof Notify !== 'undefined') {
+                    Notify.error(data.message || "Failed to add personnel.");
+                } else {
+                    alert(data.message || "Failed to add personnel.");
+                }
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            console.error(err);
+            if (typeof Notify !== 'undefined') {
+                Notify.error("Error adding personnel.");
+            } else {
+                alert("Error adding personnel.");
+            }
+        });
+    }
+
+    function deletePersonnelRow(id, armyNo) {
+        if (!confirm(`Are you sure you want to delete personnel with Army Number ${armyNo}?`)) return;
+        fetch(`/unit/delete_personnel/${id}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof Notify !== 'undefined') {
+                    Notify.success(data.message || "Personnel deleted successfully.");
+                }
+                const row = document.getElementById(`personnel-row-${id}`);
+                if (row) row.remove();
+            } else {
+                if (typeof Notify !== 'undefined') {
+                    Notify.error(data.message || "Failed to delete personnel.");
+                } else {
+                    alert(data.message || "Failed to delete personnel.");
+                }
+            }
+        })
+        .catch(err => {
+            if (typeof Notify !== 'undefined') {
+                Notify.error("Error deleting personnel.");
+            } else {
+                alert("Error deleting personnel.");
+            }
+        });
+    }
+
+    let searchDebounceTimer = null;
+
+    function openIssueToPersonnelModal(recId, itemName) {
+        document.getElementById('issueRecId').value = recId;
+        document.getElementById('issueItemNameDisplay').textContent = itemName;
+        document.getElementById('issueSerInput').value = '0';
+        document.getElementById('issuePwsInput').value = '0';
+        document.getElementById('issueRemarksInput').value = '';
+        document.getElementById('personnelSearchInput').value = '';
+        document.getElementById('selectedArmyNumber').value = '';
+        document.getElementById('personnelSearchResults').style.display = 'none';
+        document.getElementById('selectedPersonnelInfo').style.display = 'none';
+
+        const el = document.getElementById('modalIssueToPersonnel');
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+    }
+
+    function onPersonnelSearchInput(e) {
+        const query = e.target.value.trim();
+        clearTimeout(searchDebounceTimer);
+
+        if (!query) {
+            document.getElementById('personnelSearchResults').style.display = 'none';
+            return;
+        }
+
+        // 300ms Debounce Timer for Search
+        searchDebounceTimer = setTimeout(() => {
+            fetch(`/unit/search_personnel?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const resContainer = document.getElementById('personnelSearchResults');
+                    resContainer.innerHTML = '';
+                    if (data.success && data.results.length > 0) {
+                        data.results.forEach(p => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'list-group-item list-group-item-action py-2 px-3';
+                            btn.style.fontSize = '0.82rem';
+                            btn.innerHTML = `<strong style="color:#3b82f6;">${p.army_number}</strong> — ${p.rank} ${p.name} <small class="text-muted">(${p.company || 'No Coy'})</small>`;
+                            btn.onclick = () => selectPersonnel(p);
+                            resContainer.appendChild(btn);
+                        });
+                        resContainer.style.display = 'block';
+                    } else {
+                        resContainer.innerHTML = '<div class="p-2 text-muted text-center small">No matching personnel found</div>';
+                        resContainer.style.display = 'block';
+                    }
+                })
+                .catch(err => console.error("Error searching personnel:", err));
+        }, 300);
+    }
+
+    function selectPersonnel(p) {
+        document.getElementById('selectedArmyNumber').value = p.army_number;
+        document.getElementById('personnelSearchInput').value = `${p.army_number} - ${p.name}`;
+        document.getElementById('personnelSearchResults').style.display = 'none';
+
+        const infoBox = document.getElementById('selectedPersonnelInfo');
+        document.getElementById('selPersText').textContent = `Selected: ${p.army_number} | ${p.rank} ${p.name} (${p.company || 'Unit'})`;
+        infoBox.style.display = 'block';
+    }
+
+    function submitIssueToPersonnel(e) {
+        e.preventDefault();
+        const recId = document.getElementById('issueRecId').value;
+        const armyNo = document.getElementById('selectedArmyNumber').value;
+        const serQty = parseInt(document.getElementById('issueSerInput').value) || 0;
+        const pwsQty = parseInt(document.getElementById('issuePwsInput').value) || 0;
+        const remarks = document.getElementById('issueRemarksInput').value.trim();
+
+        if (!armyNo) {
+            if (typeof Notify !== 'undefined') Notify.warning("Please search and select a soldier first.");
+            else alert("Please search and select a soldier first.");
+            return;
+        }
+
+        if (serQty <= 0 && pwsQty <= 0) {
+            if (typeof Notify !== 'undefined') Notify.warning("Specify at least 1 SER or PWS quantity to issue.");
+            else alert("Specify at least 1 SER or PWS quantity to issue.");
+            return;
+        }
+
+        const btn = document.getElementById('confirmIssueBtn');
+        btn.disabled = true;
+
+        fetch('/unit/issue_to_personnel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                rec_id: recId,
+                army_number: armyNo,
+                ser_qty: serQty,
+                pws_qty: pwsQty,
+                remarks: remarks
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            if (data.success) {
+                if (typeof Notify !== 'undefined') {
+                    Notify.success(data.message || "Equipment issued successfully!");
+                } else {
+                    alert(data.message || "Equipment issued successfully!");
+                }
+                const modalEl = document.getElementById('modalIssueToPersonnel');
+                const m = bootstrap.Modal.getInstance(modalEl);
+                if (m) m.hide();
+
+                // Reload after short delay to update all tables and charts
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                if (typeof Notify !== 'undefined') {
+                    Notify.error(data.message || "Failed to issue equipment.");
+                } else {
+                    alert(data.message || "Failed to issue equipment.");
+                }
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            console.error(err);
+            if (typeof Notify !== 'undefined') Notify.error("Error issuing equipment.");
+        });
+    }
+
+    function openTpsModal() {
+        const el = document.getElementById('modalTpsStock');
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+    }
+
+    function filterTpsTable() {
+        const input = document.getElementById("searchTpsInput");
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById("unitTpsTable");
+        if (!table) return;
+        const trs = table.getElementsByTagName("tr");
+        for (let i = 2; i < trs.length; i++) {
+            const tr = trs[i];
+            if (tr.children.length < 2) continue;
+            const itemNameTd = tr.children[1];
+            if (itemNameTd) {
+                const txtValue = itemNameTd.textContent || itemNameTd.innerText;
+                tr.style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
     }
 
     // Clean up stuck backdrop whenever any modal is hidden
@@ -567,8 +1346,10 @@
 
     // ---- CHARTS INITIALIZATION & HANDLERS ----
     const unitRecordsData = {{ unit_records | tojson }};
+    const unitTpsData = {{ unit_tps_chart_data | tojson }};
     let itemBarChart = null;
     let stockPieChart = null;
+    let unitTpsPieChart = null;
 
     // Inline plugin for displaying counts on top of bars
     const barDataLabelsPlugin = {
@@ -633,6 +1414,15 @@
         initUnitReadinessChart();
         initUnitDefiRankChart();
         initUnitReceivedTrendChart();
+
+        // Initialize Stock with TPS chart
+        const tpsFilterEl = document.getElementById('unitTpsItemFilter');
+        if (tpsFilterEl && tpsFilterEl.options.length > 0) {
+            updateUnitTpsChart(tpsFilterEl.options[0].value);
+        }
+
+        // Initialize Company Based Stock with TPS chart
+        initUnitCoyTpsChart();
     });
 
     // ---- GRAPH A: SER VS PWS CONDITION DONUT CHART ----
@@ -654,15 +1444,15 @@
 
         if (itemVal === '__ALL__') {
             unitRecordsData.forEach(r => {
-                totalSer += (r.ser || 0);
-                totalPws += (r.pws || 0);
+                totalSer += (r.ser || 0) + (r.available_ser || 0);
+                totalPws += (r.pws || 0) + (r.available_pws || 0);
             });
         } else {
             const idx = parseInt(itemVal, 10);
             const rec = unitRecordsData[idx];
             if (rec) {
-                totalSer = rec.ser || 0;
-                totalPws = rec.pws || 0;
+                totalSer = (rec.ser || 0) + (rec.available_ser || 0);
+                totalPws = (rec.pws || 0) + (rec.available_pws || 0);
             }
         }
 
@@ -670,14 +1460,13 @@
 
         if (!unitSerPwsDonutChart) {
             unitSerPwsDonutChart = new Chart(ctx, {
-                type: 'doughnut',
+                type: 'pie',
                 data: {
                     labels: ['SER (Serviceable)', 'PWS (Partially Working)'],
                     datasets: [{
                         data: chartData,
                         backgroundColor: ['#10b981', '#f59e0b'],
-                        borderWidth: 2,
-                        cutout: '60%'
+                        borderWidth: 2
                     }]
                 },
                 plugins: [pieDataLabelsPlugin],
@@ -1085,6 +1874,162 @@
                 }
             }
         });
+    }
+
+    // ---- STOCK WITH TPS DOUGHNUT CHART (UNIT DASHBOARD) ----
+    function updateUnitTpsChart(itemName) {
+        const ctx = document.getElementById('unitTpsPieChart');
+        const wrap = document.getElementById('unitTpsChartWrap');
+        const empty = document.getElementById('unitTpsEmptyState');
+        if (!ctx) return;
+
+        const itemData = unitTpsData[itemName] || { ser: 0, pws: 0 };
+        const ser = itemData.ser || 0;
+        const pws = itemData.pws || 0;
+
+        if (ser === 0 && pws === 0) {
+            if (wrap) wrap.classList.add('d-none');
+            if (empty) empty.classList.remove('d-none');
+            return;
+        }
+        if (wrap) wrap.classList.remove('d-none');
+        if (empty) empty.classList.add('d-none');
+
+        const chartData = [ser, pws];
+
+        if (!unitTpsPieChart) {
+            unitTpsPieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['SER (with TPS)', 'PWS (with TPS)'],
+                    datasets: [{
+                        data: chartData,
+                        backgroundColor: ['#8b5cf6', '#f59e0b'],
+                        borderWidth: 2,
+                        cutout: '60%'
+                    }]
+                },
+                plugins: [pieDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 14, font: { size: 11, weight: '600' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            unitTpsPieChart.data.datasets[0].data = chartData;
+            unitTpsPieChart.update();
+        }
+    }
+
+    // ---- COMPANY BASED STOCK WITH TPS PIE CHART ----
+    const companyCoyTpsData = {{ company_tps_data | tojson }};
+    let unitCoyTpsChart = null;
+
+    function initUnitCoyTpsChart() {
+        const select = document.getElementById('unitCoyTpsFilter');
+        const wrap   = document.getElementById('unitCoyTpsWrap');
+        const empty  = document.getElementById('unitCoyTpsEmpty');
+
+        const companies = Object.keys(companyCoyTpsData);
+
+        if (companies.length === 0) {
+            if (select) select.innerHTML = '<option value="">No companies</option>';
+            if (wrap) wrap.classList.add('d-none');
+            if (empty) empty.classList.remove('d-none');
+            return;
+        }
+
+        // Sort companies in preferred order
+        const order = ['1 COY', '2 COY', '3 COY', 'HQ COY'];
+        const sortedCoys = [
+            ...order.filter(c => companies.includes(c)),
+            ...companies.filter(c => !order.includes(c))
+        ];
+
+        // Populate dropdown
+        if (select) {
+            select.innerHTML = '';
+            sortedCoys.forEach((coy, i) => {
+                const opt = document.createElement('option');
+                opt.value = coy;
+                opt.textContent = coy;
+                if (i === 0) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        // Draw chart for first company
+        updateUnitCoyTpsChart(sortedCoys[0]);
+    }
+
+    function updateUnitCoyTpsChart(company) {
+        const ctx   = document.getElementById('unitCoyTpsChart');
+        const wrap  = document.getElementById('unitCoyTpsWrap');
+        const empty = document.getElementById('unitCoyTpsEmpty');
+        if (!ctx) return;
+
+        const data = companyCoyTpsData[company] || { ser: 0, pws: 0 };
+        const ser  = data.ser || 0;
+        const pws  = data.pws || 0;
+
+        if (ser === 0 && pws === 0) {
+            if (wrap)  wrap.classList.add('d-none');
+            if (empty) empty.classList.remove('d-none');
+            if (unitCoyTpsChart) { unitCoyTpsChart.destroy(); unitCoyTpsChart = null; }
+            return;
+        }
+        if (wrap)  wrap.classList.remove('d-none');
+        if (empty) empty.classList.add('d-none');
+
+        const chartData = [ser, pws];
+
+        if (!unitCoyTpsChart) {
+            unitCoyTpsChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['SER (with TPS)', 'PWS (with TPS)'],
+                    datasets: [{
+                        data: chartData,
+                        backgroundColor: ['#8b5cf6', '#f59e0b'],
+                        borderWidth: 2
+                    }]
+                },
+                plugins: [pieDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 14, font: { size: 11, weight: '600' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            unitCoyTpsChart.data.datasets[0].data = chartData;
+            unitCoyTpsChart.update();
+        }
     }
 </script>
 {% endblock %}

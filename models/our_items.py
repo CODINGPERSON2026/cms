@@ -155,6 +155,7 @@ class TrackUnitItems(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     unit_name = db.Column(db.String(255), nullable=False, index=True)
     item_id = db.Column(db.Integer, db.ForeignKey("ecc_scme_items.id"), nullable=False)
+    scale = db.Column(db.String(255), nullable=True)         # Scale of issue (e.g., '1 per indl')
     auth = db.Column(db.Integer, default=0, nullable=False)   # MAX limit of this item for unit
     held = db.Column(db.Integer, default=0, nullable=False)   # Quantity currently held
     ser = db.Column(db.Integer, default=0, nullable=False)    # Serviceable quantity held
@@ -170,11 +171,12 @@ class TrackUnitItems(db.Model):
 
     item = db.relationship("ScmeItems", backref="track_unit_records")
 
-    def __init__(self, unit_name, item_id, auth=0, held=0, ser=0, pws=0, issued_at=None,
+    def __init__(self, unit_name, item_id, scale=None, auth=0, held=0, ser=0, pws=0, issued_at=None,
                  add_knd=0, add_tn_model=0, add_n_area_otg=0, add_idt_ict=0,
                  available_res=0, available_ser=0, available_pws=0):
         self.unit_name = unit_name
         self.item_id = item_id
+        self.scale = scale
         self.auth = auth
         self.held = held
         self.ser = ser
@@ -187,6 +189,14 @@ class TrackUnitItems(db.Model):
         self.available_res = available_res
         self.available_ser = available_ser
         self.available_pws = available_pws
+
+    def calc_held(self):
+        components_sum = (self.ser or 0) + (self.pws or 0) + (self.available_ser or 0) + (self.available_pws or 0)
+        if components_sum > 0:
+            return components_sum
+        return max(self.held or 0, self.available_res or 0)
+
+
 
 class ItemAuth(db.Model):
     __tablename__ = "item_auth"
@@ -203,6 +213,32 @@ class ItemAuth(db.Model):
         self.unit_name = unit_name
         self.item_id = item_id
         self.auth = auth
+
+class Transactions(db.Model):
+    __tablename__ = "transactions"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    issued_by = db.Column(db.String(255), nullable=False)
+    received_by = db.Column(db.String(255), nullable=False, index=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("ecc_scme_items.id"), nullable=False)
+    ser = db.Column(db.Integer, default=0, nullable=False)
+    pws = db.Column(db.Integer, default=0, nullable=False)
+    scale = db.Column(db.String(255), nullable=True)
+    remarks = db.Column(db.String(255), nullable=True)
+    timestamp = db.Column(db.DateTime, nullable=True, server_default=db.func.now())
+
+    item = db.relationship("ScmeItems", backref="transaction_records")
+
+    def __init__(self, issued_by, received_by, item_id, ser=0, pws=0, scale=None, remarks=None, timestamp=None):
+        self.issued_by = issued_by
+        self.received_by = received_by
+        self.item_id = item_id
+        self.ser = ser
+        self.pws = pws
+        self.scale = scale
+        self.remarks = remarks
+        if timestamp:
+            self.timestamp = timestamp
 
 class ScmeIssuedItems(db.Model):
     __tablename__ = "scme_issued_items"
@@ -290,3 +326,44 @@ class FodStock(db.Model):
         self.pws = pws
         self.ser = ser
         self.type = type
+
+
+class ArmyPersonnel(db.Model):
+    __tablename__ = "army_personnel"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    army_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(150), nullable=False)
+    rank = db.Column(db.String(50), nullable=False)
+    company = db.Column(db.String(100), nullable=True)
+    unit_name = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __init__(self, army_number, name, rank, company=None, unit_name=None):
+        self.army_number = army_number
+        self.name = name
+        self.rank = rank
+        self.company = company
+        self.unit_name = unit_name
+
+
+class UnitTpsStock(db.Model):
+    __tablename__ = "unit_tps_stock"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    unit_name = db.Column(db.String(100), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey("ecc_scme_items.id"), nullable=False)
+    army_number = db.Column(db.String(50), db.ForeignKey("army_personnel.army_number"), nullable=True)
+    tps_ser = db.Column(db.Integer, nullable=False, default=0)
+    tps_pws = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    item = db.relationship("ScmeItems", backref="tps_stocks")
+    personnel = db.relationship("ArmyPersonnel", backref="tps_stocks", foreign_keys=[army_number])
+
+    def __init__(self, unit_name, item_id, army_number=None, tps_ser=0, tps_pws=0):
+        self.unit_name = unit_name
+        self.item_id = item_id
+        self.army_number = army_number
+        self.tps_ser = tps_ser
+        self.tps_pws = tps_pws
