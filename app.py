@@ -90,3 +90,31 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(port=9090, debug=True)
+# ECC Monthly Summary: Both Previous Month and Issued During Month now use real transactions table queries
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

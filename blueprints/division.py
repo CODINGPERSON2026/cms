@@ -1,7 +1,7 @@
 from imports import *
 from extensions import db
 from models import LoginUser
-from models.our_items import OurItems, ItemRequestTable, Strength, ScmeItems, ScmeIssuedItems, Units, TrackUnitItems, Transactions, UnitTpsStock
+from models.our_items import OurItems, ItemRequestTable, Strength, ScmeItems, ScmeIssuedItems, Units, TrackUnitItems, Transactions, UnitTpsStock, ItemAuth
 from models.org_ladder import OrgLadder
 from validation import get_parent_admin,has_special_characters
 from datetime import datetime, timezone, timedelta
@@ -204,42 +204,63 @@ def div_home():
     stock_records = []
     if possible_names:
         records = TrackUnitItems.query.filter(
-            db.func.lower(TrackUnitItems.unit_name).in_([n.lower() for n in possible_names])
-        ).all()
+            db.func.lower(db.func.trim(TrackUnitItems.unit_name)).in_([n.lower().strip() for n in possible_names if n])
+        ).order_by(TrackUnitItems.issued_at.desc(), TrackUnitItems.id.desc()).all()
 
+        item_records_map = {}
         for rec in records:
-            item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
-            avail_res_val = getattr(rec, 'available_res', 0) or 0
+            iid = rec.item_id
+            if iid not in item_records_map:
+                item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+                item_records_map[iid] = {
+                    "id": rec.id,
+                    "item_id": iid,
+                    "item_name": item_name,
+                    "scale": getattr(rec, 'scale', None) or "N/A",
+                    "auth": getattr(rec, 'auth', 0) or 0,
+                    "auth_res": getattr(rec, 'auth_res', 0) or 0,
+                    "auth_total": getattr(rec, 'auth', 0) or 0,
+                    "available_res": 0,
+                    "available_ser": 0,
+                    "available_pws": 0,
+                    "stock_ser": 0,
+                    "stock_pws": 0,
+                    "stock_total": 0,
+                }
+            
             avail_ser_val = getattr(rec, 'available_ser', 0) or 0
             avail_pws_val = getattr(rec, 'available_pws', 0) or 0
-            if avail_ser_val == 0 and avail_pws_val == 0 and avail_res_val > 0:
-                avail_ser_val = avail_res_val
+            avail_res_val = avail_ser_val + avail_pws_val
 
-            r_info = recd_year_map.get(rec.item_id, {"ser": avail_ser_val, "pws": avail_pws_val})
-            i_info = issd_year_map.get(rec.item_id, {"ser": getattr(rec, 'ser', 0) or 0, "pws": getattr(rec, 'pws', 0) or 0})
-            t_info = tps_stock_map.get(rec.item_id, {"tps_ser": 0, "tps_pws": 0})
+            item_records_map[iid]["available_res"] += avail_res_val
+            item_records_map[iid]["available_ser"] += avail_ser_val
+            item_records_map[iid]["available_pws"] += avail_pws_val
+            item_records_map[iid]["stock_ser"] += (getattr(rec, 'ser', 0) or 0)
+            item_records_map[iid]["stock_pws"] += (getattr(rec, 'pws', 0) or 0)
+            item_records_map[iid]["stock_total"] += rec.calc_held()
 
-            stock_records.append({
-                "id": rec.id,
-                "item_id": rec.item_id,
-                "item_name": item_name,
-                "scale": getattr(rec, 'scale', None) or "N/A",
-                "auth": getattr(rec, 'auth', 0) or 0,
-                "auth_res": getattr(rec, 'auth_res', 0) or 0,
-                "auth_total": getattr(rec, 'auth', 0) or 0,
-                "available_res": avail_res_val,
-                "available_ser": avail_ser_val,
-                "available_pws": avail_pws_val,
-                "recd_year_ser": r_info["ser"],
-                "recd_year_pws": r_info["pws"],
-                "issd_year_ser": i_info["ser"],
-                "issd_year_pws": i_info["pws"],
-                "tps_ser": t_info["tps_ser"],
-                "tps_pws": t_info["tps_pws"],
-                "stock_total": rec.calc_held(),
-                "stock_ser": getattr(rec, 'ser', 0) or 0,
-                "stock_pws": getattr(rec, 'pws', 0) or 0
-            })
+        for iid, r in item_records_map.items():
+            r_info = recd_year_map.get(iid, {"ser": r["available_ser"], "pws": r["available_pws"]})
+            i_info = issd_year_map.get(iid, {"ser": r["stock_ser"], "pws": r["stock_pws"]})
+            t_info = tps_stock_map.get(iid, {"tps_ser": 0, "tps_pws": 0})
+
+            # Check if Auth from ItemAuth table is available for this unit/item
+            auth_rec = ItemAuth.query.filter(
+                db.func.lower(db.func.trim(ItemAuth.unit_name)).in_([n.lower().strip() for n in possible_names if n]),
+                ItemAuth.item_id == iid
+            ).first()
+            if auth_rec and auth_rec.auth is not None:
+                r["auth"] = auth_rec.auth
+                r["auth_total"] = auth_rec.auth
+
+            r["recd_year_ser"] = r_info["ser"]
+            r["recd_year_pws"] = r_info["pws"]
+            r["issd_year_ser"] = i_info["ser"]
+            r["issd_year_pws"] = i_info["pws"]
+            r["tps_ser"] = t_info["tps_ser"]
+            r["tps_pws"] = t_info["tps_pws"]
+
+            stock_records.append(r)
 
         total_stock_held = sum(r["stock_total"] for r in stock_records) or 0
 
@@ -532,6 +553,7 @@ def api_unit_item_auth():
             return jsonify({
                 "success": True,
                 "exists": True,
+                "scale": track_rec.scale or "",
                 "auth": track_rec.auth or 0,
                 "held": track_rec.held or 0,
                 "ser": getattr(track_rec, 'ser', 0) or 0,
@@ -547,13 +569,14 @@ def api_unit_item_auth():
             return jsonify({
                 "success": True,
                 "exists": True,
+                "scale": issued_rec.scale or "",
                 "auth": issued_rec.unit_authorized or 0,
                 "held": issued_rec.held or 0,
                 "ser": 0,
                 "pws": 0
             }), 200
 
-        return jsonify({"success": True, "exists": False, "auth": None, "held": 0, "ser": 0, "pws": 0}), 200
+        return jsonify({"success": True, "exists": False, "scale": "", "auth": None, "held": 0, "ser": 0, "pws": 0}), 200
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -634,6 +657,8 @@ def issue_item():
             unit_name.replace(' ', '_').lower().strip()
         ]
 
+        val_scale = (data.get("scale") or "").strip()
+
         # Add or update ScmeIssuedItems for the target unit (update auth, leave held untouched for later issue by subordinate unit)
         issued_rec = ScmeIssuedItems.query.filter(
             db.func.lower(ScmeIssuedItems.unit_name).in_(target_names),
@@ -643,6 +668,8 @@ def issue_item():
         if issued_rec:
             if val_auth is not None:
                 issued_rec.unit_authorized = val_auth
+            if val_scale:
+                issued_rec.scale = val_scale
             issued_rec.deficiency = max(0, (issued_rec.unit_authorized or 0) - (issued_rec.held or 0))
         else:
             initial_auth = val_auth if val_auth is not None else 0
@@ -651,7 +678,7 @@ def issue_item():
                 item_id=item_id,
                 a_u="Nos",
                 unit_authorized=initial_auth,
-                scale="100%",
+                scale=val_scale or "100%",
                 held=0,
                 deficiency=initial_auth
             )
@@ -673,12 +700,15 @@ def issue_item():
 
             if val_auth is not None:
                 track_rec.auth = val_auth
+            if val_scale:
+                track_rec.scale = val_scale
             track_rec.issued_at = now_dt
         else:
             initial_auth = val_auth if val_auth is not None else 0
             track_rec = TrackUnitItems(
                 unit_name=unit_name,
                 item_id=item_id,
+                scale=val_scale,
                 auth=initial_auth,
                 held=(val_ser + val_pws),
                 ser=0,
@@ -691,22 +721,43 @@ def issue_item():
             track_rec.held = track_rec.calc_held()
             db.session.add(track_rec)
 
-        # Update the DOU (issuing division) stock record as well
-        dou_rec = TrackUnitItems.query.filter(
-            db.func.lower(TrackUnitItems.unit_name).in_([n.lower() for n in possible_names]),
+        # Update the DOU (issuing division) stock record across all entries
+        dou_recs = TrackUnitItems.query.filter(
+            db.func.lower(db.func.trim(TrackUnitItems.unit_name)).in_([n.lower().strip() for n in possible_names if n]),
             TrackUnitItems.item_id == item_id
-        ).first()
+        ).order_by(TrackUnitItems.issued_at.desc(), TrackUnitItems.id.desc()).all()
 
-        if dou_rec and (not track_rec or dou_rec.id != track_rec.id):
-            # 1. Deduct issued counts from DOU's available reserve columns
-            dou_rec.available_ser = max(0, (dou_rec.available_ser or 0) - val_ser)
-            dou_rec.available_pws = max(0, (dou_rec.available_pws or 0) - val_pws)
-            dou_rec.available_res = max(0, (dou_rec.available_res or 0) - val_qty)
+        if dou_recs:
+            avail_ser = sum((r.available_ser or 0) for r in dou_recs)
+            avail_pws = sum((r.available_pws or 0) for r in dou_recs)
+            if val_ser > avail_ser:
+                return jsonify({
+                    "success": False,
+                    "message": f"Issued SER count ({val_ser}) cannot exceed available SER stock ({avail_ser})."
+                }), 400
+            if val_pws > avail_pws:
+                return jsonify({
+                    "success": False,
+                    "message": f"Issued PWS count ({val_pws}) cannot exceed available PWS stock ({avail_pws})."
+                }), 400
 
-            # 2. Accumulate issued counts into DOU's stock held columns
-            dou_rec.ser = (dou_rec.ser or 0) + val_ser
-            dou_rec.pws = (dou_rec.pws or 0) + val_pws
-            dou_rec.held = (dou_rec.held or 0) + val_qty
+            rem_s = val_ser
+            rem_p = val_pws
+            for r in dou_recs:
+                if rem_s > 0 and (r.available_ser or 0) > 0:
+                    ded = min(r.available_ser, rem_s)
+                    r.available_ser -= ded
+                    r.ser = (r.ser or 0) + ded
+                    r.held = (r.held or 0) + ded
+                    rem_s -= ded
+                if rem_p > 0 and (r.available_pws or 0) > 0:
+                    ded = min(r.available_pws, rem_p)
+                    r.available_pws -= ded
+                    r.pws = (r.pws or 0) + ded
+                    r.held = (r.held or 0) + ded
+                    rem_p -= ded
+                if rem_s <= 0 and rem_p <= 0:
+                    break
 
         # Record transaction entry in transactions table
         trans_rec = Transactions(
@@ -733,10 +784,10 @@ def issue_item():
         item_obj = ScmeItems.query.get(item_id)
         item_name = item_obj.item_name if item_obj else f"Item #{item_id}"
 
-        res_ser_now = getattr(dou_rec, 'available_ser', 0) if dou_rec else 0
-        res_pws_now = getattr(dou_rec, 'available_pws', 0) if dou_rec else 0
-        held_ser_now = getattr(dou_rec, 'ser', 0) if dou_rec else 0
-        held_pws_now = getattr(dou_rec, 'pws', 0) if dou_rec else 0
+        res_ser_now = sum((r.available_ser or 0) for r in dou_recs)
+        res_pws_now = sum((r.available_pws or 0) for r in dou_recs)
+        held_ser_now = sum((r.ser or 0) for r in dou_recs)
+        held_pws_now = sum((r.pws or 0) for r in dou_recs)
 
         return jsonify({
             "success": True,
@@ -751,6 +802,7 @@ def issue_item():
 
     except Exception as e:
         db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 

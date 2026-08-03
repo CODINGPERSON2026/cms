@@ -7,6 +7,10 @@
     <i class="fa-solid fa-gauge-high"></i>
     <span class="nav-tooltip">Dashboard</span>
 </a>
+<a href="javascript:void(0)" class="nav-item" onclick="openLogsModal()" title="Logs">
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <span class="nav-tooltip">Logs</span>
+</a>
 {% endblock %}
 
 {% block content %}
@@ -175,67 +179,62 @@
         z-index: 999999 !important;
     }
 
-    /* Synced View Stock Button with Theme (Compact & Color-only Hover Effect) */
+    /* Synced View Stock Button with Theme (Greyish Background Bar & Modern Hover) */
+    .action-buttons-bar {
+        background: var(--bg-raised);
+        border: 1px solid var(--border-dim);
+        border-radius: 12px;
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
     .btn-view-stock {
-        background: var(--accent);
-        color: #ffffff;
-        border: 1px solid var(--accent);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        border: 1px solid var(--border-dim);
         border-radius: 8px;
-        font-weight: 700;
-        font-size: 0.8rem;
-        padding: 6px 14px;
+        font-weight: 600;
+        font-size: 0.82rem;
+        padding: 7px 16px;
         display: inline-flex;
         align-items: center;
-        gap: 7px;
+        gap: 8px;
         cursor: pointer;
-        transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        box-shadow: 0 3px 10px var(--accent-glow);
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
 
     .btn-view-stock:hover {
-        background: var(--accent-dim, #1b4d2e);
-        border-color: var(--accent-dim, #1b4d2e);
+        background: var(--accent);
         color: #ffffff;
+        border-color: var(--accent);
+        box-shadow: 0 4px 12px var(--accent-glow);
     }
 
-    .btn-view-tps {
-        background: linear-gradient(135deg, #d97706, #f59e0b);
-        border-color: #d97706;
-        box-shadow: 0 3px 10px rgba(245, 158, 11, 0.2);
-    }
-    .btn-view-tps:hover {
-        background: #b45309;
-        border-color: #b45309;
-        color: #ffffff;
-    }
-
-    .btn-view-strength {
-        background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-        border-color: #1d4ed8;
-        box-shadow: 0 3px 10px rgba(59, 130, 246, 0.2);
-    }
-    .btn-view-strength:hover {
-        background: #1e40af;
-        border-color: #1e40af;
-        color: #ffffff;
+    .btn-view-stock:hover i {
+        color: #ffffff !important;
     }
 
     .btn-view-stock i {
-        font-size: 0.85rem;
+        font-size: 0.88rem;
     }
 </style>
 
 <div class="unit-dash-container">
 
-    <!-- ACTION BUTTONS: VIEW STOCK & STRENGTH -->
-    <div class="mb-3 d-flex align-items-center justify-content-start gap-2">
+    <!-- ACTION BUTTONS: VIEW STOCK & HISTORY LEDGER -->
+    <div class="action-buttons-bar">
         <button type="button" class="btn-view-stock" onclick="openEquipmentModal()">
-            <i class="fa-solid fa-boxes-stacked"></i>
+            <i class="fa-solid fa-boxes-stacked text-primary"></i>
             <span>View Stock</span>
         </button>
-        <button type="button" class="btn-view-stock btn-view-strength" onclick="openStrengthModal()">
-            <i class="fa-solid fa-users"></i>
-            <span>Strength</span>
+        <button type="button" class="btn-view-stock" onclick="openHistoryLedgerModal()">
+            <i class="fa-solid fa-book-open text-info"></i>
+            <span>History Ledger</span>
         </button>
     </div>
 
@@ -279,7 +278,7 @@
             <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 20px; border-radius: 16px 16px 0 0;">
                     <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-                        <i class="fa-solid fa-chart-pie text-warning"></i> SER vs PWS
+                        <i class="fa-solid fa-chart-pie text-warning"></i> SER vs PWS (RES)
                     </h6>
                     <div class="d-flex align-items-center gap-1">
                         <select id="unitSerPwsItemFilter" class="form-select form-select-sm" onchange="updateUnitSerPwsChart(this.value)" style="width: auto; max-width: 130px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
@@ -348,6 +347,7 @@
                 <div class="card-header" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
                     <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-chart-pie text-success"></i> Stock Items Distribution (Held)
+                        <i class="fa-solid fa-circle-info text-muted ms-1 chart-info-icon" style="font-size: 0.85rem; cursor: pointer; opacity: 0.7;" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" title="Stock Distribution Information" data-bs-content="Shows the volume breakdown of total inventory stock held across all catalog items in your unit."></i>
                     </h6>
                 </div>
                 <div class="card-body" style="padding: 20px; position: relative;">
@@ -371,6 +371,7 @@
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
                     <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-circle-check text-success"></i> Top 5 Items Close to Fully Equipped
+                        <i class="fa-solid fa-circle-info text-muted ms-1 chart-info-icon" style="font-size: 0.85rem; cursor: pointer; opacity: 0.7;" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" title="Equipment Readiness Information" data-bs-content="Ranks catalog items with the highest authorization fulfillment percentage (closest to 100% completion)."></i>
                     </h6>
                 </div>
                 <div class="card-body" style="padding: 20px; position: relative;">
@@ -397,6 +398,7 @@
                 <div class="card-header" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
                     <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-triangle-exclamation text-danger"></i> Top Critical Shortfalls (Deficiency)
+                        <i class="fa-solid fa-circle-info text-muted ms-1 chart-info-icon" style="font-size: 0.85rem; cursor: pointer; opacity: 0.7;" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" title="Critical Shortfalls Information" data-bs-content="Highlights items with the largest stock deficiency (Authorized minus Held), prioritizing urgent procurement and scaling needs."></i>
                     </h6>
                 </div>
                 <div class="card-body" style="padding: 20px; position: relative;">
@@ -420,6 +422,7 @@
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
                     <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-chart-line text-info"></i> Day-Wise Received Equipment Trend
+                        <i class="fa-solid fa-circle-info text-muted ms-1 chart-info-icon" style="font-size: 0.85rem; cursor: pointer; opacity: 0.7;" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" title="Received Equipment Trend Information" data-bs-content="Tracks daily equipment receipts over time, providing visibility into supply flow patterns and ledger updates."></i>
                     </h6>
                     <div class="d-flex align-items-center gap-1">
                         <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Filter Item:</label>
@@ -447,6 +450,7 @@
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
                     <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
                         <i class="fa-solid fa-people-group" style="color: #8b5cf6;"></i> Company Stock with TPS
+                        <i class="fa-solid fa-circle-info text-muted ms-1 chart-info-icon" style="font-size: 0.85rem; cursor: pointer; opacity: 0.7;" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" title="Company Stock with TPS Information" data-bs-content="Breaks down equipment issued to TPS personnel categorized by Company / Sub-Unit (e.g. 1 COY, 2 COY, HQ COY)."></i>
                     </h6>
                     <div class="d-flex align-items-center gap-1">
                         <select id="unitCoyTpsFilter" class="form-select form-select-sm" onchange="updateUnitCoyTpsChart(this.value)" style="width: auto; max-width: 130px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
@@ -607,8 +611,10 @@
                                         {{ row_total_stock }}
                                     </span>
                                 </td>
+                                {% set total_ser_avail = res_ser + held_ser %}
+                                {% set total_pws_avail = res_pws + held_pws %}
                                 <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
-                                    <button type="button" class="btn btn-sm btn-primary px-3 py-1" style="border-radius: 6px; font-weight: 700; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;" onclick="openIssueToPersonnelModal({{ rec.id }}, '{{ rec.item_name }}')">
+                                    <button type="button" class="btn btn-sm btn-primary px-3 py-1" style="border-radius: 6px; font-weight: 700; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;" onclick="openIssueToPersonnelModal({{ rec.id }}, '{{ rec.item_name|escape }}', '{{ rec.scale|escape }}', {{ total_ser_avail }}, {{ total_pws_avail }})">
                                         <i class="fa-solid fa-paper-plane"></i> Issue
                                     </button>
                                 </td>
@@ -670,18 +676,18 @@
                                     <span class="number-pill" style="color: #0d6efd; font-weight: 700;">{{ rec.authorized }}</span>
                                 </td>
                                 <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(217, 119, 6, 0.02); padding: 5px 8px;">
-                                    <span class="number-pill" style="color: #10b981; font-weight: 700;">0</span>
+                                    <span class="number-pill" style="color: #10b981; font-weight: 700;">{{ rec.tps_ser or 0 }}</span>
                                 </td>
                                 <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(217, 119, 6, 0.02); padding: 5px 8px;">
-                                    <span class="number-pill" style="color: #f59e0b; font-weight: 700;">0</span>
+                                    <span class="number-pill" style="color: #f59e0b; font-weight: 700;">{{ rec.tps_pws or 0 }}</span>
                                 </td>
                                 <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: rgba(124, 58, 237, 0.04); padding: 5px 8px;">
                                     <span class="badge" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; padding: 4px 10px; font-weight: 800; font-size: 0.85rem;">
-                                        0
+                                        {{ rec.tps_total or 0 }}
                                     </span>
                                 </td>
                                 <td style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
-                                    <button class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="handleIssueToTps({{ rec.id }}, '{{ rec.item_name }}')">
+                                    <button class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="openIssueToPersonnelModal({{ rec.id }}, '{{ rec.item_name }}', '{{ rec.scale or "" }}', {{ rec.available_ser or 0 }}, {{ rec.available_pws or 0 }})">
                                         <i class="fa-solid fa-truck-arrow-right"></i> Issue to TPS
                                     </button>
                                 </td>
@@ -712,68 +718,10 @@
                 </h5>
                 <div class="d-flex align-items-center gap-2 ms-auto me-2">
                     <input type="text" id="searchPersonnelInput" onkeyup="filterPersonnelTable()" class="form-control form-control-sm" placeholder="Search personnel..." style="width: 220px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-size: 0.8rem;">
-                    <button type="button" class="btn btn-sm btn-primary px-3" onclick="toggleAddPersonnelForm()" style="border-radius: 8px; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
-                        <i class="fa-solid fa-user-plus"></i> Add Personnel
-                    </button>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" style="padding: 14px 18px;">
-                
-                <!-- INLINE ADD PERSONNEL FORM -->
-                <div id="addPersonnelFormContainer" class="card mb-3 shadow-sm" style="display: none; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: 12px;">
-                    <div class="card-body p-3">
-                        <h6 class="font-weight-bold mb-3" style="color: var(--text-primary); font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-id-card text-primary"></i> Add Army Personnel Record
-                        </h6>
-                        <form id="addPersonnelForm" onsubmit="submitAddPersonnel(event)">
-                            <div class="row g-2">
-                                <div class="col-md-3">
-                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Army Number *</label>
-                                    <input type="text" id="pArmyNo" class="form-control form-control-sm" required placeholder="e.g. 1234567A" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Rank *</label>
-                                    <select id="pRank" class="form-select form-select-sm" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
-                                        <option value="" disabled selected>Select Rank</option>
-                                        <option value="Sepoy">Sepoy</option>
-                                        <option value="Lance Naik">Lance Naik</option>
-                                        <option value="Naik">Naik</option>
-                                        <option value="Havildar">Havildar</option>
-                                        <option value="Naib Subedar">Naib Subedar</option>
-                                        <option value="Subedar">Subedar</option>
-                                        <option value="Subedar Major">Subedar Major</option>
-                                        <option value="Lieutenant">Lieutenant</option>
-                                        <option value="Captain">Captain</option>
-                                        <option value="Major">Major</option>
-                                        <option value="Lt Col">Lt Col</option>
-                                        <option value="Col">Col</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Full Name *</label>
-                                    <input type="text" id="pName" class="form-control form-control-sm" required placeholder="Enter full name" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Company / Sub-Unit *</label>
-                                    <select id="pCompany" class="form-select form-select-sm" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
-                                        <option value="" disabled selected>Select Company</option>
-                                        <option value="1 COY">1 COY</option>
-                                        <option value="2 COY">2 COY</option>
-                                        <option value="3 COY">3 COY</option>
-                                        <option value="HQ COY">HQ COY</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-end gap-2 mt-3">
-                                <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="toggleAddPersonnelForm()">Cancel</button>
-                                <button type="submit" id="savePersonnelBtn" class="btn btn-sm btn-success px-4 font-weight-bold">
-                                    <i class="fa-solid fa-check me-1"></i> Save Personnel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
 
                 <!-- PERSONNEL DIRECTORY TABLE -->
                 <div class="table-responsive" style="max-height: calc(85vh - 120px);">
@@ -834,27 +782,63 @@
                 <div class="modal-body" style="padding: 20px;">
                     <input type="hidden" id="issueRecId">
                     
-                    <!-- Selected Item Banner -->
-                    <div class="p-2 mb-3 rounded" style="background: var(--bg-raised); border: 1px solid var(--border-dim); display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem;" id="issueItemNameDisplay">-</span>
+                    <!-- Selected Item & Scale Banner -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Selected Item</label>
+                            <input type="text" id="issueItemNameDisplay" class="form-control form-control-sm" readonly style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700;">
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Scale</label>
+                            <input type="text" id="issueItemScaleDisplay" class="form-control form-control-sm" readonly placeholder="N/A" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
                     </div>
 
-                    <!-- Debounced Search for Army Personnel -->
-                    <div class="mb-3" style="position: relative;">
-                        <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
-                            Select Personnel (Search Name or Army No) *
-                        </label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text" style="background: var(--bg-raised); border-color: var(--border-dim);"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                            <input type="text" id="personnelSearchInput" class="form-control form-control-sm" placeholder="Type Army No or Name to search..." autocomplete="off" oninput="onPersonnelSearchInput(event)" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                    <!-- Direct Personnel Details Inputs -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Army Number *</label>
+                            <input type="text" id="issueArmyNoInput" class="form-control form-control-sm" required placeholder="e.g. 12345A" oninput="autoCheckPersonnel(this.value); validateIssueToPersonnelForm();" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700;">
+                            <span id="errIssueArmyNoChar" style="color: var(--danger); font-size: 0.7rem; font-weight: 700; display: none; margin-top: 3px;">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Special characters are not allowed.
+                            </span>
                         </div>
-                        <input type="hidden" id="selectedArmyNumber" required>
-
-                        <!-- Search Dropdown Results Container -->
-                        <div id="personnelSearchResults" class="list-group shadow-sm mt-1" style="display: none; position: absolute; width: 100%; z-index: 1050; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-dim); border-radius: 8px; background: var(--bg-surface);">
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Rank *</label>
+                            <select id="issueRankInput" class="form-select form-select-sm" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                                <option value="" disabled selected>Select Rank</option>
+                                <option value="Sepoy">Sepoy</option>
+                                <option value="Lance Naik">Lance Naik</option>
+                                <option value="Naik">Naik</option>
+                                <option value="Havildar">Havildar</option>
+                                <option value="Naib Subedar">Naib Subedar</option>
+                                <option value="Subedar">Subedar</option>
+                                <option value="Subedar Major">Subedar Major</option>
+                                <option value="Lieutenant">Lieutenant</option>
+                                <option value="Captain">Captain</option>
+                                <option value="Major">Major</option>
+                                <option value="Lt Col">Lt Col</option>
+                                <option value="Col">Col</option>
+                            </select>
                         </div>
-                        <div id="selectedPersonnelInfo" class="mt-2 p-2 rounded" style="display: none; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); font-size: 0.82rem;">
-                            <span class="fw-bold text-primary" id="selPersText">-</span>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Personnel Name *</label>
+                            <input type="text" id="issueNameInput" class="form-control form-control-sm" required placeholder="Soldier Full Name" oninput="validateIssueToPersonnelForm()" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                            <span id="errIssueNameChar" style="color: var(--danger); font-size: 0.7rem; font-weight: 700; display: none; margin-top: 3px;">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Special characters are not allowed.
+                            </span>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Company (Coy) *</label>
+                            <select id="issueCoyInput" class="form-select form-select-sm" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                                <option value="" disabled selected>Select Company</option>
+                                <option value="1 COY">1 COY</option>
+                                <option value="2 COY">2 COY</option>
+                                <option value="3 COY">3 COY</option>
+                                <option value="HQ COY">HQ COY</option>
+                            </select>
                         </div>
                     </div>
 
@@ -862,18 +846,29 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 700; color: #10b981; text-transform: uppercase;">SER Qty (Serviceable)</label>
-                            <input type="number" id="issueSerInput" class="form-control form-control-sm" min="0" value="0" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 0.95rem;">
+                            <input type="number" id="issueSerInput" class="form-control form-control-sm" min="0" value="0" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 0.95rem;" oninput="validateIssueToPersonnelForm()">
+                            <small class="text-muted d-block mt-1" style="font-size: 0.73rem; font-weight: 600;">
+                                <i class="fa-solid fa-boxes-stacked text-success me-1"></i>Avail SER: <strong id="displayUnitAvailSerCount" style="color: #10b981;">0</strong>
+                            </small>
+                            <span id="errPersonnelSerExceeded" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available SER!</span>
                         </div>
                         <div class="col-6">
                             <label class="form-label mb-1" style="font-size: 0.78rem; font-weight: 700; color: #f59e0b; text-transform: uppercase;">PWS Qty (Partially Working)</label>
-                            <input type="number" id="issuePwsInput" class="form-control form-control-sm" min="0" value="0" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 0.95rem;">
+                            <input type="number" id="issuePwsInput" class="form-control form-control-sm" min="0" value="0" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700; font-size: 0.95rem;" oninput="validateIssueToPersonnelForm()">
+                            <small class="text-muted d-block mt-1" style="font-size: 0.73rem; font-weight: 600;">
+                                <i class="fa-solid fa-boxes-stacked text-warning me-1"></i>Avail PWS: <strong id="displayUnitAvailPwsCount" style="color: #f59e0b;">0</strong>
+                            </small>
+                            <span id="errPersonnelPwsExceeded" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available PWS!</span>
                         </div>
                     </div>
 
                     <!-- Remarks / Voucher -->
                     <div class="mb-2">
                         <label class="form-label mb-1" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Remarks / Voucher No (Optional)</label>
-                        <input type="text" id="issueRemarksInput" class="form-control form-control-sm" placeholder="Enter voucher or remarks" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                        <input type="text" id="issueRemarksInput" class="form-control form-control-sm" placeholder="Enter voucher or remarks" oninput="validateIssueToPersonnelForm()" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                        <span id="errIssueRemarksChar" style="color: var(--danger); font-size: 0.7rem; font-weight: 700; display: none; margin-top: 3px;">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Special characters are not allowed.
+                        </span>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 12px 20px;">
@@ -922,7 +917,233 @@
     </div>
 </div>
 
+<!-- =========== HISTORY LEDGER MODAL =========== -->
+<div class="modal fade" id="historyLedgerModal" tabindex="-1" aria-labelledby="historyLedgerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 90vw; margin: 15px auto;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);">
+            
+            <!-- Modal Header -->
+            <div class="modal-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 24px; border-radius: 18px 18px 0 0;">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 38px; height: 38px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0" id="historyLedgerModalLabel" style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
+                            Personnel Holdings Ledger
+                        </h5>
+                        <small class="text-muted" style="font-size: 0.76rem;">Overview of equipment count held by unit personnel</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold" onclick="fetchHistoryLedgerData()" title="Refresh Data" style="border-radius: 8px; font-size: 0.8rem;">
+                        <i class="fa-solid fa-rotate-right me-1"></i> Refresh
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-3" style="background: var(--bg-surface);">
+                
+                <!-- MINIMAL COMPACT METRICS BAR & CONTROLS -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3 p-2 rounded-3" style="background: var(--bg-raised); border: 1px solid var(--border-dim);">
+                    
+                    <!-- LEFT: MINIMAL CARDS FOR SER, PWS & TOTAL HELD -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-2 px-3 py-1 rounded-2" style="background: var(--bg-surface); border: 1px solid var(--border-dim);">
+                            <span class="badge rounded-circle p-1" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                                <i class="fa-solid fa-check" style="font-size: 0.75rem;"></i>
+                            </span>
+                            <span class="text-muted fw-bold" style="font-size: 0.72rem; text-transform: uppercase;">SER:</span>
+                            <span class="fw-bold text-success" id="hlMetricSer" style="font-size: 0.95rem;">0</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 px-3 py-1 rounded-2" style="background: var(--bg-surface); border: 1px solid var(--border-dim);">
+                            <span class="badge rounded-circle p-1" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                                <i class="fa-solid fa-triangle-exclamation" style="font-size: 0.75rem;"></i>
+                            </span>
+                            <span class="text-muted fw-bold" style="font-size: 0.72rem; text-transform: uppercase;">PWS:</span>
+                            <span class="fw-bold text-warning" id="hlMetricPws" style="font-size: 0.95rem;">0</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 px-3 py-1 rounded-2" style="background: var(--bg-surface); border: 1px solid var(--border-dim);">
+                            <span class="badge rounded-circle p-1" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                                <i class="fa-solid fa-boxes-stacked" style="font-size: 0.75rem;"></i>
+                            </span>
+                            <span class="text-muted fw-bold" style="font-size: 0.72rem; text-transform: uppercase;">Total Held:</span>
+                            <span class="fw-bold text-primary" id="hlMetricTotalItems" style="font-size: 0.95rem;">0</span>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: SEARCH INPUT & COY FILTER -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap" style="flex: 1; max-width: 480px; justify-content: flex-end;">
+                        <div class="input-group input-group-sm" style="max-width: 240px;">
+                            <span class="input-group-text" style="background: var(--bg-surface); border-color: var(--border-dim); color: var(--text-secondary);">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="hlSearchInput" class="form-control" placeholder="Search name or army no..." onkeyup="filterHistoryLedgerTable()" style="background: var(--bg-surface); border-color: var(--border-dim); color: var(--text-primary);">
+                        </div>
+                        <select id="hlCompanyFilter" class="form-select form-select-sm" onchange="filterHistoryLedgerTable()" style="width: auto; min-width: 130px; background: var(--bg-surface); border-color: var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                            <option value="">All Companies</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- PERSONNEL HOLDINGS TABLE -->
+                <div class="table-responsive" style="max-height: 540px; overflow-y: auto; border: 1px solid var(--border-dim); border-radius: 12px;">
+                    <table class="table table-hover align-middle mb-0" id="hlHoldingsTable" style="font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: var(--bg-raised); color: var(--text-secondary); position: sticky; top: 0; z-index: 2;">
+                                <th style="width: 45px; text-align: center; border-bottom: 2px solid var(--border-dim);">#</th>
+                                <th style="width: 140px; border-bottom: 2px solid var(--border-dim);">Army No</th>
+                                <th style="width: 100px; border-bottom: 2px solid var(--border-dim);">Rank</th>
+                                <th style="width: 220px; border-bottom: 2px solid var(--border-dim);">Personnel Name</th>
+                                <th style="width: 130px; border-bottom: 2px solid var(--border-dim);">Company</th>
+                                <th style="width: 110px; text-align: center; border-bottom: 2px solid var(--border-dim);">SER</th>
+                                <th style="width: 110px; text-align: center; border-bottom: 2px solid var(--border-dim);">PWS</th>
+                                <th style="width: 110px; text-align: center; border-bottom: 2px solid var(--border-dim);">Total Held</th>
+                                <th style="width: 130px; text-align: center; border-bottom: 2px solid var(--border-dim);">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hlHoldingsTableBody">
+                            <!-- Dynamic rows loaded via JS -->
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-muted">
+                                    <i class="fa-solid fa-spinner fa-spin me-2"></i> Loading personnel holdings ledger...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer d-flex align-items-center justify-content-between" style="background: var(--bg-raised); border-top: 1px solid var(--border-dim); padding: 10px 24px; border-radius: 0 0 18px 18px;">
+                <span class="text-muted" style="font-size: 0.78rem;" id="hlRecordCountText">Showing 0 records</span>
+                <button type="button" class="btn btn-sm btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- =========== VIEW INDIVIDUAL PERSONNEL ITEMS MODAL =========== -->
+<div class="modal fade" id="viewPersonnelItemsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 560px;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div class="modal-header py-3 px-4" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); border-radius: 16px 16px 0 0;">
+                <div>
+                    <h6 class="modal-title mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 1rem;">
+                        <i class="fa-solid fa-boxes-stacked text-primary me-2"></i> Items Held: <span id="vpiPersonnelName" class="text-primary"></span>
+                    </h6>
+                    <small class="text-muted" id="vpiPersonnelSub" style="font-size: 0.78rem;"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="table-responsive" style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-dim); border-radius: 10px;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
+                        <thead>
+                            <tr style="background: var(--bg-raised); color: var(--text-secondary);">
+                                <th style="border-bottom: 2px solid var(--border-dim);">Item Name</th>
+                                <th style="width: 80px; text-align: center; border-bottom: 2px solid var(--border-dim);">SER</th>
+                                <th style="width: 80px; text-align: center; border-bottom: 2px solid var(--border-dim);">PWS</th>
+                                <th style="width: 90px; text-align: center; border-bottom: 2px solid var(--border-dim);">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vpiItemsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer py-2 px-3" style="background: var(--bg-raised); border-top: 1px solid var(--border-dim); border-radius: 0 0 16px 16px;">
+                <button type="button" class="btn btn-sm btn-secondary px-3" data-bs-dismiss="modal" style="border-radius: 6px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========== UNIT TRANSACTION LOGS MODAL =========== -->
+<div class="modal fade" id="unitLogsModal" tabindex="-1" aria-labelledby="unitLogsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 92vw; margin: 15px auto;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);">
+            
+            <!-- Modal Header -->
+            <div class="modal-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 24px; border-radius: 18px 18px 0 0;">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 38px; height: 38px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0" id="unitLogsModalLabel" style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
+                            Transaction & Equipment Activity Logs
+                        </h5>
+                        <small class="text-muted" style="font-size: 0.76rem;">Historical log of all equipment issues with timestamps</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold" onclick="fetchLogsData()" title="Refresh Logs" style="border-radius: 8px; font-size: 0.8rem;">
+                        <i class="fa-solid fa-rotate-right me-1"></i> Refresh
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-3" style="background: var(--bg-surface);">
+                
+                <!-- TOP CONTROLS & SEARCH -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3 p-2 rounded-3" style="background: var(--bg-raised); border: 1px solid var(--border-dim);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary px-3 py-2" style="font-size: 0.82rem;" id="ulTotalCountBadge">0 Total Logs</span>
+                    </div>
+                    <div class="input-group input-group-sm" style="max-width: 320px;">
+                        <span class="input-group-text" style="background: var(--bg-surface); border-color: var(--border-dim); color: var(--text-secondary);">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="ulSearchInput" class="form-control" placeholder="Search date, item, soldier, remarks..." onkeyup="filterLogsTable()" style="background: var(--bg-surface); border-color: var(--border-dim); color: var(--text-primary);">
+                    </div>
+                </div>
+
+                <!-- LOGS TABLE -->
+                <div class="table-responsive" style="max-height: 560px; overflow-y: auto; border: 1px solid var(--border-dim); border-radius: 12px;">
+                    <table class="table table-hover align-middle mb-0" id="unitLogsTable" style="font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: var(--bg-raised); color: var(--text-secondary); position: sticky; top: 0; z-index: 2;">
+                                <th style="width: 45px; text-align: center; border-bottom: 2px solid var(--border-dim);">#</th>
+                                <th style="width: 170px; border-bottom: 2px solid var(--border-dim);">Date & Time</th>
+                                <th style="width: 230px; border-bottom: 2px solid var(--border-dim);">Issued To (Personnel)</th>
+                                <th style="border-bottom: 2px solid var(--border-dim);">Item Name</th>
+                                <th style="width: 90px; text-align: center; border-bottom: 2px solid var(--border-dim);">SER</th>
+                                <th style="width: 90px; text-align: center; border-bottom: 2px solid var(--border-dim);">PWS</th>
+                                <th style="width: 90px; text-align: center; border-bottom: 2px solid var(--border-dim);">Total</th>
+                                <th style="width: 200px; border-bottom: 2px solid var(--border-dim);">Remarks / Voucher</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unitLogsTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <i class="fa-solid fa-spinner fa-spin me-2"></i> Loading transaction logs...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer d-flex align-items-center justify-content-between" style="background: var(--bg-raised); border-top: 1px solid var(--border-dim); padding: 10px 24px; border-radius: 0 0 18px 18px;">
+                <span class="text-muted" style="font-size: 0.78rem;" id="ulShowingCountText">Showing 0 records</span>
+                <button type="button" class="btn btn-sm btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <script>
+
     function filterUnitEquipmentTable() {
         const input = document.getElementById("searchUnitEquipmentInput");
         const filter = input.value.toLowerCase();
@@ -981,98 +1202,6 @@
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     }
 
-    function submitAddPersonnel(e) {
-        e.preventDefault();
-        const armyNumber = document.getElementById('pArmyNo').value.trim();
-        const rank = document.getElementById('pRank').value.trim();
-        const name = document.getElementById('pName').value.trim();
-        const company = document.getElementById('pCompany').value.trim();
-
-        if (!armyNumber || !rank || !name || !company) {
-            if (typeof Notify !== 'undefined') {
-                Notify.warning("Army Number, Rank, Name and Company are required.");
-            } else {
-                alert("Army Number, Rank, Name and Company are required.");
-            }
-            return;
-        }
-
-        const btn = document.getElementById('savePersonnelBtn');
-        btn.disabled = true;
-
-        fetch('/unit/add_personnel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({
-                army_number: armyNumber,
-                rank: rank,
-                name: name,
-                company: company
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            btn.disabled = false;
-            if (data.success) {
-                if (typeof Notify !== 'undefined') {
-                    Notify.success(data.message || "Personnel added successfully!");
-                } else {
-                    alert(data.message || "Personnel added successfully!");
-                }
-                
-                // Hide form and reset
-                toggleAddPersonnelForm();
-                document.getElementById('addPersonnelForm').reset();
-
-                // Remove empty row if present
-                const noRow = document.getElementById('noPersonnelRow');
-                if (noRow) noRow.remove();
-
-                // Dynamically insert new personnel row into table
-                const tbody = document.getElementById('personnelTableBody');
-                if (tbody && data.personnel) {
-                    const rowCount = tbody.getElementsByTagName('tr').length + 1;
-                    const p = data.personnel;
-                    const todayStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-                    const newTr = document.createElement('tr');
-                    newTr.id = `personnel-row-${p.id}`;
-                    newTr.innerHTML = `
-                        <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">${rowCount}</td>
-                        <td style="font-weight: 700; color: #3b82f6; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.army_number}</td>
-                        <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.rank}</td>
-                        <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.name}</td>
-                        <td style="font-weight: 600; color: var(--text-secondary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${p.company || '-'}</td>
-                        <td style="text-align: center; color: var(--text-secondary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">${todayStr}</td>
-                        <td style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
-                            <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem; border-radius: 4px;" onclick="deletePersonnelRow(${p.id}, '${p.army_number}')">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    `;
-                    tbody.insertBefore(newTr, tbody.firstChild);
-                }
-            } else {
-                if (typeof Notify !== 'undefined') {
-                    Notify.error(data.message || "Failed to add personnel.");
-                } else {
-                    alert(data.message || "Failed to add personnel.");
-                }
-            }
-        })
-        .catch(err => {
-            btn.disabled = false;
-            console.error(err);
-            if (typeof Notify !== 'undefined') {
-                Notify.error("Error adding personnel.");
-            } else {
-                alert("Error adding personnel.");
-            }
-        });
-    }
-
     function deletePersonnelRow(id, armyNo) {
         if (!confirm(`Are you sure you want to delete personnel with Army Number ${armyNo}?`)) return;
         fetch(`/unit/delete_personnel/${id}`, {
@@ -1106,18 +1235,149 @@
         });
     }
 
-    let searchDebounceTimer = null;
+    let autoCheckDebounce = null;
 
-    function openIssueToPersonnelModal(recId, itemName) {
+    function autoCheckPersonnel(armyNo) {
+        armyNo = (armyNo || '').trim();
+        if (!armyNo) return;
+        clearTimeout(autoCheckDebounce);
+        autoCheckDebounce = setTimeout(() => {
+            fetch(`/unit/search_personnel?q=${encodeURIComponent(armyNo)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.results && data.results.length > 0) {
+                        const match = data.results.find(p => (p.army_number || '').toLowerCase() === armyNo.toLowerCase()) || data.results[0];
+                        if (match && (match.army_number || '').toLowerCase() === armyNo.toLowerCase()) {
+                            if (match.rank) document.getElementById('issueRankInput').value = match.rank;
+                            if (match.name) document.getElementById('issueNameInput').value = match.name;
+                            if (match.company) document.getElementById('issueCoyInput').value = match.company;
+                        }
+                    }
+                })
+                .catch(err => console.error(err));
+        }, 300);
+    }
+
+    window.unitCurrentAvailSer = 0;
+    window.unitCurrentAvailPws = 0;
+
+    function validateIssueToPersonnelForm() {
+        const specialCharRegex = /[^a-zA-Z0-9\s_-]/;
+        const confirmBtn = document.getElementById("confirmIssueBtn");
+        let hasError = false;
+
+        // 1. Army Number Inline Validation
+        const armyNoInput = document.getElementById("issueArmyNoInput");
+        const errArmyNo = document.getElementById("errIssueArmyNoChar");
+        if (armyNoInput) {
+            const val = armyNoInput.value.trim();
+            if (val && specialCharRegex.test(val)) {
+                if (errArmyNo) errArmyNo.style.display = "block";
+                armyNoInput.style.borderColor = "var(--danger)";
+                hasError = true;
+            } else {
+                if (errArmyNo) errArmyNo.style.display = "none";
+                armyNoInput.style.borderColor = "var(--border-dim)";
+            }
+        }
+
+        // 2. Personnel Name Inline Validation
+        const nameInput = document.getElementById("issueNameInput");
+        const errName = document.getElementById("errIssueNameChar");
+        if (nameInput) {
+            const val = nameInput.value.trim();
+            if (val && specialCharRegex.test(val)) {
+                if (errName) errName.style.display = "block";
+                nameInput.style.borderColor = "var(--danger)";
+                hasError = true;
+            } else {
+                if (errName) errName.style.display = "none";
+                nameInput.style.borderColor = "var(--border-dim)";
+            }
+        }
+
+        // 3. Remarks Inline Validation
+        const remarksInput = document.getElementById("issueRemarksInput");
+        const errRemarks = document.getElementById("errIssueRemarksChar");
+        if (remarksInput) {
+            const val = remarksInput.value.trim();
+            if (val && specialCharRegex.test(val)) {
+                if (errRemarks) errRemarks.style.display = "block";
+                remarksInput.style.borderColor = "var(--danger)";
+                hasError = true;
+            } else {
+                if (errRemarks) errRemarks.style.display = "none";
+                remarksInput.style.borderColor = "var(--border-dim)";
+            }
+        }
+
+        // 4. Quantity Limit Validation
+        const serInput = document.getElementById("issueSerInput");
+        const pwsInput = document.getElementById("issuePwsInput");
+        const ser = Math.max(0, parseInt(serInput ? serInput.value : 0, 10) || 0);
+        const pws = Math.max(0, parseInt(pwsInput ? pwsInput.value : 0, 10) || 0);
+
+        const errSer = document.getElementById("errPersonnelSerExceeded");
+        const errPws = document.getElementById("errPersonnelPwsExceeded");
+
+        if (window.unitCurrentAvailSer !== undefined && window.unitCurrentAvailSer !== null && ser > window.unitCurrentAvailSer) {
+            if (errSer) {
+                errSer.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> SER (${ser}) exceeds Avail SER (${window.unitCurrentAvailSer})!`;
+                errSer.style.display = "block";
+            }
+            if (serInput) serInput.style.borderColor = "var(--danger)";
+            hasError = true;
+        } else {
+            if (errSer) errSer.style.display = "none";
+            if (serInput) serInput.style.borderColor = "var(--border-dim)";
+        }
+
+        if (window.unitCurrentAvailPws !== undefined && window.unitCurrentAvailPws !== null && pws > window.unitCurrentAvailPws) {
+            if (errPws) {
+                errPws.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> PWS (${pws}) exceeds Avail PWS (${window.unitCurrentAvailPws})!`;
+                errPws.style.display = "block";
+            }
+            if (pwsInput) pwsInput.style.borderColor = "var(--danger)";
+            hasError = true;
+        } else {
+            if (errPws) errPws.style.display = "none";
+            if (pwsInput) pwsInput.style.borderColor = "var(--border-dim)";
+        }
+
+        if (confirmBtn) confirmBtn.disabled = hasError;
+    }
+
+    function validateIssueToPersonnelQty() {
+        validateIssueToPersonnelForm();
+    }
+
+    function openIssueToPersonnelModal(recId, itemName, scale = '', availSer = 0, availPws = 0) {
+        window.unitCurrentAvailSer = availSer;
+        window.unitCurrentAvailPws = availPws;
+
         document.getElementById('issueRecId').value = recId;
-        document.getElementById('issueItemNameDisplay').textContent = itemName;
+        const nameDisp = document.getElementById('issueItemNameDisplay');
+        if (nameDisp) {
+            if (nameDisp.tagName === 'INPUT') nameDisp.value = itemName;
+            else nameDisp.textContent = itemName;
+        }
+        const scaleDisp = document.getElementById('issueItemScaleDisplay');
+        if (scaleDisp) scaleDisp.value = scale || 'N/A';
+
+        document.getElementById('issueArmyNoInput').value = '';
+        document.getElementById('issueRankInput').value = '';
+        document.getElementById('issueNameInput').value = '';
+        document.getElementById('issueCoyInput').value = '';
         document.getElementById('issueSerInput').value = '0';
         document.getElementById('issuePwsInput').value = '0';
         document.getElementById('issueRemarksInput').value = '';
-        document.getElementById('personnelSearchInput').value = '';
-        document.getElementById('selectedArmyNumber').value = '';
-        document.getElementById('personnelSearchResults').style.display = 'none';
-        document.getElementById('selectedPersonnelInfo').style.display = 'none';
+
+        const serCountEl = document.getElementById('displayUnitAvailSerCount');
+        const pwsCountEl = document.getElementById('displayUnitAvailPwsCount');
+        if (serCountEl) serCountEl.textContent = availSer;
+        if (pwsCountEl) pwsCountEl.textContent = availPws;
+
+        validateIssueToPersonnelForm();
 
         const el = document.getElementById('modalIssueToPersonnel');
         if (!el) return;
@@ -1126,69 +1386,43 @@
         m.show();
     }
 
-    function onPersonnelSearchInput(e) {
-        const query = e.target.value.trim();
-        clearTimeout(searchDebounceTimer);
-
-        if (!query) {
-            document.getElementById('personnelSearchResults').style.display = 'none';
-            return;
-        }
-
-        // 300ms Debounce Timer for Search
-        searchDebounceTimer = setTimeout(() => {
-            fetch(`/unit/search_personnel?q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => {
-                    const resContainer = document.getElementById('personnelSearchResults');
-                    resContainer.innerHTML = '';
-                    if (data.success && data.results.length > 0) {
-                        data.results.forEach(p => {
-                            const btn = document.createElement('button');
-                            btn.type = 'button';
-                            btn.className = 'list-group-item list-group-item-action py-2 px-3';
-                            btn.style.fontSize = '0.82rem';
-                            btn.innerHTML = `<strong style="color:#3b82f6;">${p.army_number}</strong> — ${p.rank} ${p.name} <small class="text-muted">(${p.company || 'No Coy'})</small>`;
-                            btn.onclick = () => selectPersonnel(p);
-                            resContainer.appendChild(btn);
-                        });
-                        resContainer.style.display = 'block';
-                    } else {
-                        resContainer.innerHTML = '<div class="p-2 text-muted text-center small">No matching personnel found</div>';
-                        resContainer.style.display = 'block';
-                    }
-                })
-                .catch(err => console.error("Error searching personnel:", err));
-        }, 300);
-    }
-
-    function selectPersonnel(p) {
-        document.getElementById('selectedArmyNumber').value = p.army_number;
-        document.getElementById('personnelSearchInput').value = `${p.army_number} - ${p.name}`;
-        document.getElementById('personnelSearchResults').style.display = 'none';
-
-        const infoBox = document.getElementById('selectedPersonnelInfo');
-        document.getElementById('selPersText').textContent = `Selected: ${p.army_number} | ${p.rank} ${p.name} (${p.company || 'Unit'})`;
-        infoBox.style.display = 'block';
-    }
-
     function submitIssueToPersonnel(e) {
         e.preventDefault();
         const recId = document.getElementById('issueRecId').value;
-        const armyNo = document.getElementById('selectedArmyNumber').value;
+        const armyNo = document.getElementById('issueArmyNoInput').value.trim();
+        const rank = document.getElementById('issueRankInput').value.trim();
+        const name = document.getElementById('issueNameInput').value.trim();
+        const company = document.getElementById('issueCoyInput').value.trim();
         const serQty = parseInt(document.getElementById('issueSerInput').value) || 0;
         const pwsQty = parseInt(document.getElementById('issuePwsInput').value) || 0;
         const remarks = document.getElementById('issueRemarksInput').value.trim();
 
-        if (!armyNo) {
-            if (typeof Notify !== 'undefined') Notify.warning("Please search and select a soldier first.");
-            else alert("Please search and select a soldier first.");
+        if (!armyNo || !rank || !name || !company) {
+            if (typeof Notify !== 'undefined') Notify.warning("Army Number, Rank, Name and Company are required.");
+            else alert("Army Number, Rank, Name and Company are required.");
+            return;
+        }
+
+        const specialCharRegex = /[^a-zA-Z0-9\s_-]/;
+        if (specialCharRegex.test(armyNo) || specialCharRegex.test(name) || specialCharRegex.test(remarks)) {
+            if (typeof Notify !== 'undefined') Notify.warning("Special characters are not allowed in Army Number, Name, or Remarks.");
+            else alert("Special characters are not allowed in Army Number, Name, or Remarks.");
             return;
         }
 
         if (serQty <= 0 && pwsQty <= 0) {
             if (typeof Notify !== 'undefined') Notify.warning("Specify at least 1 SER or PWS quantity to issue.");
             else alert("Specify at least 1 SER or PWS quantity to issue.");
+            return;
+        }
+
+        if (window.unitCurrentAvailSer !== undefined && serQty > window.unitCurrentAvailSer) {
+            alert(`SER quantity (${serQty}) cannot exceed Available SER stock (${window.unitCurrentAvailSer}).`);
+            return;
+        }
+
+        if (window.unitCurrentAvailPws !== undefined && pwsQty > window.unitCurrentAvailPws) {
+            alert(`PWS quantity (${pwsQty}) cannot exceed Available PWS stock (${window.unitCurrentAvailPws}).`);
             return;
         }
 
@@ -1204,6 +1438,9 @@
             body: JSON.stringify({
                 rec_id: recId,
                 army_number: armyNo,
+                rank: rank,
+                name: name,
+                company: company,
                 ser_qty: serQty,
                 pws_qty: pwsQty,
                 remarks: remarks
@@ -1222,7 +1459,6 @@
                 const m = bootstrap.Modal.getInstance(modalEl);
                 if (m) m.hide();
 
-                // Reload after short delay to update all tables and charts
                 setTimeout(() => location.reload(), 1000);
             } else {
                 if (typeof Notify !== 'undefined') {
@@ -1239,6 +1475,7 @@
         });
     }
 
+
     function openTpsModal() {
         const el = document.getElementById('modalTpsStock');
         if (!el) return;
@@ -1246,6 +1483,265 @@
         const m = bootstrap.Modal.getOrCreateInstance(el);
         m.show();
     }
+
+    // ---- TRANSACTION LOGS MODAL FUNCTIONS ----
+    let logsCacheData = null;
+
+    function openLogsModal() {
+        const el = document.getElementById('unitLogsModal');
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+
+        fetchLogsData();
+    }
+
+    function fetchLogsData() {
+        const tbody = document.getElementById('unitLogsTableBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i> Loading transaction logs...</td></tr>`;
+        }
+
+        fetch('/unit/unit_logs')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> ${data.message || 'Failed to load logs'}</td></tr>`;
+                    return;
+                }
+
+                logsCacheData = data.logs || [];
+                const badge = document.getElementById('ulTotalCountBadge');
+                if (badge) badge.textContent = `${logsCacheData.length} Total Logs`;
+
+                renderLogsTable();
+            })
+            .catch(err => {
+                console.error(err);
+                if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> Connection error while loading logs.</td></tr>`;
+            });
+    }
+
+    function renderLogsTable() {
+        if (!logsCacheData) return;
+        const query = (document.getElementById('ulSearchInput')?.value || '').trim().toLowerCase();
+        const tbody = document.getElementById('unitLogsTableBody');
+        if (!tbody) return;
+
+        let filtered = logsCacheData;
+        if (query) {
+            filtered = logsCacheData.filter(l => 
+                (l.timestamp || '').toLowerCase().includes(query) ||
+                (l.received_by || '').toLowerCase().includes(query) ||
+                (l.item_name || '').toLowerCase().includes(query) ||
+                (l.remarks || '').toLowerCase().includes(query)
+            );
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox me-1"></i> No matching logs found.</td></tr>`;
+        } else {
+            let html = '';
+            filtered.forEach((l, idx) => {
+                html += `
+                    <tr>
+                        <td style="text-align: center; color: var(--text-secondary); font-weight: 600;">${idx + 1}</td>
+                        <td style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);">${l.timestamp}</td>
+                        <td style="font-weight: 700; color: var(--text-primary);">${l.received_by}</td>
+                        <td style="font-weight: 700; color: #3b82f6;">${l.item_name}</td>
+                        <td style="text-align: center;"><span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700;">${l.ser}</span></td>
+                        <td style="text-align: center;"><span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700;">${l.pws}</span></td>
+                        <td style="text-align: center; font-weight: 800; color: var(--text-primary);">${l.total}</td>
+                        <td style="font-size: 0.8rem; color: var(--text-secondary);">${l.remarks}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        const countText = document.getElementById('ulShowingCountText');
+        if (countText) countText.textContent = `Showing ${filtered.length} of ${logsCacheData.length} logs`;
+    }
+
+    function filterLogsTable() {
+        renderLogsTable();
+    }
+
+    // ---- HISTORY LEDGER MODAL FUNCTIONS ----
+    let hlDataCache = null;
+
+    function openHistoryLedgerModal() {
+        const el = document.getElementById('historyLedgerModal');
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+
+        fetchHistoryLedgerData();
+    }
+
+    function fetchHistoryLedgerData() {
+        const holdingsBody = document.getElementById('hlHoldingsTableBody');
+        if (holdingsBody) {
+            holdingsBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i> Loading personnel holdings ledger...</td></tr>`;
+        }
+
+        fetch('/unit/history_ledger')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    if (holdingsBody) holdingsBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> ${data.message || 'Failed to load ledger data'}</td></tr>`;
+                    return;
+                }
+
+                hlDataCache = data;
+                
+                // Populate Minimal Metrics
+                const summary = data.summary || {};
+                const mSer = document.getElementById('hlMetricSer');
+                const mPws = document.getElementById('hlMetricPws');
+                const mTotalItems = document.getElementById('hlMetricTotalItems');
+
+                if (mSer) mSer.textContent = summary.total_ser_issued || 0;
+                if (mPws) mPws.textContent = summary.total_pws_issued || 0;
+                if (mTotalItems) mTotalItems.textContent = summary.total_items_issued || 0;
+
+                // Populate Company Filter
+                const coySelect = document.getElementById('hlCompanyFilter');
+                if (coySelect) {
+                    const currentCoy = coySelect.value;
+                    coySelect.innerHTML = '<option value="">All Companies</option>';
+                    (data.companies || []).forEach(coy => {
+                        const opt = document.createElement('option');
+                        opt.value = coy;
+                        opt.textContent = coy;
+                        if (coy === currentCoy) opt.selected = true;
+                        coySelect.appendChild(opt);
+                    });
+                }
+
+                renderHistoryLedgerTables();
+            })
+            .catch(err => {
+                console.error('Error fetching history ledger:', err);
+                if (holdingsBody) holdingsBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> Connection error while loading ledger data.</td></tr>`;
+            });
+    }
+
+    function renderHistoryLedgerTables() {
+        if (!hlDataCache) return;
+
+        const rawQuery = document.getElementById('hlSearchInput')?.value || '';
+        const query = rawQuery.trim().toLowerCase();
+        const coyFilter = document.getElementById('hlCompanyFilter')?.value || '';
+
+        // Render Holdings Table
+        const holdingsBody = document.getElementById('hlHoldingsTableBody');
+        if (holdingsBody) {
+            let personnelList = hlDataCache.personnel_holdings || [];
+
+            // Apply Coy Filter
+            if (coyFilter) {
+                personnelList = personnelList.filter(p => p.company === coyFilter);
+            }
+
+            // Apply Search Query
+            if (query) {
+                personnelList = personnelList.filter(p => {
+                    const matchPers = (p.name || '').toLowerCase().includes(query) ||
+                                      (p.army_number || '').toLowerCase().includes(query) ||
+                                      (p.rank || '').toLowerCase().includes(query) ||
+                                      (p.company || '').toLowerCase().includes(query);
+                    const matchItem = (p.items || []).some(item => (item.item_name || '').toLowerCase().includes(query));
+                    return matchPers || matchItem;
+                });
+            }
+
+            if (personnelList.length === 0) {
+                holdingsBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox me-1"></i> No personnel holdings found.</td></tr>`;
+            } else {
+                let html = '';
+                personnelList.forEach((p, idx) => {
+                    const totalBadgeClass = p.total_held > 0 ? 'bg-primary' : 'bg-secondary opacity-50';
+                    const hasItems = p.total_held > 0;
+                    const actionBtn = hasItems ? `
+                        <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2 font-weight-bold" style="font-size: 0.76rem; border-radius: 6px;" onclick="viewPersonnelItems('${p.army_number}')">
+                            <i class="fa-solid fa-eye me-1"></i> View Items
+                        </button>
+                    ` : `
+                        <span class="text-muted" style="font-size: 0.75rem;">—</span>
+                    `;
+
+                    html += `
+                        <tr>
+                            <td style="text-align: center; color: var(--text-secondary); font-weight: 600;">${idx + 1}</td>
+                            <td><strong style="color: #3b82f6;">${p.army_number}</strong></td>
+                            <td style="font-weight: 600; color: var(--text-primary);">${p.rank}</td>
+                            <td style="font-weight: 700; color: var(--text-primary);">${p.name}</td>
+                            <td><span class="badge bg-light text-dark border">${p.company || 'N/A'}</span></td>
+                            <td style="text-align: center;">
+                                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; font-size: 0.82rem;">${p.total_ser || 0}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700; font-size: 0.82rem;">${p.total_pws || 0}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge ${totalBadgeClass} font-weight-bold px-2 py-1" style="font-size: 0.82rem;">${p.total_held || 0}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                ${actionBtn}
+                            </td>
+                        </tr>
+                    `;
+                });
+                holdingsBody.innerHTML = html;
+            }
+
+            const countText = document.getElementById('hlRecordCountText');
+            if (countText) {
+                countText.textContent = `Showing ${personnelList.length} personnel records`;
+            }
+        }
+    }
+
+    function viewPersonnelItems(armyNumber) {
+        if (!hlDataCache || !hlDataCache.personnel_holdings) return;
+        const personnel = hlDataCache.personnel_holdings.find(p => p.army_number === armyNumber);
+        if (!personnel) return;
+
+        document.getElementById('vpiPersonnelName').textContent = `${personnel.rank} ${personnel.name}`;
+        document.getElementById('vpiPersonnelSub').textContent = `${personnel.army_number} • ${personnel.company || 'N/A'}`;
+
+        const tbody = document.getElementById('vpiItemsTableBody');
+        if (!personnel.items || personnel.items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-muted">No items currently held.</td></tr>`;
+        } else {
+            let html = '';
+            personnel.items.forEach(item => {
+                html += `
+                    <tr>
+                        <td style="font-weight: 700; color: var(--text-primary);">${item.item_name}</td>
+                        <td style="text-align: center;"><span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700;">${item.tps_ser || 0}</span></td>
+                        <td style="text-align: center;"><span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700;">${item.tps_pws || 0}</span></td>
+                        <td style="text-align: center; font-weight: 800; color: var(--text-primary);">${item.total_held || 0}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        const el = document.getElementById('viewPersonnelItemsModal');
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        const m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+    }
+
+    function filterHistoryLedgerTable() {
+        renderHistoryLedgerTables();
+    }
+
 
     function filterTpsTable() {
         const input = document.getElementById("searchTpsInput");
@@ -2031,5 +2527,12 @@
             unitCoyTpsChart.update();
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
+        });
+    });
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends '/base.html' %}
 
-{% block page_title %}Add Stock Entry — SCME{% endblock %}
+{% block page_title %}Add Stock Entry{% endblock %}
 
 {% block sidebar_nav %}
 <a href="/scme/" class="nav-item">
@@ -10,6 +10,10 @@
 <a href="/scme/add-stock" class="nav-item active">
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
+</a>
+<a href="/scme/current-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-tooltip">Available Stock</span>
 </a>
 <a href="/logs/" class="nav-item">
     <i class="fa-solid fa-clock-rotate-left"></i>
@@ -42,9 +46,38 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 20px;
-        border-bottom: 1px solid var(--border-dim);
-        padding-bottom: 14px;
+    }
+
+    .btn-current-stock {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        font-weight: 700;
+        padding: 9px 20px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-current-stock:hover {
+        background: #3b82f6;
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+        transform: translateY(-1px);
+    }
+
+    .live-stock-badge {
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.12);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.25);
     }
 
     .form-label-custom {
@@ -134,10 +167,17 @@
 
     <!-- ── FORM CARD ── -->
     <div class="glass-card">
-        <h3 class="card-header-title">
-            <i class="fa-solid fa-boxes-packing" style="color: var(--accent);"></i>
-            Add FOD Stock Entry
-        </h3>
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom: 1px solid var(--border-dim);">
+            <h3 class="card-header-title mb-0">
+                <i class="fa-solid fa-boxes-packing" style="color: var(--accent);"></i>
+                Add FOD Stock Entry
+            </h3>
+            <a href="/scme/current-stock" class="btn btn-current-stock d-flex align-items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>View Current Stock</span>
+                <span class="badge rounded-pill bg-primary ms-1" style="font-size: 0.78rem;">{{ total_fod_qty if total_fod_qty is defined else 0 }}</span>
+            </a>
+        </div>
 
         <form action="/scme/add-stock" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -162,11 +202,25 @@
 
                 <!-- 3. Item Name (Dropdown) -->
                 <div class="col-md-6">
-                    <label class="form-label-custom">Item Name <span class="text-danger">*</span></label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label-custom mb-0">Item Name <span class="text-danger">*</span></label>
+                        <span id="itemStockIndicator" class="live-stock-badge" style="display: none;">
+                            <i class="fa-solid fa-cubes"></i> Current Available Stock: <span id="itemStockVal" style="font-weight:900;">0</span> (SER: <span id="itemSerVal">0</span>, PWS: <span id="itemPwsVal">0</span>)
+                        </span>
+                    </div>
+                    {% set param_item_id = request.args.get('item_id', type=int) %}
                     <select name="item_id" id="stockItemSelect" class="form-select form-select-custom" required>
                         <option value="">-- Select Item --</option>
                         {% for item in items %}
-                            <option value="{{ item.id }}" data-category="{{ item.category }}">{{ item.item_name }} ({{ item.category }})</option>
+                            {% set st_data = current_stock_summary.get(item.id, {}) if current_stock_summary is defined else {} %}
+                            <option value="{{ item.id }}" 
+                                    data-category="{{ item.category }}" 
+                                    data-total="{{ st_data.get('total_qty', 0) }}" 
+                                    data-ser="{{ st_data.get('total_ser', 0) }}" 
+                                    data-pws="{{ st_data.get('total_pws', 0) }}"
+                                    {% if param_item_id and param_item_id == item.id %}selected{% endif %}>
+                                {{ item.item_name }} ({{ item.category }}) — Available Stock: {{ st_data.get('total_qty', 0) }}
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -221,7 +275,7 @@
 
     <!-- ── RECENT STOCK ENTRIES TABLE CARD ── -->
     <div class="glass-card">
-        <h3 class="card-header-title">
+        <h3 class="card-header-title mb-4 pb-3" style="border-bottom: 1px solid var(--border-dim);">
             <i class="fa-solid fa-list-check" style="color: var(--accent);"></i>
             FOD Stock Entries Log (`fod_stock_table`)
         </h3>
@@ -283,12 +337,38 @@
     document.addEventListener('DOMContentLoaded', function() {
         const catSelect = document.getElementById('stockCategorySelect');
         const itemSelect = document.getElementById('stockItemSelect');
+        const itemStockIndicator = document.getElementById('itemStockIndicator');
+        const itemStockVal = document.getElementById('itemStockVal');
+        const itemSerVal = document.getElementById('itemSerVal');
+        const itemPwsVal = document.getElementById('itemPwsVal');
         const allItemOptions = Array.from(itemSelect.querySelectorAll('option')).slice(1);
+
+        // Update live stock indicator when item selected
+        function updateStockBadge() {
+            const selectedOpt = itemSelect.options[itemSelect.selectedIndex];
+            if (selectedOpt && selectedOpt.value) {
+                const total = selectedOpt.dataset.total || '0';
+                const ser = selectedOpt.dataset.ser || '0';
+                const pws = selectedOpt.dataset.pws || '0';
+
+                itemStockVal.textContent = total;
+                itemSerVal.textContent = ser;
+                itemPwsVal.textContent = pws;
+                itemStockIndicator.style.display = 'inline-flex';
+
+                // Auto-sync category dropdown if empty
+                if (catSelect && !catSelect.value && selectedOpt.dataset.category) {
+                    catSelect.value = selectedOpt.dataset.category;
+                }
+            } else {
+                itemStockIndicator.style.display = 'none';
+            }
+        }
 
         catSelect.addEventListener('change', function() {
             const selectedCat = this.value;
             
-            // Reset items
+            // Reset items dropdown
             itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
             
             allItemOptions.forEach(opt => {
@@ -296,7 +376,14 @@
                     itemSelect.appendChild(opt.cloneNode(true));
                 }
             });
+
+            updateStockBadge();
         });
+
+        itemSelect.addEventListener('change', updateStockBadge);
+        
+        // Trigger initial badge check (in case item was pre-selected via query param)
+        updateStockBadge();
 
         // Auto-calculate Quantity = SER + PWS
         const qtyInput = document.getElementById('stockQtyInput');

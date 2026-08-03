@@ -771,7 +771,7 @@
                                     <span class="strength-pill" style="color: #f59e0b; font-weight: 700;">{{ item.tps_pws or 0 }}</span>
                                 </td>
                                 <td style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
-                                    <button class="btn btn-sm btn-outline-primary px-2 py-1" style="border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="handleIssueItem({{ item.item_id }}, '{{ item.item_name }}', {{ avail_res_total }}, this)">
+                                    <button class="btn btn-sm btn-outline-primary px-2 py-1" style="border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" onclick="handleIssueItem({{ item.item_id }}, '{{ item.item_name|escape }}', {{ avail_res_total }}, this, {{ res_ser }}, {{ res_pws }}, '{{ item.scale|escape }}')">
                                         <i class="fa-solid fa-hand-holding-hand"></i> Issue
                                     </button>
                                 </td>
@@ -823,12 +823,16 @@
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-6">
+                        <div class="col-4">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">SCALE</label>
+                            <input type="text" id="issueItemScaleInput" class="form-control" placeholder="1 per indl" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
+                        <div class="col-4">
                             <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">AUTH</label>
                             <input type="number" id="issueItemAuthInput" class="form-control" min="0" placeholder="Max limit" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
                         </div>
-                        <div class="col-6">
-                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">HELD (FOR THIS UNIT)</label>
+                        <div class="col-4">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">HELD (UNIT)</label>
                             <input type="number" id="issueItemHeldInput" class="form-control" readonly placeholder="0" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
                         </div>
                     </div>
@@ -837,10 +841,18 @@
                         <div class="col-6">
                             <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">SER Qty</label>
                             <input type="number" id="issueSerInput" class="form-control" min="0" value="0" placeholder="SER Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="updateIssueQtyFromSplit()">
+                            <small class="text-muted d-block mt-1" style="font-size: 0.73rem; font-weight: 600;">
+                                <i class="fa-solid fa-boxes-stacked text-success me-1"></i>Avail SER: <strong id="displayAvailSerCount" style="color: #10b981;">0</strong>
+                            </small>
+                            <span id="errIssueSerExceeded" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available SER!</span>
                         </div>
                         <div class="col-6">
                             <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">PWS Qty</label>
                             <input type="number" id="issuePwsInput" class="form-control" min="0" value="0" placeholder="PWS Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="updateIssueQtyFromSplit()">
+                            <small class="text-muted d-block mt-1" style="font-size: 0.73rem; font-weight: 600;">
+                                <i class="fa-solid fa-boxes-stacked text-warning me-1"></i>Avail PWS: <strong id="displayAvailPwsCount" style="color: #f59e0b;">0</strong>
+                            </small>
+                            <span id="errIssuePwsExceeded" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available PWS!</span>
                         </div>
                     </div>
 
@@ -997,10 +1009,47 @@
     }
 
     // ---- Issue Item from Stock Held Modal ----
+    window.currentAvailSer = 0;
+    window.currentAvailPws = 0;
+
     function updateIssueQtyFromSplit() {
-        const ser = Math.max(0, parseInt(document.getElementById("issueSerInput").value, 10) || 0);
-        const pws = Math.max(0, parseInt(document.getElementById("issuePwsInput").value, 10) || 0);
+        const serInput = document.getElementById("issueSerInput");
+        const pwsInput = document.getElementById("issuePwsInput");
+        const ser = Math.max(0, parseInt(serInput ? serInput.value : 0, 10) || 0);
+        const pws = Math.max(0, parseInt(pwsInput ? pwsInput.value : 0, 10) || 0);
         document.getElementById("issueCountInput").value = ser + pws;
+
+        const errSer = document.getElementById("errIssueSerExceeded");
+        const errPws = document.getElementById("errIssuePwsExceeded");
+        const confirmBtn = document.getElementById("confirmIssueBtn");
+
+        let hasError = false;
+
+        if (window.currentAvailSer !== undefined && window.currentAvailSer !== null && ser > window.currentAvailSer) {
+            if (errSer) {
+                errSer.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> SER (${ser}) exceeds Avail SER (${window.currentAvailSer})!`;
+                errSer.style.display = "block";
+            }
+            if (serInput) serInput.style.borderColor = "var(--danger)";
+            hasError = true;
+        } else {
+            if (errSer) errSer.style.display = "none";
+            if (serInput) serInput.style.borderColor = "var(--border-dim)";
+        }
+
+        if (window.currentAvailPws !== undefined && window.currentAvailPws !== null && pws > window.currentAvailPws) {
+            if (errPws) {
+                errPws.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> PWS (${pws}) exceeds Avail PWS (${window.currentAvailPws})!`;
+                errPws.style.display = "block";
+            }
+            if (pwsInput) pwsInput.style.borderColor = "var(--danger)";
+            hasError = true;
+        } else {
+            if (errPws) errPws.style.display = "none";
+            if (pwsInput) pwsInput.style.borderColor = "var(--border-dim)";
+        }
+
+        if (confirmBtn) confirmBtn.disabled = hasError;
     }
 
     async function fetchExistingUnitItemAuth() {
@@ -1008,6 +1057,7 @@
         const itemId = document.getElementById("issueTargetItemId").value;
         const authInput = document.getElementById("issueItemAuthInput");
         const heldInput = document.getElementById("issueItemHeldInput");
+        const scaleInput = document.getElementById("issueItemScaleInput");
 
         if (!unitName || !itemId) return;
 
@@ -1017,6 +1067,7 @@
             if (res.ok && result.success && result.exists) {
                 authInput.value = result.auth !== null ? result.auth : "";
                 heldInput.value = result.held !== undefined ? result.held : 0;
+                if (scaleInput && result.scale) scaleInput.value = result.scale;
             } else {
                 authInput.value = "";
                 heldInput.value = 0;
@@ -1026,16 +1077,27 @@
         }
     }
 
-    function handleIssueItem(itemId, itemName, currentReserve, btnElement) {
+    function handleIssueItem(itemId, itemName, currentReserve, btnElement, availSer = 0, availPws = 0, scale = "") {
+        window.currentAvailSer = availSer;
+        window.currentAvailPws = availPws;
+
         document.getElementById("issueTargetItemId").value = itemId;
         document.getElementById("issueCurrentStock").value = currentReserve;
         document.getElementById("displayIssueItemName").value = itemName;
+        document.getElementById("issueItemScaleInput").value = scale || "";
         document.getElementById("issueItemAuthInput").value = "";
         document.getElementById("issueItemHeldInput").value = "0";
         document.getElementById("issueSerInput").value = "0";
         document.getElementById("issuePwsInput").value = "0";
         document.getElementById("issueCountInput").value = "0";
         document.getElementById("displayAvailStockBadge").textContent = `Available Reserve: ${currentReserve}`;
+
+        const availSerEl = document.getElementById("displayAvailSerCount");
+        const availPwsEl = document.getElementById("displayAvailPwsCount");
+        if (availSerEl) availSerEl.textContent = availSer;
+        if (availPwsEl) availPwsEl.textContent = availPws;
+
+        updateIssueQtyFromSplit();
 
         currentActiveStockRow = btnElement ? btnElement.closest("tr") : null;
 
@@ -1051,6 +1113,7 @@
         const totalVal = parseInt(document.getElementById('issueCountInput').value, 10) || 0;
         const serVal = parseInt(document.getElementById('issueSerInput').value, 10) || 0;
         const pwsVal = parseInt(document.getElementById('issuePwsInput').value, 10) || 0;
+        const itemScale = (document.getElementById('issueItemScaleInput').value || "").trim();
         const itemAuthVal = document.getElementById('issueItemAuthInput').value.trim();
         const itemAuth = itemAuthVal !== "" ? parseInt(itemAuthVal, 10) : null;
         const availReserve = parseInt(document.getElementById('issueCurrentStock').value, 10) || 0;
@@ -1059,6 +1122,16 @@
 
         if (totalVal <= 0) { alert('Enter a valid positive total issue quantity.'); return; }
         if (totalVal > availReserve) { alert(`Cannot issue ${totalVal}. Maximum available reserve is ${availReserve}.`); return; }
+
+        if (window.currentAvailSer !== undefined && serVal > window.currentAvailSer) {
+            alert(`SER quantity (${serVal}) cannot exceed Available SER stock (${window.currentAvailSer}).`);
+            return;
+        }
+
+        if (window.currentAvailPws !== undefined && pwsVal > window.currentAvailPws) {
+            alert(`PWS quantity (${pwsVal}) cannot exceed Available PWS stock (${window.currentAvailPws}).`);
+            return;
+        }
 
         if (serVal + pwsVal !== totalVal) {
             alert(`SER (${serVal}) + PWS (${pwsVal}) must equal Total Issue Quantity (${totalVal}).`);
@@ -1078,7 +1151,7 @@
             const res = await fetch('/division_admin/issue-item', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-                body: JSON.stringify({ unit_name: unitName, item_id: itemId, ser: serVal, pws: pwsVal, issue_count: totalVal, item_auth: itemAuth })
+                body: JSON.stringify({ unit_name: unitName, item_id: itemId, scale: itemScale, ser: serVal, pws: pwsVal, issue_count: totalVal, item_auth: itemAuth })
             });
             const result = await res.json();
             if (!res.ok || !result.success) throw new Error(result.message || 'Failed to issue item');
