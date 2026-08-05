@@ -1,24 +1,12 @@
 """
 Response Formatter Module for CMS AI Assistant.
-Formats structured response payloads, integrating dynamic styles (Tables, Lists, Markdown)
-and chart request structures.
+Formats structured response payloads for natural text, data tables, Plotly visualizations,
+and interactive selection menus.
 """
 
 from typing import Dict, Any, List, Optional
 from aiml.formatter.style_detector import detect_response_style
 from aiml.formatter.style_factory import StyleFormatterFactory
-
-SUGGESTED_ACTIONS = {
-    "LOW_STOCK_DEFICIENCY": ["Create Purchase Order", "Contact Supplier", "View Inventory", "Open Dashboard"],
-    "INVENTORY_SUMMARY": ["Open Dashboard", "View Inventory", "Export Report"],
-    "SALES_ISSUANCE": ["View Sales Report", "Export Report", "Open Dashboard"],
-    "CATEGORY_COMPARISON": ["View Category Details", "Export Report", "Open Dashboard"],
-    "DYNAMIC_CHART": ["Interact with Chart", "Export Chart", "Open Dashboard"],
-    "PRODUCT_INFO": ["View Product Catalog", "Check Stock Levels", "Open Dashboard"],
-    "UNIT_INFO": ["View Unit Strengths", "Open Dashboard"],
-    "GREETING": ["Open Dashboard", "View Inventory Summary", "Compare Categories"],
-    "HELP": ["View Examples", "Open Dashboard"]
-}
 
 
 def build_structured_response(
@@ -40,7 +28,7 @@ def build_structured_response(
     formatter = StyleFormatterFactory.get_formatter(primary_style)
     payload = formatter.format(intent, db_data, response_text, prompt)
 
-    # Attach chart request & visualization metadata
+    # Attach chart request & visualization metadata ONLY if explicitly generated
     if chart_metadata and chart_metadata.get("visualization"):
         payload["visualization"] = True
         payload["chart_type"] = chart_metadata.get("chart_type", "bar")
@@ -51,14 +39,6 @@ def build_structured_response(
             payload["chart_request"] = chart_metadata.get("chart_request")
     elif chart_request:
         payload["chart_request"] = chart_request
-
-    # Actions and recommendations
-    if custom_recommendations:
-        payload["recommendations"] = custom_recommendations
-    if custom_actions:
-        payload["actions"] = custom_actions
-    elif not payload.get("actions"):
-        payload["actions"] = SUGGESTED_ACTIONS.get(intent, ["Open Dashboard", "View Inventory"])
 
     payload["intent"] = intent.lower()
     payload["response_style"] = primary_style

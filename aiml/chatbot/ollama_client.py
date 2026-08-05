@@ -46,11 +46,11 @@ class OllamaClient:
             messages=messages,
             stream=True,
             options={
-                "num_predict": max_tokens,
+                "num_predict": min(max_tokens, 200),
                 "temperature": temperature,
                 "top_p": 0.7,
                 "repeat_penalty": 1.1,
-                "num_ctx": 2048,
+                "num_ctx": 1024,
             }
         )
 
@@ -79,10 +79,11 @@ class OllamaClient:
                 {"role": "user", "content": user_prompt}
             ],
             options={
-                "num_predict": 300,
+                "num_predict": 200,
                 "temperature": temperature,
                 "top_p": 0.7,
-                "num_ctx": 2048,
+                "num_ctx": 1024,
             }
         )
         return response.get("message", {}).get("content", "").strip()
+

@@ -13,7 +13,19 @@ class SummaryTool:
     def execute(intent: str, db_data: Dict[str, Any]) -> Dict[str, Any]:
         lines = []
 
-        if intent == "PRODUCT_INFO":
+        if db_data.get("source") == "LangChainSQLChain" and "records" in db_data:
+            records = db_data.get("records", [])
+            gen_sql = db_data.get("generated_sql", "")
+            lines.append("Database Query Results:")
+            if gen_sql:
+                lines.append(f"- Query: `{gen_sql}`")
+            lines.append(f"- Total Records Retrieved: {len(records)}")
+            for idx, rec in enumerate(records[:5], 1):
+                # Format first few dict key-values into summary line
+                item_str = ", ".join([f"{k}: \"{v}\"" for k, v in list(rec.items())[:4]])
+                lines.append(f"{idx}. {item_str}")
+
+        elif intent == "PRODUCT_INFO":
             if db_data.get("found"):
                 lines.append(f"Product Availability for \"{db_data['item_name']}\":")
                 lines.append(f"- Total Available Stock: {db_data['total_available']} units")
@@ -89,3 +101,4 @@ class SummaryTool:
             "tool": "SummaryTool",
             "summary_text": summary_text
         }
+

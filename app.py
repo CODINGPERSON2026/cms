@@ -89,7 +89,7 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(port=9090, debug=True)
+    app.run(port=9090, debug=True, use_reloader=False)
 # ECC Monthly Summary: Both Previous Month and Issued During Month now use real transactions table queries
 
 
