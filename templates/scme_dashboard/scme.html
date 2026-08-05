@@ -1,6 +1,6 @@
 {% extends '/base.html' %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}2 FOD Dashboard{% endblock %}
 
 {% block sidebar_nav %}
 <a href="/scme/" class="nav-item active">
@@ -10,6 +10,10 @@
 <a href="/scme/add-stock" class="nav-item">
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
+</a>
+<a href="/scme/current-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-tooltip">Available Stock</span>
 </a>
 <a href="/logs/" class="nav-item">
     <i class="fa-solid fa-clock-rotate-left"></i>
@@ -1221,12 +1225,17 @@
                                 <th colspan="3" style="padding: 8px 12px; background-color: #dbeafe; color: #1d4ed8; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #bfdbfe; border-right: 2px solid #3b82f6; text-align: center; white-space: nowrap;">
                                     <i class="fa-solid fa-clock-rotate-left" style="margin-right: 4px; opacity: 0.85;"></i> PREVIOUS MONTH
                                 </th>
-                                
+
+                                <!-- ISSUED DURING MONTH GROUP HEADER (ORANGE THEME) -->
+                                <th colspan="3" style="padding: 8px 12px; background-color: #ffedd5; color: #c2410c; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #fed7aa; border-right: 2px solid #f97316; text-align: center; white-space: nowrap;">
+                                    <i class="fa-solid fa-arrow-right-from-bracket" style="margin-right: 4px; opacity: 0.85;"></i> ISSUED DURING MONTH
+                                </th>
+
                                 <!-- STOCK HELD GROUP HEADER (EXCEL GREEN THEME) -->
                                 <th colspan="3" style="padding: 8px 12px; background-color: #dcfce7; color: #15803d; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #bbf7d0; border-right: 2px solid #22c55e; text-align: center; white-space: nowrap;">
                                     <i class="fa-solid fa-boxes-stacked" style="margin-right: 4px; opacity: 0.85;"></i> STOCK HELD
                                 </th>
-                                
+
                                 <th rowspan="2" style="padding: 10px 8px; background-color: #fee2e2; color: #b91c1c; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border: 1px solid #fca5a5; text-align: center; white-space: nowrap; width: 65px;">Defi</th>
                             </tr>
                             <tr>
@@ -1234,7 +1243,12 @@
                                 <th style="padding: 6px 8px; background-color: #eff6ff; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bfdbfe; text-align: center; white-space: nowrap; width: 60px;">Ser</th>
                                 <th style="padding: 6px 8px; background-color: #eff6ff; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bfdbfe; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
                                 <th style="padding: 6px 8px; background-color: #dbeafe; color: #1d4ed8; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; border: 1px solid #bfdbfe; border-right: 2px solid #3b82f6; text-align: center; white-space: nowrap; width: 65px;">Total</th>
-                                
+
+                                <!-- ISSUED DURING MONTH SUB-HEADERS -->
+                                <th style="padding: 6px 8px; background-color: #fff7ed; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #fed7aa; text-align: center; white-space: nowrap; width: 60px;">SER</th>
+                                <th style="padding: 6px 8px; background-color: #fff7ed; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #fed7aa; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
+                                <th style="padding: 6px 8px; background-color: #ffedd5; color: #c2410c; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; border: 1px solid #fed7aa; border-right: 2px solid #f97316; text-align: center; white-space: nowrap; width: 65px;">Total</th>
+
                                 <!-- STOCK HELD SUB-HEADERS -->
                                 <th style="padding: 6px 8px; background-color: #f0fdf4; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bbf7d0; text-align: center; white-space: nowrap; width: 60px;">Ser</th>
                                 <th style="padding: 6px 8px; background-color: #f0fdf4; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bbf7d0; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
@@ -1258,7 +1272,12 @@
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(219, 234, 254, 0.25); white-space: nowrap;">{{ record.prev_ser or 0 }}</td>
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(219, 234, 254, 0.25); white-space: nowrap;">{{ record.prev_pws or 0 }}</td>
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #1d4ed8; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #3b82f6; background: rgba(219, 234, 254, 0.45); white-space: nowrap;">{{ record.prev_total or 0 }}</td>
-                                    
+
+                                    <!-- ISSUED DURING MONTH DATA -->
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(255, 237, 213, 0.25); white-space: nowrap;">{{ record.issd_ser or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(255, 237, 213, 0.25); white-space: nowrap;">{{ record.issd_pws or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #c2410c; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #f97316; background: rgba(255, 237, 213, 0.45); white-space: nowrap;">{{ record.issd_total or 0 }}</td>
+
                                     <!-- STOCK HELD DATA (SER -> PWS -> HELD) -->
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_ser or 0 }}</td>
                                     <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_pws or 0 }}</td>

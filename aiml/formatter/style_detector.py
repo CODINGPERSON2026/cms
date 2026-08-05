@@ -64,9 +64,7 @@ def detect_response_style(prompt: str, intent: str = "general") -> Tuple[str, Op
         return primary, secondary
 
     # Intent-inferred fallbacks if user didn't specify explicit style
-    if intent == "Sales":
+    if intent in ("sales", "sales_issuance", "category_comparison", "dynamic_chart"):
         return STYLE_CHART, None
-    elif intent == "Demand Prediction":
-        return STYLE_RECOMMENDATION, None
 
     return STYLE_NORMAL, None

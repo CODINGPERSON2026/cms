@@ -790,7 +790,7 @@
         }
 
         /* =========================================
-           FLOATING AI ASSISTANT WIDGET STYLES (THEME SYNCED)
+           FLOATING AI ASSISTANT WIDGET STYLES (REALISTIC & PROFESSIONAL)
         ========================================= */
         .ai-chat-launcher {
             position: fixed;
@@ -799,55 +799,97 @@
             z-index: 1020 !important;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 20px;
+            gap: 12px;
+            padding: 10px 20px 10px 14px;
             border-radius: 50px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-            color: #ffffff;
-            border: none;
-            box-shadow: 0 8px 25px var(--accent-glow);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-glow);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--border-dim);
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .ai-chat-launcher:hover {
-            transform: translateY(-3px) scale(1.03);
-            box-shadow: 0 12px 30px var(--accent-glow);
+            transform: translateY(-4px) scale(1.02);
+            border-color: var(--accent);
+            box-shadow: 0 16px 40px var(--accent-glow), 0 0 0 3px var(--accent-muted);
         }
 
-        .ai-launcher-icon {
-            font-size: 20px;
+        .ai-launcher-avatar {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 4px 12px var(--accent-glow);
         }
 
-        .ai-launcher-badge {
+        .ai-pulse-ring {
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            opacity: 0.6;
+            animation: aiPulseRing 2.4s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        }
+
+        @keyframes aiPulseRing {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.18); opacity: 0; }
+            100% { transform: scale(0.95); opacity: 0; }
+        }
+
+        .ai-launcher-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .ai-launcher-title {
+            font-size: 13.5px;
             font-weight: 700;
-            font-size: 14px;
+            line-height: 1.1;
+            color: var(--text-primary);
             letter-spacing: 0.3px;
+        }
+
+        .ai-launcher-subtitle {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .ai-chat-dialog {
             position: fixed;
-            bottom: 90px;
+            bottom: 92px;
             right: 24px;
-            width: 380px;
+            width: 420px;
             max-width: calc(100vw - 32px);
-            height: 520px;
+            height: 600px;
             max-height: calc(100vh - 120px);
             z-index: 1025 !important;
             background: var(--bg-surface);
-            border: 1px solid var(--border-dim);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-glow);
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 0 0 1px var(--border-dim);
             display: flex;
             flex-direction: column;
             overflow: hidden;
             opacity: 0;
             visibility: hidden;
-            transform: translateY(20px) scale(0.95);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(24px) scale(0.95);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .ai-chat-dialog.open {
@@ -856,13 +898,76 @@
             transform: translateY(0) scale(1);
         }
 
+        .ai-chat-dialog.expanded,
+        .ai-chat-dialog.medium {
+            width: 760px;
+            max-width: calc(100vw - 32px);
+            height: 760px;
+            max-height: calc(100vh - 100px);
+            bottom: 70px;
+            right: 20px;
+        }
+
+        .ai-chat-dialog.fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            border-radius: 0 !important;
+            z-index: 99999 !important;
+            margin: 0 !important;
+            border: none !important;
+        }
+
+        .ai-size-toggle-group {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
+            padding: 3px;
+            margin-right: 8px;
+            border: 1px solid var(--border-dim, rgba(0, 0, 0, 0.1));
+        }
+
+        .ai-size-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted, #64748b);
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ai-size-btn:hover {
+            color: var(--accent, #3b82f6);
+        }
+
+        .ai-size-btn.active {
+            background: var(--bg-surface, #ffffff);
+            color: var(--accent, #3b82f6);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+
         .ai-chat-header {
-            background: var(--bg-raised);
-            padding: 14px 18px;
+            background: linear-gradient(180deg, var(--bg-raised) 0%, var(--bg-surface) 100%);
+            padding: 16px 20px;
             border-bottom: 1px solid var(--border-dim);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            cursor: grab;
+            user-select: none;
         }
 
         .ai-chat-header-title {
@@ -873,58 +978,129 @@
 
         .ai-avatar-online {
             position: relative;
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--accent), var(--accent-dim));
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 17px;
+            font-size: 18px;
+            box-shadow: 0 4px 12px var(--accent-glow);
         }
 
         .online-indicator {
             position: absolute;
             bottom: 0;
             right: 0;
-            width: 10px;
-            height: 10px;
+            width: 11px;
+            height: 11px;
             background: var(--success-color, #10b981);
             border: 2px solid var(--bg-surface);
             border-radius: 50%;
+            box-shadow: 0 0 6px var(--success-color);
         }
 
-        .ai-chat-close-btn {
+        .ai-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ai-header-btn {
             background: transparent;
             border: none;
             color: var(--text-muted);
-            font-size: 18px;
+            font-size: 15px;
             cursor: pointer;
-            padding: 4px 8px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: all 0.2s ease;
         }
 
-        .ai-chat-close-btn:hover {
+        .ai-header-btn:hover {
             color: var(--text-primary);
             background: var(--accent-muted);
         }
 
+        /* FAQ Quick Filter Bar */
+        .ai-faq-container {
+            padding: 10px 16px;
+            background: var(--bg-raised);
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .ai-faq-chips {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+
+        .ai-faq-chips::-webkit-scrollbar { display: none; }
+
+        .ai-faq-chip {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-dim);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 11.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .ai-faq-chip i {
+            color: var(--accent);
+            font-size: 11px;
+        }
+
+        .ai-faq-chip:hover {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .ai-faq-chip:hover i {
+            color: #ffffff;
+        }
+
+        /* Chat Body */
         .ai-chat-body {
             flex: 1;
-            padding: 16px;
+            padding: 18px 16px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
             background: var(--bg-base);
+            scroll-behavior: smooth;
         }
 
         .ai-msg {
             display: flex;
-            gap: 10px;
-            max-width: 85%;
+            gap: 12px;
+            max-width: 90%;
+            animation: aiMsgFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes aiMsgFade {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .ai-msg-bot {
@@ -937,62 +1113,95 @@
         }
 
         .ai-msg-avatar {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
+            font-size: 14px;
             flex-shrink: 0;
+            box-shadow: 0 2px 8px var(--accent-glow);
         }
 
         .ai-msg-user .ai-msg-avatar {
-            background: var(--bg-raised);
+            background: var(--bg-surface);
             color: var(--accent);
             border: 1px solid var(--border-dim);
+            box-shadow: none;
         }
 
         .ai-msg-content {
-            padding: 10px 14px;
-            border-radius: 16px;
+            padding: 12px 16px;
+            border-radius: 18px;
             font-size: 13.5px;
-            line-height: 1.45;
+            line-height: 1.55;
             word-break: break-word;
-            white-space: pre-wrap;
         }
 
         .ai-msg-bot .ai-msg-content {
             background: var(--bg-surface);
             color: var(--text-primary);
             border: 1px solid var(--border-dim);
+            border-left: 3.5px solid var(--accent);
             border-top-left-radius: 4px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.05);
         }
 
         .ai-msg-user .ai-msg-content {
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
             color: #ffffff;
             border-top-right-radius: 4px;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        /* Formatted text elements inside AI Bot messages */
+        .ai-msg-content p { margin-bottom: 8px; }
+        .ai-msg-content p:last-child { margin-bottom: 0; }
+        .ai-msg-content ul, .ai-msg-content ol { padding-left: 18px; margin-bottom: 10px; }
+        .ai-msg-content li { margin-bottom: 4px; }
+        .ai-entity-tag {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 6px;
+            background: var(--accent-muted);
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 12.5px;
+            border: 1px solid var(--border-glow);
         }
 
         .ai-typing-indicator {
             display: flex;
             align-items: center;
-            gap: 4px;
-            padding: 10px 14px;
+            gap: 8px;
+            padding: 12px 18px;
             background: var(--bg-surface);
             border: 1px solid var(--border-dim);
-            border-radius: 16px;
+            border-left: 3.5px solid var(--accent);
+            border-radius: 18px;
             border-top-left-radius: 4px;
             width: fit-content;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+        }
+
+        .ai-typing-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .ai-typing-dots {
+            display: flex;
+            gap: 4px;
         }
 
         .ai-typing-dot {
             width: 6px;
             height: 6px;
-            background: var(--text-muted);
+            background: var(--accent);
             border-radius: 50%;
             animation: aiTypingBounce 1.4s infinite ease-in-out both;
         }
@@ -1001,12 +1210,12 @@
         .ai-typing-dot:nth-child(2) { animation-delay: -0.16s; }
 
         @keyframes aiTypingBounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+            0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
         }
 
         .ai-chat-footer {
-            padding: 12px 16px;
+            padding: 14px 16px;
             background: var(--bg-surface);
             border-top: 1px solid var(--border-dim);
         }
@@ -1014,16 +1223,18 @@
         .ai-chat-input-wrapper {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             background: var(--bg-raised);
             border: 1px solid var(--border-dim);
             border-radius: 30px;
-            padding: 4px 6px 4px 16px;
+            padding: 5px 8px 5px 18px;
+            transition: all 0.2s ease;
         }
 
         .ai-chat-input-wrapper:focus-within {
             border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            background: var(--bg-surface);
         }
 
         .ai-chat-input {
@@ -1036,79 +1247,67 @@
         }
 
         .ai-chat-send-btn {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
             color: white;
             border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 12px var(--accent-glow);
         }
 
         .ai-chat-send-btn:hover {
-            background: var(--accent-dim);
-            transform: scale(1.05);
+            transform: scale(1.08);
+            box-shadow: 0 6px 16px var(--accent-glow);
         }
 
         .ai-chat-send-btn:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
-        /* FAQ Suggestion Chips */
-        .ai-faq-container {
-            padding: 8px 16px 6px 16px;
+        /* Chart & KPI Containers */
+        .ai-chart-card {
             background: var(--bg-surface);
-            border-top: 1px solid var(--border-dim);
+            border: 1px solid var(--border-dim);
+            border-radius: 14px;
+            padding: 12px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
         }
 
-        .ai-faq-label {
-            font-size: 11px;
+        .ai-chart-card-title {
+            font-size: 12px;
             font-weight: 700;
-            color: var(--text-muted);
+            color: var(--accent);
             display: flex;
             align-items: center;
-            gap: 5px;
-            margin-bottom: 6px;
-        }
-
-        .ai-faq-chips {
-            display: flex;
             gap: 6px;
-            overflow-x: auto;
-            padding-bottom: 4px;
-            scrollbar-width: none;
+            margin-bottom: 8px;
         }
 
-        .ai-faq-chips::-webkit-scrollbar {
-            display: none;
-        }
-
-        .ai-faq-chip {
-            background: var(--bg-raised);
-            color: var(--text-primary);
-            border: 1px solid var(--border-dim);
+        .ai-action-btn {
             border-radius: 20px;
-            padding: 4px 12px;
             font-size: 11.5px;
             font-weight: 600;
-            white-space: nowrap;
-            cursor: pointer;
+            padding: 4px 12px;
             transition: all 0.2s ease;
-            flex-shrink: 0;
         }
 
-        .ai-faq-chip:hover {
-            background: var(--accent);
-            color: #ffffff;
-            border-color: var(--accent);
+        .ai-action-btn:hover {
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--accent-glow);
         }
+    </style>
     </style>
 
     {% block head %}{% endblock %}
@@ -1381,15 +1580,70 @@
         setInterval(tick, 1000);
 
         // ── AI Assistant Streaming Widget Logic ────────────────────────
-        const aiChatLauncher = document.getElementById('aiChatLauncher');
-        const aiChatDialog   = document.getElementById('aiChatDialog');
-        const aiChatClose    = document.getElementById('aiChatClose');
+        const aiSizeNormal   = document.getElementById('aiSizeNormal');
+        const aiSizeMedium   = document.getElementById('aiSizeMedium');
+        const aiSizeFull     = document.getElementById('aiSizeFull');
+        const aiChatReset    = document.getElementById('aiChatReset');
         const aiChatSend     = document.getElementById('aiChatSend');
         const aiChatInput    = document.getElementById('aiChatInput');
         const aiChatBody     = document.getElementById('aiChatBody');
 
         if (aiChatLauncher && aiChatDialog) {
-            aiChatLauncher.addEventListener('click', () => {
+            // ── Draggable Floating Launcher Icon Logic ────────────
+            let isLauncherDrag = false;
+            let launcherDragMoved = false;
+            let lStartX = 0, lStartY = 0;
+            let lInitialLeft = 0, lInitialTop = 0;
+
+            aiChatLauncher.addEventListener('mousedown', (e) => {
+                isLauncherDrag = true;
+                launcherDragMoved = false;
+                lStartX = e.clientX;
+                lStartY = e.clientY;
+
+                const rect = aiChatLauncher.getBoundingClientRect();
+                lInitialLeft = rect.left;
+                lInitialTop = rect.top;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isLauncherDrag) return;
+                const dx = e.clientX - lStartX;
+                const dy = e.clientY - lStartY;
+
+                if (Math.hypot(dx, dy) > 5) {
+                    launcherDragMoved = true;
+                    aiChatLauncher.style.bottom = 'auto';
+                    aiChatLauncher.style.right = 'auto';
+                    aiChatLauncher.style.cursor = 'grabbing';
+
+                    let newLeft = lInitialLeft + dx;
+                    let newTop = lInitialTop + dy;
+
+                    const maxLeft = window.innerWidth - aiChatLauncher.offsetWidth;
+                    const maxTop = window.innerHeight - aiChatLauncher.offsetHeight;
+
+                    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+                    newTop = Math.max(0, Math.min(newTop, maxTop));
+
+                    aiChatLauncher.style.left = newLeft + 'px';
+                    aiChatLauncher.style.top = newTop + 'px';
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isLauncherDrag) {
+                    isLauncherDrag = false;
+                    aiChatLauncher.style.cursor = 'pointer';
+                }
+            });
+
+            aiChatLauncher.addEventListener('click', (e) => {
+                if (launcherDragMoved) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
                 aiChatDialog.classList.toggle('open');
                 if (aiChatDialog.classList.contains('open')) {
                     setTimeout(() => aiChatInput && aiChatInput.focus(), 150);
@@ -1400,6 +1654,128 @@
                 aiChatClose.addEventListener('click', () => {
                     aiChatDialog.classList.remove('open');
                 });
+            }
+
+            function setAiChatSize(mode) {
+                if (!aiChatDialog) return;
+                aiChatDialog.classList.remove('medium', 'expanded', 'fullscreen');
+
+                // Reset drag positions when switching sizes
+                aiChatDialog.style.left = '';
+                aiChatDialog.style.top = '';
+                aiChatDialog.style.bottom = '';
+                aiChatDialog.style.right = '';
+
+                if (aiSizeNormal) aiSizeNormal.classList.remove('active');
+                if (aiSizeMedium) aiSizeMedium.classList.remove('active');
+                if (aiSizeFull)   aiSizeFull.classList.remove('active');
+
+                if (mode === 'medium') {
+                    aiChatDialog.classList.add('medium');
+                    if (aiSizeMedium) aiSizeMedium.classList.add('active');
+                } else if (mode === 'fullscreen') {
+                    aiChatDialog.classList.add('fullscreen');
+                    if (aiSizeFull) aiSizeFull.classList.add('active');
+                } else {
+                    if (aiSizeNormal) aiSizeNormal.classList.add('active');
+                }
+
+                scrollToBottom();
+            }
+
+            if (aiSizeNormal) aiSizeNormal.addEventListener('click', () => setAiChatSize('normal'));
+            if (aiSizeMedium) aiSizeMedium.addEventListener('click', () => setAiChatSize('medium'));
+            if (aiSizeFull)   aiSizeFull.addEventListener('click', () => setAiChatSize('fullscreen'));
+
+            // ── Draggable Window Handler ──────────────────────────────
+            const aiChatHeader = aiChatDialog.querySelector('.ai-chat-header');
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let initialLeft = 0, initialTop = 0;
+
+            if (aiChatHeader) {
+                aiChatHeader.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.ai-size-toggle-group')) {
+                        return;
+                    }
+                    if (aiChatDialog.classList.contains('fullscreen')) return;
+
+                    isDragging = true;
+                    aiChatHeader.style.cursor = 'grabbing';
+
+                    const rect = aiChatDialog.getBoundingClientRect();
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    initialLeft = rect.left;
+                    initialTop = rect.top;
+
+                    aiChatDialog.style.bottom = 'auto';
+                    aiChatDialog.style.right = 'auto';
+                    aiChatDialog.style.left = initialLeft + 'px';
+                    aiChatDialog.style.top = initialTop + 'px';
+
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+
+                    let newLeft = initialLeft + dx;
+                    let newTop = initialTop + dy;
+
+                    const maxLeft = window.innerWidth - aiChatDialog.offsetWidth;
+                    const maxTop = window.innerHeight - aiChatDialog.offsetHeight;
+
+                    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+                    newTop = Math.max(0, Math.min(newTop, maxTop));
+
+                    aiChatDialog.style.left = newLeft + 'px';
+                    aiChatDialog.style.top = newTop + 'px';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        aiChatHeader.style.cursor = 'grab';
+                    }
+                });
+            }
+
+            if (aiChatReset) {
+                aiChatReset.addEventListener('click', () => {
+                    if (aiChatBody) {
+                        aiChatBody.innerHTML = `
+                            <div class="ai-msg ai-msg-bot">
+                                <div class="ai-msg-avatar"><i class="fas fa-robot"></i></div>
+                                <div class="ai-msg-content">
+                                    Conversation context cleared. How can I assist you with CMS inventory today?
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            function formatMarkdownText(rawText) {
+                if (!rawText) return '';
+                let formatted = escapeHtml(rawText);
+                
+                // Bold text: **text**
+                formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                
+                // Highlight entity quotes: "text"
+                formatted = formatted.replace(/&quot;(.*?)&quot;/g, '<span class="ai-entity-tag">"$1"</span>');
+                formatted = formatted.replace(/"(.*?)"/g, '<span class="ai-entity-tag">"$1"</span>');
+
+                // Bullet points: - item
+                formatted = formatted.replace(/(?:^|\n)-\s+(.*)/g, '<br>• $1');
+
+                // Line breaks
+                formatted = formatted.replace(/\n/g, '<br>');
+
+                return formatted;
             }
 
             async function sendAiMessage() {
@@ -1421,11 +1797,14 @@
                 const typingId = 'typing_' + Date.now();
                 const typingHtml = `
                     <div class="ai-msg ai-msg-bot" id="${typingId}">
-                        <div class="ai-msg-avatar"><i class="fas fa-robot"></i></div>
+                        <div class="ai-msg-avatar"><i class="fas fa-microchip"></i></div>
                         <div class="ai-typing-indicator">
-                            <div class="ai-typing-dot"></div>
-                            <div class="ai-typing-dot"></div>
-                            <div class="ai-typing-dot"></div>
+                            <span class="ai-typing-text">Analyzing CMS Database</span>
+                            <div class="ai-typing-dots">
+                                <div class="ai-typing-dot"></div>
+                                <div class="ai-typing-dot"></div>
+                                <div class="ai-typing-dot"></div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1450,8 +1829,8 @@
                     if (!res.ok) {
                         const botMsgHtml = `
                             <div class="ai-msg ai-msg-bot">
-                                <div class="ai-msg-avatar"><i class="fas fa-robot"></i></div>
-                                <div class="ai-msg-content text-danger">Server error (${res.status}). Please try again.</div>
+                                <div class="ai-msg-avatar"><i class="fas fa-exclamation-triangle"></i></div>
+                                <div class="ai-msg-content text-danger">Server error (${res.status}). Please check system connection.</div>
                             </div>
                         `;
                         aiChatBody.insertAdjacentHTML('beforeend', botMsgHtml);
@@ -1472,7 +1851,7 @@
                     const reader = res.body.getReader();
                     const decoder = new TextDecoder('utf-8');
                     let rawBuffer = '';
-
+                    let accumulatedText = '';
                     let lastPayload = null;
 
                     while (true) {
@@ -1489,12 +1868,11 @@
                                 try {
                                     const json = JSON.parse(trimmed.substring(6));
                                     if (json.token && botContentEl) {
-                                        botContentEl.textContent += json.token;
+                                        accumulatedText += json.token;
+                                        botContentEl.innerHTML = formatMarkdownText(accumulatedText);
                                         scrollToBottom();
                                     } else if (json.payload) {
                                         lastPayload = json.payload;
-                                    } else if (json.error && botContentEl) {
-                                        botContentEl.textContent += '\n[Error: ' + json.error + ']';
                                     }
                                 } catch (e) {}
                             }
@@ -1505,7 +1883,8 @@
                         try {
                             const json = JSON.parse(rawBuffer.trim().substring(6));
                             if (json.token && botContentEl) {
-                                botContentEl.textContent += json.token;
+                                accumulatedText += json.token;
+                                botContentEl.innerHTML = formatMarkdownText(accumulatedText);
                             }
                             if (json.payload) {
                                 lastPayload = json.payload;
@@ -1513,8 +1892,8 @@
                         } catch (e) {}
                     }
 
-                    if (botContentEl && !botContentEl.textContent.trim()) {
-                        botContentEl.textContent = 'No response received.';
+                    if (botContentEl && !botContentEl.innerHTML.trim()) {
+                        botContentEl.innerHTML = 'No response received from model.';
                     }
 
                     if (lastPayload && botContentEl) {
@@ -1528,8 +1907,8 @@
                     if (!botContentEl) {
                         const botMsgHtml = `
                             <div class="ai-msg ai-msg-bot">
-                                <div class="ai-msg-avatar"><i class="fas fa-robot"></i></div>
-                                <div class="ai-msg-content text-danger">Connection error. Please check backend model connection.</div>
+                                <div class="ai-msg-avatar"><i class="fas fa-exclamation-triangle"></i></div>
+                                <div class="ai-msg-content text-danger">Connection offline or model unavailable.</div>
                             </div>
                         `;
                         aiChatBody.insertAdjacentHTML('beforeend', botMsgHtml);
@@ -1555,25 +1934,10 @@
             function renderAiPayload(payload, msgContentEl) {
                 if (!payload || !msgContentEl) return;
 
-                // 1. Render Dashboard KPI Cards if present
-                if (payload.dashboard_cards && payload.dashboard_cards.length > 0) {
-                    let cardsHtml = '<div class="ai-cards-grid mt-2 mb-2 d-flex flex-wrap gap-2 text-dark">';
-                    payload.dashboard_cards.forEach(card => {
-                        cardsHtml += `
-                            <div class="card p-2 shadow-sm border flex-fill" style="min-width: 120px; background: #ffffff;">
-                                <div class="text-muted small"><i class="fas ${escapeHtml(card.icon || 'fa-chart-line')} me-1 text-${card.color || 'primary'}"></i>${escapeHtml(card.title)}</div>
-                                <div class="fs-6 fw-bold text-${card.color || 'dark'} mt-1">${escapeHtml(String(card.value))}</div>
-                            </div>
-                        `;
-                    });
-                    cardsHtml += '</div>';
-                    msgContentEl.insertAdjacentHTML('beforeend', cardsHtml);
-                }
-
-                // 2. Render Table if payload.table_data is present
+                // 1. Render Table if payload.table_data is present
                 if (payload.table_data && payload.table_data.length > 0) {
                     const keys = Object.keys(payload.table_data[0]);
-                    let tableHtml = '<div class="table-responsive mt-2 mb-2 border rounded"><table class="table table-sm table-striped table-hover mb-0 text-dark" style="font-size: 12px;">';
+                    let tableHtml = '<div class="table-responsive mt-2 mb-2 border rounded"><table class="table table-sm table-striped table-hover mb-0 text-dark" style="font-size: 11.5px;">';
                     tableHtml += '<thead class="table-dark"><tr>';
                     keys.forEach(k => { tableHtml += `<th>${escapeHtml(k.toUpperCase())}</th>`; });
                     tableHtml += '</tr></thead><tbody>';
@@ -1586,13 +1950,13 @@
                     msgContentEl.insertAdjacentHTML('beforeend', tableHtml);
                 }
 
-                // 3. Render Chart if payload.visualization && payload.chart_data
+                // 2. Render Chart if payload.visualization && payload.chart_data
                 if (payload.visualization && payload.chart_data && window.Chart) {
                     const chartId = 'ai_chart_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                     const chartHtml = `
-                        <div class="ai-chart-container mt-2 mb-2 p-2 bg-light rounded border text-dark">
-                            <div class="fw-bold small mb-1 text-primary"><i class="fas fa-chart-line me-1"></i>${escapeHtml(payload.chart_data.title || 'Data Visualization')}</div>
-                            <div style="position: relative; height: 180px; width: 100%;">
+                        <div class="ai-chart-card">
+                            <div class="ai-chart-card-title"><i class="fas fa-chart-column me-1"></i>${escapeHtml(payload.chart_data.title || 'Data Visualizer')}</div>
+                            <div style="position: relative; height: 190px; width: 100%;">
                                 <canvas id="${chartId}"></canvas>
                             </div>
                         </div>
@@ -1612,7 +1976,7 @@
                                     data: cData.values || [],
                                     backgroundColor: cType === 'line' ? 'rgba(45, 107, 66, 0.2)' : ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
                                     borderColor: '#2d6b42',
-                                    borderWidth: 1
+                                    borderWidth: 1.5
                                 }];
                             }
 
@@ -1631,23 +1995,12 @@
                                 }
                             });
                         }
-                    }, 100);
+                    }, 120);
                 }
 
-                // 4. Render Recommendations
-                if (payload.recommendations && payload.recommendations.length > 0) {
-                    let recsHtml = '<div class="ai-recs mt-2 p-2 rounded bg-light border-start border-3 border-warning small text-dark">';
-                    recsHtml += '<strong class="d-block text-warning mb-1"><i class="fas fa-lightbulb me-1"></i>AI Recommendations:</strong><ul class="ps-3 mb-0 text-muted">';
-                    payload.recommendations.forEach(r => {
-                        recsHtml += `<li>${escapeHtml(r)}</li>`;
-                    });
-                    recsHtml += '</ul></div>';
-                    msgContentEl.insertAdjacentHTML('beforeend', recsHtml);
-                }
-
-                // 5. Render Interactive Action Buttons
+                // 3. Render Interactive Action Buttons
                 if (payload.actions && payload.actions.length > 0) {
-                    let actionsHtml = '<div class="ai-actions mt-2 d-flex flex-wrap gap-1">';
+                    let actionsHtml = '<div class="ai-actions mt-2 d-flex flex-wrap gap-1.5">';
                     payload.actions.forEach(act => {
                         actionsHtml += `<button class="btn btn-sm btn-outline-primary ai-action-btn" data-action="${escapeHtml(act)}"><i class="fas fa-bolt me-1"></i>${escapeHtml(act)}</button>`;
                     });
@@ -1696,44 +2049,72 @@
     </script>
 
     <!-- FLOATING AI ASSISTANT LAUNCHER BUTTON -->
-    <button id="aiChatLauncher" class="ai-chat-launcher" title="AI Assistant">
-        <div class="ai-launcher-icon">
-            <i class="fas fa-robot"></i>
+    <button id="aiChatLauncher" class="ai-chat-launcher" title="CMS AI Assistant">
+        <div class="ai-launcher-avatar">
+            <span class="ai-pulse-ring"></span>
+            <i class="fas fa-brain"></i>
         </div>
-        <span class="ai-launcher-badge">AI Assistant</span>
+        <div class="ai-launcher-text">
+            <span class="ai-launcher-title">CMS Intelligence</span>
+            <span class="ai-launcher-subtitle">AI Assistant</span>
+        </div>
     </button>
 
     <!-- FLOATING AI ASSISTANT DIALOG BOX -->
     <div id="aiChatDialog" class="ai-chat-dialog">
+        <!-- HEADER -->
         <div class="ai-chat-header">
             <div class="ai-chat-header-title">
                 <div class="ai-avatar-online">
-                    <i class="fas fa-robot"></i>
-                    <span class="online-indicator"></span>
+                    <i class="fas fa-microchip"></i>
+                    <span class="online-indicator" title="Connected to Llama 3.2 Engine"></span>
                 </div>
                 <div>
-                    <h6 class="mb-0 fw-bold">AI Assistant</h6>
-                    <small class="text-muted" style="font-size: 11px;">Powered by Llama 3.2</small>
+                    <h6 class="mb-0 fw-bold" style="font-size: 14px; letter-spacing: 0.2px;">CMS Ordnance Intelligence</h6>
+                    <small class="text-muted" style="font-size: 10.5px;">Active Session • Llama 3.2 Engine</small>
                 </div>
             </div>
-            <button id="aiChatClose" class="ai-chat-close-btn" title="Close">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="ai-header-actions">
+                <div class="ai-size-toggle-group" role="group" aria-label="AI Window Size Controls">
+                    <button id="aiSizeNormal" class="ai-size-btn active" title="Normal View (Compact Panel)"><i class="fas fa-compress-alt"></i> Normal</button>
+                    <button id="aiSizeMedium" class="ai-size-btn" title="Medium View (Expanded)"><i class="fas fa-up-right-and-down-left-from-center"></i> Medium</button>
+                    <button id="aiSizeFull" class="ai-size-btn" title="Full Screen View (Entire Screen)"><i class="fas fa-expand"></i> Fullscreen</button>
+                </div>
+                <button id="aiChatReset" class="ai-header-btn" title="Clear Conversation"><i class="fas fa-rotate-right"></i></button>
+                <button id="aiChatClose" class="ai-header-btn" title="Minimize Window"><i class="fas fa-times"></i></button>
+            </div>
         </div>
 
+        <!-- QUICK FAQ FILTER CHIPS -->
+        <div class="ai-faq-container">
+            <div class="ai-faq-chips">
+                <div class="ai-faq-chip" data-prompt="Show CAT-I vs CAT-II graph"><i class="fas fa-chart-pie"></i>CAT-I vs CAT-II</div>
+                <div class="ai-faq-chip" data-prompt="Which Unit has highest deficiency?"><i class="fas fa-chart-line"></i>Highest Deficiency</div>
+                <div class="ai-faq-chip" data-prompt="How much stock is available?"><i class="fas fa-boxes-stacked"></i>Inventory Summary</div>
+                <div class="ai-faq-chip" data-prompt="How many Jackets are available?"><i class="fas fa-vest"></i>Jackets Stock</div>
+                <div class="ai-faq-chip" data-prompt="Show monthly issued quantity"><i class="fas fa-dolly"></i>Monthly Issues</div>
+            </div>
+        </div>
+
+        <!-- MESSAGES CANVAS -->
         <div id="aiChatBody" class="ai-chat-body">
             <div class="ai-msg ai-msg-bot">
                 <div class="ai-msg-avatar"><i class="fas fa-robot"></i></div>
                 <div class="ai-msg-content">
-                    Hello! I am your Clothing Management System (CMS) AI Assistant. How can I help you today?
+                    Greetings! I am your <strong>CMS AI Assistant</strong>.
+                    <br><br>
+                    I can help you analyze live clothing inventory, compare <span class="ai-entity-tag">CAT-I</span> vs <span class="ai-entity-tag">CAT-II</span> products, inspect unit deficiencies, and generate dynamic Chart.js visualizations.
+                    <br><br>
+                    How can I assist your inventory management today?
                 </div>
             </div>
         </div>
 
+        <!-- FOOTER & INPUT -->
         <div class="ai-chat-footer">
             <div class="ai-chat-input-wrapper">
-                <input type="text" id="aiChatInput" class="ai-chat-input" placeholder="Type your message..." autocomplete="off">
-                <button id="aiChatSend" class="ai-chat-send-btn" title="Send Message">
+                <input type="text" id="aiChatInput" class="ai-chat-input" placeholder="Ask CMS Assistant anything..." autocomplete="off">
+                <button id="aiChatSend" class="ai-chat-send-btn" title="Send Query">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>

@@ -32,7 +32,7 @@ CREATE TABLE `action_logs` (
   `details` text NOT NULL,
   `created_at` datetime DEFAULT (now()),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41,7 +41,7 @@ CREATE TABLE `action_logs` (
 
 LOCK TABLES `action_logs` WRITE;
 /*!40000 ALTER TABLE `action_logs` DISABLE KEYS */;
-INSERT INTO `action_logs` VALUES (1,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 6768, Qty 500, Type RES','2026-07-28 13:23:11'),(2,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Altimeter\', Division: 19_DOU','2026-07-28 13:24:48'),(3,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 6839, Qty 1000, Type RES','2026-07-29 12:02:40'),(4,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-29 12:06:22'),(5,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=1200) for Item: \'Bag Water Proof\', Division: 19_DOU','2026-07-29 12:47:52'),(6,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=6000) for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-29 12:50:50'),(7,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 949, Qty 500, Type RES','2026-07-29 12:51:55'),(8,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=2000) for Item: \'Coat ECC\', Division: 19_DOU','2026-07-29 13:02:27'),(9,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=2000) for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-29 13:05:39'),(10,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 94848, Qty 700, Type RES','2026-07-29 13:05:58'),(11,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 123345556, Qty 700, Type RES','2026-07-29 13:46:47'),(12,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=700) for Item: \'Drawers Cold Weather\', Division: 99_DOU','2026-07-29 13:47:29'),(13,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Drawers Cold Weather\', Division: 99_DOU','2026-07-29 13:48:05'),(14,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Drawers Cold Weather\', Division: 99_DOU','2026-07-29 13:48:18'),(15,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Drawers Cold Weather\', Division: 99_DOU','2026-07-29 13:53:48'),(16,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Drawers Cold Weather\', Division: 99_DOU','2026-07-29 13:54:38'),(17,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Drawers Cold Weather\', Division: 99_DOU','2026-07-29 13:55:56'),(18,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Drawers Cold Weather\', Division: 99_DOU','2026-07-29 14:06:59'),(19,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=500) for Item: \'Vest Thermal\', Division: 28_DOU','2026-07-30 10:41:37'),(20,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 8493, Qty 900, Type RES','2026-07-30 10:42:27'),(21,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Vest Thermal\', Division: 28_DOU','2026-07-30 10:43:23'),(22,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 121, Qty 22, Type RES','2026-07-30 10:49:25'),(23,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=1000) for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-30 10:49:46'),(24,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-30 10:50:08'),(25,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=1000) for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-30 11:42:23'),(26,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 8493, Qty 500, Type RES','2026-07-30 11:42:37'),(27,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 121, Qty 300, Type RES','2026-07-30 11:43:44'),(28,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=1000) for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-30 11:44:12'),(29,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-30 11:46:30'),(30,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 12, Qty 300, Type RES','2026-07-30 11:55:44'),(31,19,'2_FOD','scme','UPDATE','SCME','Set Item Authorization (AUTH=2000) for Item: \'Bag Water Proof\', Division: 28_DOU','2026-07-30 11:56:18'),(32,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Water Proof\', Division: 28_DOU','2026-07-30 11:57:13'),(33,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-07-30 12:06:43');
+INSERT INTO `action_logs` VALUES (1,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-08-03 12:34:21'),(2,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher SCME_01, Qty 50, Type RES','2026-08-03 12:50:47'),(3,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Sun Screen Lotion\', Division: 28_DOU','2026-08-03 12:51:44'),(4,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher ECC_01, Qty 700, Type RES','2026-08-03 13:00:17'),(5,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Snow Goggle / Goggle Cortina\', Division: 68_DOU','2026-08-03 13:00:46'),(6,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 800, Qty 1500, Type RES','2026-08-03 13:45:53'),(7,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Trouser Down\', Division: 99_DOU','2026-08-03 13:46:25'),(8,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher VCH-001, Qty 20, Type RES','2026-08-03 13:50:14'),(9,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-08-03 13:50:44'),(10,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-08-03 13:59:58'),(11,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher SCME_01, Qty 22, Type RES','2026-08-03 14:16:17'),(12,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Altimeter\', Division: 19_DOU','2026-08-03 14:16:43'),(13,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Altimeter\', Division: 19_DOU','2026-08-03 14:17:40'),(14,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Altimeter\', Division: 19_DOU','2026-08-03 15:02:07'),(15,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher SCME_01, Qty 10, Type RES','2026-08-03 15:19:22'),(16,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-08-03 15:19:41'),(17,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Bag Sleeping MK-IV\', Division: 19_DOU','2026-08-03 15:20:24'),(18,19,'2_FOD','scme','CREATE','FOD Stock','Added FOD Stock: Voucher 6768, Qty 20, Type RES','2026-08-03 15:20:47'),(19,19,'2_FOD','scme','CREATE','ECC','Recorded unit item state in TrackUnitItems for Item: \'Altimeter\', Division: 19_DOU','2026-08-03 15:21:22');
 /*!40000 ALTER TABLE `action_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -85,7 +85,7 @@ CREATE TABLE `army_personnel` (
   `created_at` datetime DEFAULT (now()),
   PRIMARY KEY (`id`),
   UNIQUE KEY `ix_army_personnel_army_number` (`army_number`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -94,7 +94,7 @@ CREATE TABLE `army_personnel` (
 
 LOCK TABLES `army_personnel` WRITE;
 /*!40000 ALTER TABLE `army_personnel` DISABLE KEYS */;
-INSERT INTO `army_personnel` VALUES (1,'8383JC','SINGH','Sepoy','1 COY','UNIT_11','2026-07-30 13:02:47'),(2,'AYTEYY','Raju Singh','Lance Naik','2 COY','UNIT_11','2026-07-30 13:06:45'),(3,'676949','Ibrahim Singh','Subedar','2 COY','UNIT_11','2026-07-30 13:32:56'),(4,'6769491','Sharma Khan','Subedar','2 COY','UNIT_11','2026-07-30 14:29:45');
+INSERT INTO `army_personnel` VALUES (6,'JC67837','PRAVEEN KUMAR','Naib Subedar','3 COY','UNIT_11','2026-08-03 12:14:30');
 /*!40000 ALTER TABLE `army_personnel` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -120,7 +120,7 @@ CREATE TABLE `divs` (
 
 LOCK TABLES `divs` WRITE;
 /*!40000 ALTER TABLE `divs` DISABLE KEYS */;
-INSERT INTO `divs` VALUES (3,'28_DOU',700,850),(4,'19_DOU',0,0),(8,'68_DOU',1200,1000),(9,'57_DOU',700,500),(40,'99_DOU',0,0);
+INSERT INTO `divs` VALUES (3,'28_DOU',700,850),(4,'19_DOU',1300,1200),(8,'68_DOU',1200,1000),(9,'57_DOU',700,500),(40,'99_DOU',700,600);
 /*!40000 ALTER TABLE `divs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -171,7 +171,7 @@ CREATE TABLE `fod_stock_table` (
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`),
   CONSTRAINT `fod_stock_table_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -180,7 +180,7 @@ CREATE TABLE `fod_stock_table` (
 
 LOCK TABLES `fod_stock_table` WRITE;
 /*!40000 ALTER TABLE `fod_stock_table` DISABLE KEYS */;
-INSERT INTO `fod_stock_table` VALUES (1,'121','CAT-I',1,300,'Depo',200,100,'RES','2026-07-30 11:43:44'),(2,'12','CAT-I',30,300,'Depo',100,200,'RES','2026-07-30 11:55:44');
+INSERT INTO `fod_stock_table` VALUES (1,'SCME_01','CAT-II',61,4,'Depo',1,3,'RES','2026-08-03 14:16:17'),(2,'SCME_01','CAT-I',1,2,'Depo',1,1,'RES','2026-08-03 15:19:22'),(3,'6768','CAT-II',61,20,'Depo',10,10,'RES','2026-08-03 15:20:47');
 /*!40000 ALTER TABLE `fod_stock_table` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -201,7 +201,7 @@ CREATE TABLE `item_auth` (
   KEY `item_id` (`item_id`),
   KEY `ix_item_auth_unit_name` (`unit_name`),
   CONSTRAINT `item_auth_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -210,7 +210,7 @@ CREATE TABLE `item_auth` (
 
 LOCK TABLES `item_auth` WRITE;
 /*!40000 ALTER TABLE `item_auth` DISABLE KEYS */;
-INSERT INTO `item_auth` VALUES (1,'19_DOU',1,1000,'2026-07-29 13:05:39'),(4,'28_DOU',30,2000,'2026-07-30 11:56:18');
+INSERT INTO `item_auth` VALUES (1,'19_DOU',1,400,'2026-08-03 13:50:44'),(2,'19_DOU',61,100,'2026-08-03 14:16:43');
 /*!40000 ALTER TABLE `item_auth` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -264,7 +264,7 @@ CREATE TABLE `login_users` (
   UNIQUE KEY `username` (`username`),
   KEY `org_id` (`org_id`),
   CONSTRAINT `login_users_ibfk_1` FOREIGN KEY (`org_id`) REFERENCES `org_ladder` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -273,7 +273,7 @@ CREATE TABLE `login_users` (
 
 LOCK TABLES `login_users` WRITE;
 /*!40000 ALTER TABLE `login_users` DISABLE KEYS */;
-INSERT INTO `login_users` VALUES (1,'ORD','123','super_admin',1),(3,'19_DOU','123','division_admin',3),(4,'28_DOU','123','division_admin',4),(5,'KFSR','123','division_admin',5),(7,'UNIT_11','123','unit',7),(8,'UNIT_12','123','unit',8),(9,'UNIT_14','123','unit',9),(10,'UNIT_15','123','unit',10),(11,'UNIT_16','123','unit',11),(12,'UNIT_20','123','unit',12),(13,'UNIT_21','123','unit',13),(14,'UNIT_22','123','unit',14),(15,'UNIT_25','123','unit',15),(16,'68_DOU','123','division_admin',16),(17,'57_DOU','123','division_admin',17),(18,'UNIT_50','123','unit',18),(19,'2_FOD','123','scme',20),(20,'77_DOU','123','division_admin',21),(21,'99_DOU','123','division_admin',22),(22,'UNIT_99','123','unit',23);
+INSERT INTO `login_users` VALUES (1,'ORD','123','super_admin',1),(3,'19_DOU','123','division_admin',3),(4,'28_DOU','123','division_admin',4),(5,'KFSR','123','division_admin',5),(7,'UNIT_11','123','unit',7),(8,'UNIT_12','123','unit',8),(9,'UNIT_14','123','unit',9),(10,'UNIT_15','123','unit',10),(11,'UNIT_16','123','unit',11),(12,'UNIT_20','123','unit',12),(13,'UNIT_21','123','unit',13),(14,'UNIT_22','123','unit',14),(15,'UNIT_25','123','unit',15),(16,'68_DOU','123','division_admin',16),(17,'57_DOU','123','division_admin',17),(18,'UNIT_50','123','unit',18),(19,'2_FOD','123','scme',20),(20,'77_DOU','123','division_admin',21),(21,'99_DOU','123','division_admin',22),(22,'UNIT_99','123','unit',23),(23,'UNIT_60','123','unit',24),(24,'UNIT_66','123','unit',25);
 /*!40000 ALTER TABLE `login_users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -292,7 +292,7 @@ CREATE TABLE `org_ladder` (
   PRIMARY KEY (`id`),
   KEY `parent_id` (`parent_id`),
   CONSTRAINT `org_ladder_ibfk_1` FOREIGN KEY (`parent_id`) REFERENCES `org_ladder` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -301,7 +301,7 @@ CREATE TABLE `org_ladder` (
 
 LOCK TABLES `org_ladder` WRITE;
 /*!40000 ALTER TABLE `org_ladder` DISABLE KEYS */;
-INSERT INTO `org_ladder` VALUES (1,'ORD','ROOT',NULL),(3,'19_DOU','division',1),(4,'28_DOU','division',1),(5,'KFSR','division',1),(6,'2 FOD','division',1),(7,'UNIT_11','unit',3),(8,'UNIT_12','unit',3),(9,'UNIT_14','unit',3),(10,'UNIT_15','unit',3),(11,'UNIT_16','unit',3),(12,'UNIT_20','unit',4),(13,'UNIT_21','unit',4),(14,'UNIT_22','unit',4),(15,'UNIT_25','unit',4),(16,'68_DOU','division',1),(17,'57_DOU','division',1),(18,'UNIT_50','unit',17),(20,'2_FOD','division',1),(21,'77_DOU','division',1),(22,'99_DOU','division',1),(23,'UNIT_99','unit',22);
+INSERT INTO `org_ladder` VALUES (1,'ORD','ROOT',NULL),(3,'19_DOU','division',1),(4,'28_DOU','division',1),(5,'KFSR','division',1),(6,'2 FOD','division',1),(7,'UNIT_11','unit',3),(8,'UNIT_12','unit',3),(9,'UNIT_14','unit',3),(10,'UNIT_15','unit',3),(11,'UNIT_16','unit',3),(12,'UNIT_20','unit',4),(13,'UNIT_21','unit',4),(14,'UNIT_22','unit',4),(15,'UNIT_25','unit',4),(16,'68_DOU','division',1),(17,'57_DOU','division',1),(18,'UNIT_50','unit',17),(20,'2_FOD','division',1),(21,'77_DOU','division',1),(22,'99_DOU','division',1),(23,'UNIT_99','unit',22),(24,'UNIT_60','unit',16),(25,'UNIT_66','unit',16);
 /*!40000 ALTER TABLE `org_ladder` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -348,7 +348,7 @@ CREATE TABLE `scme_issued_items` (
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`),
   CONSTRAINT `scme_issued_items_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -357,7 +357,7 @@ CREATE TABLE `scme_issued_items` (
 
 LOCK TABLES `scme_issued_items` WRITE;
 /*!40000 ALTER TABLE `scme_issued_items` DISABLE KEYS */;
-INSERT INTO `scme_issued_items` VALUES (2,'UNIT_11',1,'100%','Nos',0,100,'2026-07-30 11:47:55',100),(3,'UNIT_12',1,'100%','Nos',0,300,'2026-07-30 12:10:51',300);
+INSERT INTO `scme_issued_items` VALUES (1,'UNIT_11',61,'1 PER INDL','Nos',0,10,'2026-08-03 15:25:28',10),(2,'UNIT_12',1,'1 PER INDL','Nos',0,10,'2026-08-03 15:25:46',10);
 /*!40000 ALTER TABLE `scme_issued_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -389,7 +389,7 @@ CREATE TABLE `track_unit_items` (
   KEY `item_id` (`item_id`),
   KEY `ix_track_unit_items_unit_name` (`unit_name`),
   CONSTRAINT `track_unit_items_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -398,7 +398,7 @@ CREATE TABLE `track_unit_items` (
 
 LOCK TABLES `track_unit_items` WRITE;
 /*!40000 ALTER TABLE `track_unit_items` DISABLE KEYS */;
-INSERT INTO `track_unit_items` VALUES (3,'19_DOU',1,'1 per indl',1000,720,'2026-07-30 06:36:43',212,220,0,0,0,0,68,88,0),(4,'UNIT_11',1,'1 per indl',1000,232,'2026-07-30 06:20:33',0,0,0,0,0,0,232,99,108),(5,'28_DOU',30,'',2000,50,'2026-07-30 06:27:14',0,0,0,0,0,0,50,20,30),(6,'UNIT_12',1,NULL,300,200,'2026-07-30 06:40:52',0,0,0,0,0,0,200,100,100);
+INSERT INTO `track_unit_items` VALUES (1,'19_DOU',1,'1 PER INDL',400,10,'2026-08-03 09:50:24',1,1,0,0,0,0,8,3,3),(2,'19_DOU',61,'1 PER INDL',100,12,'2026-08-03 09:51:22',1,1,0,0,0,0,10,4,4),(3,'UNIT_11',61,'1 PER INDL',10,2,'2026-08-03 09:55:28',0,0,0,0,0,0,2,0,1),(4,'UNIT_12',1,'1 PER INDL',10,2,'2026-08-03 09:55:46',0,0,0,0,0,0,2,1,1);
 /*!40000 ALTER TABLE `track_unit_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -423,7 +423,7 @@ CREATE TABLE `transactions` (
   KEY `item_id` (`item_id`),
   KEY `ix_transactions_received_by` (`received_by`),
   CONSTRAINT `transactions_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -432,7 +432,7 @@ CREATE TABLE `transactions` (
 
 LOCK TABLES `transactions` WRITE;
 /*!40000 ALTER TABLE `transactions` DISABLE KEYS */;
-INSERT INTO `transactions` VALUES (1,'2_FOD','19_DOU',1,200,100,'',NULL,'2026-07-21 06:16:31'),(2,'19_DOU','UNIT_11',1,12,20,NULL,NULL,'2026-07-21 06:17:56'),(3,'19_DOU','UNIT_11',1,100,100,NULL,NULL,'2026-07-23 06:20:33'),(4,'2_FOD','28_DOU',30,20,30,'',NULL,'2026-07-25 06:27:14'),(5,'2_FOD','19_DOU',1,100,100,'1 per indl',NULL,'2026-07-27 06:36:43'),(6,'19_DOU','UNIT_12',1,100,100,NULL,NULL,'2026-07-30 06:40:52'),(7,'UNIT_11','8383JC',1,1,0,NULL,'PLEASE COME AND RECEIVE THE ITEM','2026-07-30 13:09:55'),(8,'UNIT_11','8383JC',1,1,0,NULL,'Issued to 8383JC (Sepoy RAM GHULAM SINGH)','2026-07-30 13:11:35'),(9,'UNIT_11','8383JC',1,1,0,NULL,'Issued to 8383JC (Sepoy RAM GHULAM SINGH)','2026-07-30 13:12:12'),(10,'UNIT_11','AYTEYY',1,0,12,NULL,'Issued to AYTEYY (Lance Naik Raju Ibrahim Singh)','2026-07-30 13:24:08'),(11,'UNIT_11','AYTEYY',1,10,0,NULL,'Issued to AYTEYY (Lance Naik Raju Ibrahim Singh)','2026-07-30 13:33:52');
+INSERT INTO `transactions` VALUES (1,'2_FOD','19_DOU',1,1,1,'1 PER INDL',NULL,'2026-07-03 09:49:41'),(2,'2_FOD','19_DOU',1,3,3,'1 PER INDL',NULL,'2026-08-03 09:50:24'),(3,'2_FOD','19_DOU',61,5,5,'1 PER INDL',NULL,'2026-08-03 09:51:22'),(4,'19_DOU','UNIT_11',61,1,1,NULL,NULL,'2026-08-03 09:55:28'),(5,'19_DOU','UNIT_12',1,1,1,NULL,NULL,'2026-08-03 09:55:46'),(6,'UNIT_11','JC67837',61,1,0,NULL,'WE ARE GIVING AN ALTIMETER TO YOU','2026-08-03 15:26:37');
 /*!40000 ALTER TABLE `transactions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -449,7 +449,7 @@ CREATE TABLE `unit_strength` (
   `posted_strength` int NOT NULL,
   `authorized_strength` int DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -458,7 +458,7 @@ CREATE TABLE `unit_strength` (
 
 LOCK TABLES `unit_strength` WRITE;
 /*!40000 ALTER TABLE `unit_strength` DISABLE KEYS */;
-INSERT INTO `unit_strength` VALUES (1,'UNIT_11',600,0),(2,'UNIT_12',500,0),(3,'UNIT_14',400,0),(4,'UNIT_15',900,0),(5,'UNIT_16',800,0),(6,'UNIT_20',700,700),(7,'UNIT_21',0,400),(8,'UNIT_25',0,500),(9,'UNIT_22',0,500),(10,'UNIT_22',0,0),(11,'UNIT_20',700,700),(12,'UNIT_20',700,700),(14,'UNIT_99',0,0);
+INSERT INTO `unit_strength` VALUES (1,'UNIT_11',600,0),(2,'UNIT_12',500,0),(3,'UNIT_14',400,0),(4,'UNIT_15',900,0),(5,'UNIT_16',800,0),(6,'UNIT_20',700,700),(7,'UNIT_21',0,400),(8,'UNIT_25',0,500),(9,'UNIT_22',0,500),(10,'UNIT_22',0,0),(11,'UNIT_20',700,700),(12,'UNIT_20',700,700),(14,'UNIT_99',0,0),(15,'UNIT_60',0,0),(16,'UNIT_66',0,0);
 /*!40000 ALTER TABLE `unit_strength` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -482,7 +482,7 @@ CREATE TABLE `unit_tps_stock` (
   KEY `army_number` (`army_number`),
   CONSTRAINT `unit_tps_stock_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `ecc_scme_items` (`id`),
   CONSTRAINT `unit_tps_stock_ibfk_2` FOREIGN KEY (`army_number`) REFERENCES `army_personnel` (`army_number`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -491,7 +491,7 @@ CREATE TABLE `unit_tps_stock` (
 
 LOCK TABLES `unit_tps_stock` WRITE;
 /*!40000 ALTER TABLE `unit_tps_stock` DISABLE KEYS */;
-INSERT INTO `unit_tps_stock` VALUES (1,'UNIT_11',1,'8383JC',3,0,'2026-07-30 13:12:12'),(2,'UNIT_11',1,'AYTEYY',10,12,'2026-07-30 13:33:52');
+INSERT INTO `unit_tps_stock` VALUES (1,'UNIT_11',61,'JC67837',1,0,'2026-08-03 15:26:37');
 /*!40000 ALTER TABLE `unit_tps_stock` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -530,4 +530,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-30 14:58:21
+-- Dump completed on 2026-08-03 15:35:43

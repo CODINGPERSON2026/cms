@@ -11,6 +11,10 @@
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
 </a>
+<a href="/scme/current-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-tooltip">Available Stock</span>
+</a>
 <a href="/logs/" class="nav-item">
     <i class="fa-solid fa-clock-rotate-left"></i>
     <span class="nav-tooltip">Activity Logs</span>
@@ -927,10 +931,18 @@
                                     <select name="item_id" id="ecc_item_id" class="ecc-input" required disabled>
                                         <option value="">— Select Category First —</option>
                                     </select>
-                                    <div id="eccAvailableStockContainer" style="display:none;margin-top:3px;">
-                                        <span id="eccAvailableStockBadge" style="background:rgba(56,189,248,0.15);color:#0ea5e9;border:1px solid #38bdf8;font-weight:700;font-size:0.65rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
-                                            <i class="fa-solid fa-boxes-stacked"></i> Avail: <strong id="eccAvailableStockVal">0</strong>
-                                        </span>
+                                    <div id="eccAvailableStockContainer" style="display:none;margin-top:4px;">
+                                        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                                            <span id="eccAvailableStockBadge" style="background:rgba(56,189,248,0.15);color:#0ea5e9;border:1px solid #38bdf8;font-weight:700;font-size:0.65rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
+                                                <i class="fa-solid fa-boxes-stacked"></i> Avail: <strong id="eccAvailableStockVal">0</strong>
+                                            </span>
+                                            <span id="eccAvailableSerBadge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);font-weight:700;font-size:0.65rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
+                                                SER: <strong id="eccAvailableSerVal">0</strong>
+                                            </span>
+                                            <span id="eccAvailablePwsBadge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);font-weight:700;font-size:0.65rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
+                                                PWS: <strong id="eccAvailablePwsVal">0</strong>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="ecc-field">
@@ -949,18 +961,20 @@
                             <div class="ecc-section-body" style="grid-template-columns: repeat(3,1fr);">
                                 <div class="ecc-field">
                                     <label for="ecc_unit_auth"><i class="fa-solid fa-calculator"></i> Auth <span class="req">*</span></label>
-                                    <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input ecc-num ecc-readonly" min="0" step="1" value="0" placeholder="0" readonly tabindex="-1" style="background:var(--bg-raised); cursor:not-allowed; font-weight:700; color:var(--accent);">
+                                    <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input ecc-num" min="0" step="1" value="0" placeholder="0" style="background:var(--bg-surface); font-weight:700; color:var(--accent);">
                                     <span id="errEccAuthZero" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:3px;align-items:center;gap:4px;">
-                                        <i class="fa-solid fa-lock"></i> Auth is 0. Set Auth first to enable fields.
+                                        <i class="fa-solid fa-lock"></i> Auth is 0. Enter Auth above to enable fields.
                                     </span>
                                 </div>
                                 <div class="ecc-field">
                                     <label for="ecc_stock_ser">SER <span class="req">*</span></label>
                                     <input type="number" name="stock_ser" id="ecc_stock_ser" class="ecc-input ecc-num" min="0" step="1" placeholder="0" value="0">
+                                    <span id="errEccSerExceeded" style="color:var(--danger);font-size:0.6rem;font-weight:700;display:none;margin-top:2px;align-items:center;gap:3px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds SER stock!</span>
                                 </div>
                                 <div class="ecc-field">
                                     <label for="ecc_stock_pws">PWS <span class="req">*</span></label>
                                     <input type="number" name="stock_pws" id="ecc_stock_pws" class="ecc-input ecc-num" min="0" step="1" placeholder="0" value="0">
+                                    <span id="errEccPwsExceeded" style="color:var(--danger);font-size:0.6rem;font-weight:700;display:none;margin-top:2px;align-items:center;gap:3px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds PWS stock!</span>
                                 </div>
                                 <div class="ecc-field">
                                     <label for="ecc_issue_count"><i class="fa-solid fa-calculator"></i> Issue Count</label>
@@ -1965,56 +1979,29 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(`/scme/api/get-unit-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`)
             .then(res => res.json())
             .then(data => {
-                const errAuthZero = document.getElementById("errEccAuthZero");
-                const eccForm = document.getElementById("eccForm");
-                const submitBtn = eccForm ? eccForm.querySelector("button[type='submit']") : null;
-
                 if (data.success && data.exists) {
                     window.currentDbSer = data.ser || 0;
                     window.currentDbPws = data.pws || 0;
                     window.currentDbAvailSer = data.available_ser || 0;
                     window.currentDbAvailPws = data.available_pws || 0;
                     window.currentDbHeld = (data.held !== undefined && data.held !== null) ? data.held : (window.currentDbSer + window.currentDbPws + window.currentDbAvailSer + window.currentDbAvailPws);
-                    const authVal = data.auth || 0;
-                    if (unitAuthInput) {
-                        unitAuthInput.value = authVal;
-                        unitAuthInput.readOnly = false;
-                    }
-                    const scaleInput = document.getElementById("ecc_scale");
-                    if (scaleInput && data.scale) {
-                        scaleInput.value = data.scale;
-                    }
-
-                    const formInputs = eccForm ? eccForm.querySelectorAll("input:not([name='bbf_division']):not(#ecc_unit_auth):not([readonly])") : [];
-                    if (authVal <= 0) {
-                        formInputs.forEach(inp => {
-                            inp.disabled = true;
-                            inp.style.opacity = "0.5";
-                            inp.style.cursor = "not-allowed";
-                        });
-                        if (submitBtn) submitBtn.disabled = true;
-                        if (errAuthZero) errAuthZero.style.display = "flex";
-                    } else {
-                        formInputs.forEach(inp => {
-                            inp.disabled = false;
-                            inp.style.opacity = "1";
-                            inp.style.cursor = "initial";
-                        });
-                        if (submitBtn) submitBtn.disabled = false;
-                        if (errAuthZero) errAuthZero.style.display = "none";
-                    }
                 } else {
                     window.currentDbSer = 0;
                     window.currentDbPws = 0;
                     window.currentDbAvailSer = 0;
                     window.currentDbAvailPws = 0;
-                    const authVal = data.auth || 0;
-                    if (unitAuthInput) {
-                        unitAuthInput.value = authVal;
-                        unitAuthInput.readOnly = false;
-                    }
-                    if (errAuthZero) errAuthZero.style.display = authVal <= 0 ? "flex" : "none";
+                    window.currentDbHeld = 0;
                 }
+
+                if (unitAuthInput) {
+                    unitAuthInput.value = data.auth || 0;
+                }
+                const scaleInput = document.getElementById("ecc_scale");
+                if (scaleInput) {
+                    scaleInput.value = data.scale || "";
+                }
+
+                checkAndToggleAuthLock();
 
                 // Inputs stay clean for entering new issue quantities now
                 if (issueCountInput) issueCountInput.value = "";
@@ -2139,11 +2126,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const itemId = eccItemIdSel ? eccItemIdSel.value : "";
         const stockContainer = document.getElementById("eccAvailableStockContainer");
         const stockVal = document.getElementById("eccAvailableStockVal");
+        const serVal = document.getElementById("eccAvailableSerVal");
+        const pwsVal = document.getElementById("eccAvailablePwsVal");
         const errStockExceeded = document.getElementById("errEccStockExceeded");
         const submitBtn = document.querySelector("#eccForm button[type='submit']");
 
         if (!itemId) {
             window.currentAvailableFodStock = null;
+            window.currentAvailableSerStock = null;
+            window.currentAvailablePwsStock = null;
             if (stockContainer) stockContainer.style.display = "none";
             if (errStockExceeded) errStockExceeded.style.display = "none";
             if (submitBtn) submitBtn.disabled = false;
@@ -2154,8 +2145,13 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 window.currentAvailableFodStock = data.has_fod_stock ? data.available_qty : null;
-                if (stockContainer && stockVal && data.has_fod_stock) {
-                    stockVal.textContent = data.available_qty;
+                window.currentAvailableSerStock = data.has_fod_stock ? (data.ser_total || 0) : null;
+                window.currentAvailablePwsStock = data.has_fod_stock ? (data.pws_total || 0) : null;
+
+                if (stockContainer && data.has_fod_stock) {
+                    if (stockVal) stockVal.textContent = data.available_qty || 0;
+                    if (serVal) serVal.textContent = data.ser_total || 0;
+                    if (pwsVal) pwsVal.textContent = data.pws_total || 0;
                     stockContainer.style.display = "block";
                 } else if (stockContainer) {
                     stockContainer.style.display = "none";
@@ -2170,10 +2166,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const stockSerInput = document.getElementById("ecc_stock_ser");
         const stockPwsInput = document.getElementById("ecc_stock_pws");
         const errStockExceeded = document.getElementById("errEccStockExceeded");
+        const errSerExceeded = document.getElementById("errEccSerExceeded");
+        const errPwsExceeded = document.getElementById("errEccPwsExceeded");
         const submitBtn = document.querySelector("#eccForm button[type='submit']");
 
         if (window.currentAvailableFodStock === null) {
             if (errStockExceeded) errStockExceeded.style.display = "none";
+            if (errSerExceeded) errSerExceeded.style.display = "none";
+            if (errPwsExceeded) errPwsExceeded.style.display = "none";
+            if (stockSerInput) stockSerInput.classList.remove("input-error");
+            if (stockPwsInput) stockPwsInput.classList.remove("input-error");
             if (issueCountInput) issueCountInput.classList.remove("input-error");
             if (submitBtn) submitBtn.disabled = false;
             return;
@@ -2184,17 +2186,49 @@ document.addEventListener("DOMContentLoaded", function () {
         const pwsVal = parseInt(stockPwsInput ? stockPwsInput.value : 0, 10) || 0;
         const enteredQty = issueVal > 0 ? issueVal : (serVal + pwsVal);
 
+        let hasError = false;
+
+        // 1. Check SER limit
+        if (window.currentAvailableSerStock !== null && serVal > window.currentAvailableSerStock) {
+            if (errSerExceeded) {
+                errSerExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> SER (${serVal}) exceeds Available SER (${window.currentAvailableSerStock})!`;
+                errSerExceeded.style.display = "flex";
+            }
+            if (stockSerInput) stockSerInput.classList.add("input-error");
+            hasError = true;
+        } else {
+            if (errSerExceeded) errSerExceeded.style.display = "none";
+            if (stockSerInput) stockSerInput.classList.remove("input-error");
+        }
+
+        // 2. Check PWS limit
+        if (window.currentAvailablePwsStock !== null && pwsVal > window.currentAvailablePwsStock) {
+            if (errPwsExceeded) {
+                errPwsExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> PWS (${pwsVal}) exceeds Available PWS (${window.currentAvailablePwsStock})!`;
+                errPwsExceeded.style.display = "flex";
+            }
+            if (stockPwsInput) stockPwsInput.classList.add("input-error");
+            hasError = true;
+        } else {
+            if (errPwsExceeded) errPwsExceeded.style.display = "none";
+            if (stockPwsInput) stockPwsInput.classList.remove("input-error");
+        }
+
+        // 3. Check Total Stock limit
         if (enteredQty > window.currentAvailableFodStock) {
             if (errStockExceeded) {
-                errStockExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Issue quantity (${enteredQty}) exceeds Available Stock (${window.currentAvailableFodStock})!`;
+                errStockExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Issue quantity (${enteredQty}) exceeds Total Available (${window.currentAvailableFodStock})!`;
                 errStockExceeded.style.display = "flex";
             }
             if (issueCountInput) issueCountInput.classList.add("input-error");
-            if (submitBtn) submitBtn.disabled = true;
+            hasError = true;
         } else {
             if (errStockExceeded) errStockExceeded.style.display = "none";
             if (issueCountInput) issueCountInput.classList.remove("input-error");
-            if (submitBtn) submitBtn.disabled = false;
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = hasError;
         }
     }
 
@@ -2272,10 +2306,48 @@ document.addEventListener("DOMContentLoaded", function () {
         if (deficiencyInput) deficiencyInput.value = defi;
     }
 
-    if (unitAuthInput) unitAuthInput.addEventListener("input", recalcDeficiency);
+    function checkAndToggleAuthLock() {
+        const uAuthEl = document.getElementById("ecc_unit_auth");
+        const authVal = parseFloat(uAuthEl ? uAuthEl.value : 0) || 0;
+        const errAuthZero = document.getElementById("errEccAuthZero");
+        const eccForm = document.getElementById("eccForm");
+        const submitBtn = eccForm ? eccForm.querySelector("button[type='submit']") : null;
+        const formInputs = eccForm ? eccForm.querySelectorAll("input:not([name='bbf_division']):not(#ecc_unit_auth):not([readonly])") : [];
+
+        if (authVal <= 0) {
+            formInputs.forEach(inp => {
+                inp.disabled = true;
+                inp.style.opacity = "0.5";
+                inp.style.cursor = "not-allowed";
+            });
+            if (submitBtn) submitBtn.disabled = true;
+            if (errAuthZero) errAuthZero.style.display = "flex";
+        } else {
+            formInputs.forEach(inp => {
+                inp.disabled = false;
+                inp.style.opacity = "1";
+                inp.style.cursor = "initial";
+            });
+            if (submitBtn) submitBtn.disabled = false;
+            if (errAuthZero) errAuthZero.style.display = "none";
+        }
+    }
+
+    if (unitAuthInput) {
+        unitAuthInput.addEventListener("input", () => {
+            checkAndToggleAuthLock();
+            recalcDeficiency();
+        });
+        unitAuthInput.addEventListener("change", () => {
+            checkAndToggleAuthLock();
+            recalcDeficiency();
+        });
+    }
     if (issueCountInput) issueCountInput.addEventListener("input", handleIssueCountInput);
     if (stockSerInput) stockSerInput.addEventListener("input", handleSerInput);
     if (stockPwsInput) stockPwsInput.addEventListener("input", handlePwsInput);
+    
+    checkAndToggleAuthLock();
     recalcDeficiency();
 
     // ── 4. Numeric-only guard ──

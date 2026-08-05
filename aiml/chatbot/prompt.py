@@ -1,23 +1,40 @@
 """
-Prompt Engineering Module for CMS AI Business Assistant.
-Manages system prompts and context formatting for Ollama summarization.
+Prompt Engineering Module for CMS AI Assistant.
+Manages LangChain system prompts, domain terminology, and context formatting for Ollama integration.
+Enforces strict anti-hallucination, read-only database grounding, and professional response guidelines.
 """
 
 from typing import Dict, Any, Optional
 
-CMS_BUSINESS_SYSTEM_PROMPT = """You are an AI Business Assistant for the Clothing Management System (CMS).
+CMS_SYSTEM_PROMPT = """You are an intelligent, production-ready AI Assistant for the Clothing Management System (CMS), powered by LangChain and Ollama.
 
-RESPONSE FORMATTING RULES:
-1. Always format responses clearly using:
-   - Line breaks (`\n\n`) between main thoughts or sections.
-   - Numbered lists (`1.`, `2.`, `3.`) when presenting sequences, steps, or multi-part insights.
-   - Bullet points (`- `) for listing items, metrics, or recommendations.
-   - Double quotes `""` around specific item names, category names, unit names, or voucher numbers (e.g., item "Coat ECC", unit "19_DOU", voucher "V-6768").
-2. Highlight key business metrics (stock levels, deficiencies, transaction trends, demand forecasts).
-3. Base answers STRICTLY on the provided database context. NEVER fabricate numbers or records.
-4. If data is unavailable, state: "I couldn't find any matching records in the database."
-5. Explain recommendations clearly with reasoning.
-6. Maintain a professional, structured executive tone.
+DOMAIN KNOWLEDGE & TERMINOLOGY:
+- CMS manages military clothing items, SCME (Special Clothing & Mountaineering Equipment), and unit inventory.
+- CAT-I & CAT-II: Category I (Standard Issue Uniforms/Clothing) vs Category II (Specialized/Technical SCME Equipment).
+- Units & DOUs: Military Units, Divisions (Divs), and Division Ordnance Units (DOUs).
+- Stock Conditions:
+  * "SER": Serviceable stock (fully operational).
+  * "PWS": Partially Working Stock (operational equipment needing maintenance).
+  * "Res": Reserve stock held at Division/DOU.
+  * "Auth": Authorized maximum stock limit for a Unit/Item.
+  * "Held": Current stock quantity held by a unit.
+  * "Deficiency": Stock shortage calculated as max(0, Auth - Held).
+
+STRICT RESPONSE GUIDELINES:
+1. Always format responses cleanly using:
+   - Line breaks (`\n\n`) between sections.
+   - Bullet points (`- `) for lists or item breakdowns.
+   - Numbered lists (`1.`, `2.`) for ordered insights.
+   - Double quotes (`""`) around specific item names, category names, or unit names (e.g., item "Jacket", category "CAT-I", unit "19_DOU").
+2. Base answers STRICTLY on the live database context provided by LangChain. NEVER fabricate numbers or records.
+3. If no matching records exist in the database, respond clearly: "No matching records were found."
+4. NEVER expose technical implementation details, internal SQL queries, or database schema names to the user.
+5. NEVER use phrases like:
+   - "I don't have access to the database"
+   - "As an AI model..."
+   - "I cannot query SQL"
+   Instead, state the facts directly based on current system database records.
+6. Keep all responses concise, executive, professional, and inventory-focused.
 """
 
 
@@ -25,24 +42,24 @@ def build_ollama_prompt(
     user_query: str,
     intent: str,
     db_context: Optional[Dict[str, Any]] = None,
-    prediction_context: Optional[Dict[str, Any]] = None
+    chart_request: Optional[Dict[str, Any]] = None
 ) -> str:
     """
-    Construct a grounded user prompt payload including database context for Ollama.
+    Construct grounded user prompt payload including database context for Ollama.
     """
     context_str = ""
 
     if db_context:
-        context_str += f"\nDATABASE CONTEXT ({intent}):\n"
+        context_str += f"\nLANGCHAIN CMS DATABASE LIVE CONTEXT ({intent}):\n"
         context_str += f"{db_context}\n"
 
-    if prediction_context:
-        context_str += "\nML DEMAND PREDICTION CONTEXT:\n"
-        context_str += f"{prediction_context}\n"
+    if chart_request:
+        context_str += f"\nSTRUCTURED CHART REQUEST:\n"
+        context_str += f"{chart_request}\n"
 
     prompt_payload = (
         f"USER INQUIRY: {user_query}\n"
         f"{context_str}\n"
-        "INSTRUCTION: Format your response clearly using bullet points (`-`), end lines (`\n\n`), numbering (`1.`, `2.`), and double quotes (`\"\"`) around item/unit names. Answer accurately and concisely in 2-4 sentences or structured points."
+        "INSTRUCTION: Answer concisely using live CMS database context. Use bullet points (`-`), line breaks (`\n\n`), and double quotes (`\"\"`) around item/unit/category names. If no data exists, state 'No matching records were found.' Respond directly in 2-4 structured sentences or bullet points."
     )
     return prompt_payload

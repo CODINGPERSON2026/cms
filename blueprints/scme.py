@@ -146,16 +146,29 @@ def scme_home():
             self.unit_name = rec.unit_name or ''
             self.item = rec.item
             self.scale = getattr(rec, 'scale', None) or "N/A"
+            
+            # Fetch AUTH from ItemAuth if present, fallback to rec.auth
+            auth_rec = ItemAuth.query.filter(
+                func.lower(func.trim(ItemAuth.unit_name)) == (rec.unit_name or '').lower().strip(),
+                ItemAuth.item_id == rec.item_id
+            ).first()
+            auth_val = auth_rec.auth if (auth_rec and auth_rec.auth is not None) else (rec.auth or 0)
             self.auth_auth = 0
             self.auth_res = 0
-            self.auth_total = rec.auth or 0
-            self.unit_auth = rec.auth or 0
+            self.auth_total = auth_val
+            self.unit_auth = auth_val
             
-            # PREVIOUS MONTH SPLIT DATA
-            self.prev_ser = prev_rec.ser if (prev_rec and prev_rec.ser) else 0
-            self.prev_pws = prev_rec.pws if (prev_rec and prev_rec.pws) else 0
+            # PREVIOUS MONTH DATA (FETCHED FROM DB RECORD BEFORE CURRENT MONTH)
+            if prev_rec:
+                p_ser = (prev_rec.ser or 0) + (getattr(prev_rec, 'available_ser', 0) or 0)
+                p_pws = (prev_rec.pws or 0) + (getattr(prev_rec, 'available_pws', 0) or 0)
+                self.prev_ser = p_ser
+                self.prev_pws = p_pws
+            else:
+                self.prev_ser = 0
+                self.prev_pws = 0
+            
             self.prev_total = self.prev_ser + self.prev_pws
-            
             self.bbf_ser = self.prev_ser
             self.bbf_pws = self.prev_pws
             self.bbf_total = self.prev_total
@@ -168,12 +181,9 @@ def scme_home():
             self.issd_pws = 0
             self.issd_total = 0
             
-            # CURRENT MONTH DATA (STOCK HELD: Ser = ser + available_ser, PWS = pws + available_pws)
+            # CURRENT MONTH DATA (STOCK HELD FETCHED FROM DB: Ser = ser + available_ser, PWS = pws + available_pws)
             a_ser = getattr(rec, 'available_ser', 0) or 0
             a_pws = getattr(rec, 'available_pws', 0) or 0
-            a_res = getattr(rec, 'available_res', 0) or 0
-            if a_ser == 0 and a_pws == 0 and a_res > 0:
-                a_ser = a_res
 
             self.stock_ser = (rec.ser or 0) + a_ser
             self.stock_pws = (rec.pws or 0) + a_pws
@@ -186,7 +196,7 @@ def scme_home():
             self.add_idt_ict = getattr(rec, 'add_idt_ict', 0) or 0
             self.add_remarks_ro_bal = 0
             self.tps = self.stock_total
-            self.deficiency = (rec.auth or 0) - self.stock_total
+            self.deficiency = self.unit_auth - self.stock_total
             self.created_at = rec.issued_at
 
     # Fetch division names directly from Divs table
@@ -202,21 +212,91 @@ def scme_home():
 
     track_records = track_query.order_by(TrackUnitItems.issued_at.desc(), TrackUnitItems.id.desc()).all()
     
-    ecc_states = []
+    # Group track_records by unique (unit_name, item_id) to eliminate duplicate rows per item
+    grouped_track_map = {}
     for rec in track_records:
-        rec_dt = rec.issued_at
-        if rec_dt:
-            rec_naive = rec_dt.astimezone(timezone.utc).replace(tzinfo=None) if rec_dt.tzinfo else rec_dt
-        else:
-            rec_naive = None
-            
-        prev_rec = TrackUnitItems.query.filter(
-            TrackUnitItems.unit_name == rec.unit_name,
-            TrackUnitItems.item_id == rec.item_id,
-            TrackUnitItems.issued_at < first_day_of_current_month
-        ).order_by(TrackUnitItems.id.desc()).first()
-        
-        ecc_states.append(TrackUnitAdapter(rec, prev_rec))
+        u_key = (rec.unit_name or '').lower().strip()
+        key = (u_key, rec.item_id)
+        if key not in grouped_track_map:
+            grouped_track_map[key] = []
+        grouped_track_map[key].append(rec)
+
+    ecc_states = []
+
+    # ── Calculate first day of PREVIOUS month ──
+    if now_date.month == 1:
+        first_day_prev_month = datetime(now_date.year - 1, 12, 1)
+    else:
+        first_day_prev_month = datetime(now_date.year, now_date.month - 1, 1)
+
+    first_day_next_month = datetime(
+        now_date.year + (1 if now_date.month == 12 else 0),
+        1 if now_date.month == 12 else now_date.month + 1,
+        1
+    )
+
+    # ── PREVIOUS MONTH: Query transactions table for previous calendar month ──
+    # Build lookup: { (received_by_lower, item_id): {'ser': X, 'pws': Y} }
+    prev_month_map = {}
+    prev_trans = Transactions.query.filter(
+        Transactions.timestamp >= first_day_prev_month,
+        Transactions.timestamp < first_day_of_current_month
+    ).all()
+    for t in prev_trans:
+        r_key = (t.received_by or '').lower().strip()
+        key = (r_key, t.item_id)
+        if key not in prev_month_map:
+            prev_month_map[key] = {'ser': 0, 'pws': 0}
+        prev_month_map[key]['ser'] += (t.ser or 0)
+        prev_month_map[key]['pws'] += (t.pws or 0)
+
+    # ── ISSUED DURING MONTH: Query transactions table for current month ──
+    # Build lookup: { (received_by_lower, item_id): {'ser': X, 'pws': Y} }
+    issued_this_month_map = {}
+    issd_trans = Transactions.query.filter(
+        Transactions.timestamp >= first_day_of_current_month,
+        Transactions.timestamp < first_day_next_month
+    ).all()
+    for t in issd_trans:
+        r_key = (t.received_by or '').lower().strip()
+        key = (r_key, t.item_id)
+        if key not in issued_this_month_map:
+            issued_this_month_map[key] = {'ser': 0, 'pws': 0}
+        issued_this_month_map[key]['ser'] += (t.ser or 0)
+        issued_this_month_map[key]['pws'] += (t.pws or 0)
+
+    for (u_key, item_id), group_recs in grouped_track_map.items():
+        # Latest record overall for base info
+        rec = group_recs[0]
+
+        adapter = TrackUnitAdapter(rec, None)
+
+        # PREVIOUS MONTH: Real data from transactions table (previous calendar month)
+        prev_data = prev_month_map.get((u_key, item_id), {'ser': 0, 'pws': 0})
+        adapter.prev_ser   = prev_data['ser']
+        adapter.prev_pws   = prev_data['pws']
+        adapter.prev_total = adapter.prev_ser + adapter.prev_pws
+        adapter.bbf_ser    = adapter.prev_ser
+        adapter.bbf_pws    = adapter.prev_pws
+        adapter.bbf_total  = adapter.prev_total
+
+        # STOCK HELD: Cumulative sum of ALL months for this unit & item
+        tot_ser = sum((r.ser or 0) + (getattr(r, 'available_ser', 0) or 0) for r in group_recs)
+        tot_pws = sum((r.pws or 0) + (getattr(r, 'available_pws', 0) or 0) for r in group_recs)
+
+        adapter.stock_ser   = tot_ser
+        adapter.stock_pws   = tot_pws
+        adapter.stock_total = tot_ser + tot_pws
+        adapter.tps         = adapter.stock_total
+        adapter.deficiency  = max(0, adapter.unit_auth - adapter.stock_total)
+
+        # ISSUED DURING MONTH: Real issuance data from transactions table (current month)
+        issd_data = issued_this_month_map.get((u_key, item_id), {'ser': 0, 'pws': 0})
+        adapter.issd_ser   = issd_data['ser']
+        adapter.issd_pws   = issd_data['pws']
+        adapter.issd_total = adapter.issd_ser + adapter.issd_pws
+
+        ecc_states.append(adapter)
 
     # ECC specific counts & datasets from TrackUnitItems
     total_ecc_items = ScmeItems.query.filter(ScmeItems.type == 'ecc').count()
@@ -227,12 +307,12 @@ def scme_home():
     total_ecc_held = 0
     global_ecc_deficiency = 0
     ecc_divisions = set()
-    for rec in track_records:
-        div = rec.unit_name
+    for s in ecc_states:
+        div = s.unit_name
         if div:
             ecc_divisions.add(div)
-        auth_val = rec.auth or 0
-        held_val = rec.calc_held()
+        auth_val = s.unit_auth or 0
+        held_val = s.stock_total or 0
         defi_val = max(0, auth_val - held_val)
 
         total_ecc_auth += auth_val
@@ -240,22 +320,20 @@ def scme_home():
         global_ecc_deficiency += defi_val
 
         ecc_chart_data.append({
-            "id": rec.id,
+            "id": s.id,
             "division": div,
-            "item_name": rec.item.item_name if rec.item else "Unknown",
-            "category": rec.item.category if rec.item else "Unknown",
-            "scale": "N/A",
+            "item_name": s.item.item_name if s.item else "Unknown",
+            "category": s.item.category if s.item else "Unknown",
+            "scale": s.scale,
             "auth_total": auth_val,
             "unit_auth": auth_val,
-            "bbf_total": 0,
-            "recd_total": 0,
-            "issd_total": 0,
-            "stock_ser": rec.ser or 0,
-            "stock_pws": rec.pws or 0,
-            "available_ser": getattr(rec, 'available_ser', 0) or 0,
-            "available_pws": getattr(rec, 'available_pws', 0) or 0,
+            "bbf_total": s.prev_total,
+            "recd_total": s.recd_total,
+            "issd_total": s.issd_total,
+            "stock_ser": s.stock_ser,
+            "stock_pws": s.stock_pws,
             "stock_total": held_val,
-            "tps": 0,
+            "tps": getattr(s, 'tps', 0) or 0,
             "deficiency": defi_val
         })
     active_ecc_divisions = units_table_unique_count
@@ -758,20 +836,28 @@ def api_get_unit_item_auth():
         ).order_by(TrackUnitItems.id.desc()).first()
 
         auth_val = (record.auth or 0) if record else 0
-        if auth_val == 0:
-            auth_rec = ItemAuth.query.filter(
-                func.lower(func.trim(ItemAuth.unit_name)) == unit_name.lower().strip(),
-                ItemAuth.item_id == item_id_val
-            ).first()
-            if auth_rec and (auth_rec.auth or 0) > 0:
-                auth_val = auth_rec.auth
-            else:
-                issued_rec = ScmeIssuedItems.query.filter(
-                    func.lower(func.trim(ScmeIssuedItems.unit_name)) == unit_name.lower().strip(),
-                    ScmeIssuedItems.item_id == item_id_val
-                ).first()
-                if issued_rec and (issued_rec.unit_authorized or 0) > 0:
-                    auth_val = issued_rec.unit_authorized
+        scale_val = (record.scale or "") if record else ""
+
+        # 2. Query ItemAuth (PRIMARY SOURCE FOR AUTH)
+        auth_rec = ItemAuth.query.filter(
+            func.lower(func.trim(ItemAuth.unit_name)) == unit_name.lower().strip(),
+            ItemAuth.item_id == item_id_val
+        ).first()
+
+        if auth_rec and (auth_rec.auth or 0) > 0:
+            auth_val = auth_rec.auth
+
+        # 3. Query ScmeIssuedItems as fallback
+        issued_rec = ScmeIssuedItems.query.filter(
+            func.lower(func.trim(ScmeIssuedItems.unit_name)) == unit_name.lower().strip(),
+            ScmeIssuedItems.item_id == item_id_val
+        ).first()
+
+        if auth_val == 0 and issued_rec and (issued_rec.unit_authorized or 0) > 0:
+            auth_val = issued_rec.unit_authorized
+
+        if not scale_val and issued_rec and issued_rec.scale:
+            scale_val = issued_rec.scale
 
         if record:
             now = datetime.now()
@@ -793,7 +879,7 @@ def api_get_unit_item_auth():
                 "exists": True,
                 "is_current_month": is_current_month,
                 "auth": auth_val,
-                "scale": getattr(record, 'scale', '') or "",
+                "scale": scale_val,
                 "ser": record.ser or 0,
                 "pws": record.pws or 0,
                 "available_ser": record.available_ser or 0,
@@ -810,7 +896,7 @@ def api_get_unit_item_auth():
                 "exists": False,
                 "is_current_month": False,
                 "auth": auth_val,
-                "scale": "",
+                "scale": scale_val,
                 "ser": 0,
                 "pws": 0,
                 "available_ser": 0,
@@ -987,10 +1073,25 @@ def api_add_ecc_state():
         # FOD Stock Availability Validation (check if stock exists in fod_stock_table)
         from sqlalchemy import func
         fod_total = db.session.query(func.sum(FodStock.quantity)).filter_by(item_id=item_id_val).scalar() or 0
+        fod_ser = db.session.query(func.sum(FodStock.ser)).filter_by(item_id=item_id_val).scalar() or 0
+        fod_pws = db.session.query(func.sum(FodStock.pws)).filter_by(item_id=item_id_val).scalar() or 0
+
         if fod_total <= 0:
             return jsonify({
                 "success": False,
                 "message": f"Item Not Available — '{item_exists.item_name}' has no stock. Please add stock via Add Stock page first."
+            }), 400
+
+        if stock_ser_val > fod_ser:
+            return jsonify({
+                "success": False,
+                "message": f"Entered SER quantity ({stock_ser_val}) exceeds Available SER Stock ({fod_ser}) for item '{item_exists.item_name}'!"
+            }), 400
+
+        if stock_pws_val > fod_pws:
+            return jsonify({
+                "success": False,
+                "message": f"Entered PWS quantity ({stock_pws_val}) exceeds Available PWS Stock ({fod_pws}) for item '{item_exists.item_name}'!"
             }), 400
 
         available_qty = fod_total
@@ -1009,6 +1110,34 @@ def api_add_ecc_state():
             func.lower(func.trim(TrackUnitItems.unit_name)) == bbf_division.lower().strip(),
             TrackUnitItems.item_id == item_id_val
         ).all()
+
+        # Sync scale & auth across existing TrackUnitItems and ScmeIssuedItems/ItemAuth
+        for r in all_recs:
+            if scale:
+                r.scale = scale
+            if unit_auth_val >= 0:
+                r.auth = unit_auth_val
+
+        issued_rec = ScmeIssuedItems.query.filter(
+            func.lower(func.trim(ScmeIssuedItems.unit_name)) == bbf_division.lower().strip(),
+            ScmeIssuedItems.item_id == item_id_val
+        ).first()
+        if issued_rec:
+            if scale:
+                issued_rec.scale = scale
+            if unit_auth_val >= 0:
+                issued_rec.unit_authorized = unit_auth_val
+
+        # Update or create ItemAuth record
+        auth_rec = ItemAuth.query.filter(
+            func.lower(func.trim(ItemAuth.unit_name)) == bbf_division.lower().strip(),
+            ItemAuth.item_id == item_id_val
+        ).first()
+        if auth_rec:
+            auth_rec.auth = unit_auth_val
+        else:
+            auth_rec = ItemAuth(unit_name=bbf_division, item_id=item_id_val, auth=unit_auth_val)
+            db.session.add(auth_rec)
         
         current_month_rec = None
         for r in all_recs:
@@ -1021,8 +1150,7 @@ def api_add_ecc_state():
 
         if current_month_rec:
             # SAME UNIT, ITEM, & MONTH EXISTS -> ACCUMULATE / SUM VALUES INTO EXISTING ROW
-            if unit_auth_val > 0:
-                current_month_rec.auth = unit_auth_val
+            current_month_rec.auth = unit_auth_val
             if scale:
                 current_month_rec.scale = scale
             current_month_rec.available_res = (current_month_rec.available_res or 0) + held_delta
@@ -1069,6 +1197,35 @@ def api_add_ecc_state():
                 timestamp=now_dt
             )
             db.session.add(trans_rec)
+
+        # Deduct issued SER and PWS from FOD Stock table
+        rem_ser_to_deduct = stock_ser_val
+        rem_pws_to_deduct = stock_pws_val
+        if rem_ser_to_deduct == 0 and rem_pws_to_deduct == 0 and held_delta > 0:
+            rem_ser_to_deduct = held_delta
+
+        fod_records = FodStock.query.filter_by(item_id=item_id_val).order_by(FodStock.created_at.asc(), FodStock.id.asc()).all()
+
+        for fod in fod_records:
+            if rem_ser_to_deduct > 0 and (fod.ser or 0) > 0:
+                deduct_ser = min(fod.ser, rem_ser_to_deduct)
+                fod.ser -= deduct_ser
+                rem_ser_to_deduct -= deduct_ser
+
+            if rem_ser_to_deduct > 0 and (fod.pws or 0) > 0 and stock_ser_val == 0:
+                deduct_pws_fallback = min(fod.pws, rem_ser_to_deduct)
+                fod.pws -= deduct_pws_fallback
+                rem_ser_to_deduct -= deduct_pws_fallback
+
+            if rem_pws_to_deduct > 0 and (fod.pws or 0) > 0:
+                deduct_pws = min(fod.pws, rem_pws_to_deduct)
+                fod.pws -= deduct_pws
+                rem_pws_to_deduct -= deduct_pws
+
+            fod.quantity = (fod.ser or 0) + (fod.pws or 0)
+
+            if rem_ser_to_deduct <= 0 and rem_pws_to_deduct <= 0:
+                break
 
         db.session.commit()
             
@@ -1354,14 +1511,179 @@ def add_stock():
     if not category_list:
         category_list = ['CAT-I', 'CAT-II']
 
+    from sqlalchemy import func
+    stock_totals = db.session.query(
+        FodStock.item_id,
+        func.sum(FodStock.quantity).label('total_qty'),
+        func.sum(FodStock.ser).label('total_ser'),
+        func.sum(FodStock.pws).label('total_pws'),
+        func.max(FodStock.created_at).label('last_updated')
+    ).group_by(FodStock.item_id).all()
+
+    current_stock_summary = {}
+    for st in stock_totals:
+        current_stock_summary[st.item_id] = {
+            "total_qty": int(st.total_qty or 0),
+            "total_ser": int(st.total_ser or 0),
+            "total_pws": int(st.total_pws or 0),
+            "last_updated": st.last_updated.strftime('%d %b %Y, %H:%M') if st.last_updated else ''
+        }
+
+    current_stock_list = []
+    total_fod_qty = 0
+    total_fod_ser = 0
+    total_fod_pws = 0
+
+    for item in items:
+        sum_data = current_stock_summary.get(item.id)
+        if sum_data and sum_data["total_qty"] > 0:
+            total_fod_qty += sum_data["total_qty"]
+            total_fod_ser += sum_data["total_ser"]
+            total_fod_pws += sum_data["total_pws"]
+            current_stock_list.append({
+                "item_id": item.id,
+                "item_name": item.item_name,
+                "category": item.category,
+                "total_qty": sum_data["total_qty"],
+                "total_ser": sum_data["total_ser"],
+                "total_pws": sum_data["total_pws"],
+                "last_updated": sum_data["last_updated"]
+            })
+
     recent_stocks = FodStock.query.order_by(FodStock.created_at.desc(), FodStock.id.desc()).all()
 
     return render_template(
         '/scme_dashboard/add_stock.html',
         items=items,
         categories=category_list,
-        recent_stocks=recent_stocks
+        recent_stocks=recent_stocks,
+        current_stock_summary=current_stock_summary,
+        current_stock_list=current_stock_list,
+        total_fod_qty=total_fod_qty,
+        total_fod_ser=total_fod_ser,
+        total_fod_pws=total_fod_pws
     )
+@scme_bp.route('/current-stock', methods=['GET'])
+def current_stock_page():
+    user_role = session.get("role")
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+        return redirect("/auth/login")
+
+    from sqlalchemy import func
+    items = ScmeItems.query.order_by(ScmeItems.item_name).all()
+    categories = db.session.query(ScmeItems.category).distinct().all()
+    category_list = [c[0] for c in categories if c[0]]
+    if not category_list:
+        category_list = ['CAT-I', 'CAT-II']
+
+    stock_totals = db.session.query(
+        FodStock.item_id,
+        func.sum(FodStock.quantity).label('total_qty'),
+        func.sum(FodStock.ser).label('total_ser'),
+        func.sum(FodStock.pws).label('total_pws'),
+        func.max(FodStock.created_at).label('last_updated')
+    ).group_by(FodStock.item_id).all()
+
+    current_stock_summary = {}
+    for st in stock_totals:
+        current_stock_summary[st.item_id] = {
+            "total_qty": int(st.total_qty or 0),
+            "total_ser": int(st.total_ser or 0),
+            "total_pws": int(st.total_pws or 0),
+            "last_updated": st.last_updated.strftime('%d %b %Y, %H:%M') if st.last_updated else ''
+        }
+
+    current_stock_list = []
+    total_fod_qty = 0
+    total_fod_ser = 0
+    total_fod_pws = 0
+    items_with_stock_count = 0
+
+    for item in items:
+        sum_data = current_stock_summary.get(item.id)
+        if sum_data and (sum_data["total_ser"] > 0 or sum_data["total_pws"] > 0):
+            total_fod_qty += sum_data["total_qty"]
+            total_fod_ser += sum_data["total_ser"]
+            total_fod_pws += sum_data["total_pws"]
+            items_with_stock_count += 1
+
+            current_stock_list.append({
+                "item_id": item.id,
+                "item_name": item.item_name,
+                "category": item.category,
+                "total_qty": sum_data["total_qty"],
+                "total_ser": sum_data["total_ser"],
+                "total_pws": sum_data["total_pws"],
+                "last_updated": sum_data["last_updated"]
+            })
+
+    return render_template(
+        '/scme_dashboard/current_stock.html',
+        items=items,
+        categories=category_list,
+        current_stock_list=current_stock_list,
+        total_fod_qty=total_fod_qty,
+        total_fod_ser=total_fod_ser,
+        total_fod_pws=total_fod_pws,
+        items_with_stock_count=items_with_stock_count
+    )
+
+
+@scme_bp.route('/api/current-stock', methods=['GET'])
+def api_get_current_stock():
+    if "user_id" not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    from sqlalchemy import func
+    items = ScmeItems.query.order_by(ScmeItems.item_name).all()
+    stock_totals = db.session.query(
+        FodStock.item_id,
+        func.sum(FodStock.quantity).label('total_qty'),
+        func.sum(FodStock.ser).label('total_ser'),
+        func.sum(FodStock.pws).label('total_pws'),
+        func.max(FodStock.created_at).label('last_updated')
+    ).group_by(FodStock.item_id).all()
+
+    stock_summary = {}
+    for st in stock_totals:
+        stock_summary[st.item_id] = {
+            "total_qty": int(st.total_qty or 0),
+            "total_ser": int(st.total_ser or 0),
+            "total_pws": int(st.total_pws or 0),
+            "last_updated": st.last_updated.strftime('%d %b %Y, %H:%M') if st.last_updated else 'N/A'
+        }
+
+    data = []
+    total_qty_all = 0
+    total_ser_all = 0
+    total_pws_all = 0
+
+    for item in items:
+        sum_data = stock_summary.get(item.id)
+        if sum_data and sum_data["total_qty"] > 0:
+            total_qty_all += sum_data["total_qty"]
+            total_ser_all += sum_data["total_ser"]
+            total_pws_all += sum_data["total_pws"]
+            data.append({
+                "item_id": item.id,
+                "item_name": item.item_name,
+                "category": item.category,
+                "total_qty": sum_data["total_qty"],
+                "total_ser": sum_data["total_ser"],
+                "total_pws": sum_data["total_pws"],
+                "last_updated": sum_data["last_updated"]
+            })
+
+    return jsonify({
+        "success": True,
+        "items": data,
+        "totals": {
+            "total_items": len(data),
+            "total_qty": total_qty_all,
+            "total_ser": total_ser_all,
+            "total_pws": total_pws_all
+        }
+    })
 
 
 @scme_bp.route('/api/available-stock/<int:item_id>', methods=['GET'])
@@ -1375,6 +1697,8 @@ def api_get_available_stock(item_id):
 
     from sqlalchemy import func
     fod_total = db.session.query(func.sum(FodStock.quantity)).filter_by(item_id=item_id).scalar() or 0
+    ser_total = db.session.query(func.sum(FodStock.ser)).filter_by(item_id=item_id).scalar() or 0
+    pws_total = db.session.query(func.sum(FodStock.pws)).filter_by(item_id=item_id).scalar() or 0
     available_qty = fod_total if fod_total > 0 else None
 
     return jsonify({
@@ -1383,7 +1707,9 @@ def api_get_available_stock(item_id):
         "item_name": item.item_name,
         "has_fod_stock": (fod_total > 0),
         "fod_total": fod_total,
-        "available_qty": available_qty
+        "available_qty": available_qty,
+        "ser_total": ser_total,
+        "pws_total": pws_total
     })
 
 

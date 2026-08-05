@@ -51,39 +51,53 @@ def unit_dashboard():
                 "pws": int(t.total_pws or 0)
             }
 
+        unit_item_map = {}
         for rec in records:
-            item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
-            auth = rec.auth or 0
-            held_qty = rec.held or 0
-            ser_qty = getattr(rec, 'ser', 0) or 0
-            pws_qty = getattr(rec, 'pws', 0) or 0
-            avail_res = getattr(rec, 'available_res', 0) or 0
+            iid = rec.item_id
+            if iid not in unit_item_map:
+                item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+                auth = rec.auth or 0
+                scale_val = (rec.scale or "").strip()
+                if not scale_val:
+                    issued_rec = ScmeIssuedItems.query.filter(
+                        db.func.lower(db.func.trim(ScmeIssuedItems.unit_name)).in_([n.lower().strip() for n in possible_names if n]),
+                        ScmeIssuedItems.item_id == iid
+                    ).first()
+                    if issued_rec and issued_rec.scale:
+                        scale_val = issued_rec.scale.strip()
+
+                unit_item_map[iid] = {
+                    "id": rec.id,
+                    "item_id": iid,
+                    "item_name": item_name,
+                    "scale": scale_val,
+                    "authorized": auth,
+                    "held": 0,
+                    "ser": 0,
+                    "pws": 0,
+                    "available_res": 0,
+                    "available_ser": 0,
+                    "available_pws": 0,
+                    "issued_at": rec.issued_at
+                }
+            
             avail_ser = getattr(rec, 'available_ser', 0) or 0
             avail_pws = getattr(rec, 'available_pws', 0) or 0
-            if avail_ser == 0 and avail_pws == 0 and avail_res > 0:
-                avail_ser = avail_res
+            avail_res = avail_ser + avail_pws
 
-            tps_data = tps_stock_map.get(rec.item_id, {"ser": 0, "pws": 0})
-            tps_ser = tps_data["ser"]
-            tps_pws = tps_data["pws"]
+            unit_item_map[iid]["held"] += (rec.held or 0)
+            unit_item_map[iid]["ser"] += (getattr(rec, 'ser', 0) or 0)
+            unit_item_map[iid]["pws"] += (getattr(rec, 'pws', 0) or 0)
+            unit_item_map[iid]["available_res"] += avail_res
+            unit_item_map[iid]["available_ser"] += avail_ser
+            unit_item_map[iid]["available_pws"] += avail_pws
 
-            defi = max(0, auth - (avail_ser + avail_pws + ser_qty + pws_qty + tps_ser + tps_pws))
-            unit_records.append({
-                "id": rec.id,
-                "item_id": rec.item_id,
-                "item_name": item_name,
-                "authorized": auth,
-                "held": held_qty,
-                "ser": ser_qty,
-                "pws": pws_qty,
-                "available_res": avail_res,
-                "available_ser": avail_ser,
-                "available_pws": avail_pws,
-                "tps_ser": tps_ser,
-                "tps_pws": tps_pws,
-                "deficiency": defi,
-                "issued_at": rec.issued_at
-            })
+        for iid, u_rec in unit_item_map.items():
+            tps_data = tps_stock_map.get(iid, {"ser": 0, "pws": 0})
+            u_rec["tps_ser"] = tps_data["ser"]
+            u_rec["tps_pws"] = tps_data["pws"]
+            u_rec["deficiency"] = max(0, u_rec["authorized"] - (u_rec["available_ser"] + u_rec["available_pws"] + u_rec["ser"] + u_rec["pws"] + u_rec["tps_ser"] + u_rec["tps_pws"]))
+            unit_records.append(u_rec)
 
     # Fetch Army Personnel list for unit
     personnel_list = []
@@ -209,6 +223,10 @@ def add_personnel():
         if not army_number or not name or not rank:
             return jsonify({"success": False, "message": "Army Number, Name and Rank are required."}), 400
 
+        # Input Sanitization & Special Character Validation
+        if has_special_characters(army_number) or has_special_characters(name) or has_special_characters(rank) or has_special_characters(company):
+            return jsonify({"success": False, "message": "Inputs contain invalid special characters."}), 400
+
         existing = ArmyPersonnel.query.filter_by(army_number=army_number).first()
         if existing:
             return jsonify({"success": False, "message": f"Personnel with Army Number '{army_number}' already exists."}), 400
@@ -236,7 +254,7 @@ def add_personnel():
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Failed to add personnel."}), 500
 
 
 @unit_bp.route('/delete_personnel/<int:personnel_id>', methods=['POST'])
@@ -244,15 +262,23 @@ def delete_personnel(personnel_id):
     if "user_id" not in session:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
     try:
+        user = LoginUser.query.get(session["user_id"])
+        unit_name = user.username if user else session.get("username", "Unit")
+
         personnel = ArmyPersonnel.query.get(personnel_id)
-        if personnel:
-            db.session.delete(personnel)
-            db.session.commit()
-            return jsonify({"success": True, "message": "Personnel deleted."})
-        return jsonify({"success": False, "message": "Personnel not found."}), 404
+        if not personnel:
+            return jsonify({"success": False, "message": "Personnel not found."}), 404
+
+        # IDOR Protection: Verify personnel belongs to logged in unit
+        if personnel.unit_name and personnel.unit_name.lower().strip() != unit_name.lower().strip():
+            return jsonify({"success": False, "message": "Unauthorized: Cannot delete personnel from another unit."}), 403
+
+        db.session.delete(personnel)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Personnel deleted."})
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Failed to delete personnel."}), 500
 
 
 @unit_bp.route('/api/update-auth', methods=['POST'])
@@ -260,6 +286,9 @@ def api_update_auth():
     try:
         if "user_id" not in session:
             return jsonify({"success": False, "message": "Not authenticated."}), 401
+
+        user = LoginUser.query.get(session["user_id"])
+        unit_name = user.username if user else session.get("username", "Unit")
 
         data = request.get_json() or {}
         rec_id = data.get("rec_id")
@@ -271,14 +300,18 @@ def api_update_auth():
         try:
             rec_id = int(rec_id)
             new_auth = int(new_auth)
-            if new_auth < 0:
+            if new_auth < 0 or new_auth > 100000:
                 raise ValueError()
         except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Authorized value must be a non-negative integer."}), 400
+            return jsonify({"success": False, "message": "Authorized value must be a valid non-negative integer."}), 400
 
         rec = TrackUnitItems.query.get(rec_id)
         if not rec:
             return jsonify({"success": False, "message": "Record not found."}), 404
+
+        # IDOR Protection: Verify record belongs to logged in unit
+        if rec.unit_name and rec.unit_name.lower().strip() != unit_name.lower().strip():
+            return jsonify({"success": False, "message": "Unauthorized access: Record does not belong to your unit."}), 403
 
         rec.auth = new_auth
         db.session.commit()
@@ -287,57 +320,51 @@ def api_update_auth():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Failed to update AUTH value."}), 500
 
 
 @unit_bp.route("/api/submit-request", methods=["POST"])
 def api_request_item():
     try:
+        if "user_id" not in session:
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
+
         current_user = session['user_id']
-        data = request.get_json()
-        print(data)
+        data = request.get_json() or {}
 
         item_id = data.get("item_id")
         quantity = data.get("quantity")
-        reason = data.get("reason")
-        priority = data.get("priority")
-        remarks = data.get("remarks")
+        reason = (data.get("reason") or "").strip()
+        priority = (data.get("priority") or "").strip()
+        remarks = (data.get("remarks") or "").strip()
 
         # Special character validation
-        if has_special_characters(reason):
+        if has_special_characters(reason) or has_special_characters(priority) or has_special_characters(remarks):
             return jsonify({
                 "success": False,
-                "message": "Reason contains invalid characters."
+                "message": "Form inputs contain invalid special characters."
             }), 400
 
-        if has_special_characters(priority):
-            return jsonify({
-                "success": False,
-                "message": "Priority contains invalid characters."
-            }), 400
-
-        if has_special_characters(remarks):
-            return jsonify({
-                "success": False,
-                "message": "Remarks contains invalid characters."
-            }), 400
-
-        # Validation
         if not item_id:
             return jsonify({
                 "success": False,
                 "message": "Please select an item."
             }), 400
 
-        if not quantity or int(quantity) <= 0:
+        try:
+            quantity = int(quantity)
+            if quantity <= 0 or quantity > 100000:
+                raise ValueError()
+        except (ValueError, TypeError):
             return jsonify({
                 "success": False,
-                "message": "Invalid quantity."
+                "message": "Requested quantity must be a positive integer."
             }), 400
 
         user_id = session["user_id"]
-        org_id = LoginUser.query.get(user_id).org_id
-        admin_id = get_admin_from_org_ladder(org_id)
+        user_rec = LoginUser.query.get(user_id)
+        org_id = user_rec.org_id if user_rec else None
+        admin_id = get_admin_from_org_ladder(org_id) if org_id else None
 
         new_request = ItemRequestTable(
             item_id=item_id,
@@ -358,12 +385,11 @@ def api_request_item():
         }), 201
 
     except Exception as e:
-        print(e)
         db.session.rollback()
 
         return jsonify({
             "success": False,
-            "message": str(e)
+            "message": "Failed to submit request."
         }), 500
 
 @unit_bp.route("/request-item")
@@ -580,6 +606,9 @@ def search_personnel():
     if not query:
         return jsonify({"success": True, "results": []})
 
+    if has_special_characters(query):
+        return jsonify({"success": False, "message": "Search query contains invalid special characters."}), 400
+
     search_pattern = f"%{query.lower()}%"
     results = ArmyPersonnel.query.filter(
         db.func.lower(ArmyPersonnel.unit_name) == username.lower(),
@@ -615,31 +644,70 @@ def issue_to_personnel():
         data = request.get_json() or {}
         rec_id = data.get("rec_id")
         army_number = (data.get("army_number") or "").strip()
-        ser_qty = int(data.get("ser_qty") or 0)
-        pws_qty = int(data.get("pws_qty") or 0)
+        name = (data.get("name") or "").strip()
+        rank = (data.get("rank") or "").strip()
+        company = (data.get("company") or "").strip()
+        
+        try:
+            ser_qty = int(data.get("ser_qty") or 0)
+            pws_qty = int(data.get("pws_qty") or 0)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Quantity values must be valid integers."}), 400
+
         remarks = (data.get("remarks") or "").strip()
 
         if not rec_id or not army_number:
             return jsonify({"success": False, "message": "Item record and Army Number are required."}), 400
 
-        if ser_qty <= 0 and pws_qty <= 0:
+        # 1. Input Sanitization & Special Character Check (Prevent XSS & Script Injection)
+        if has_special_characters(army_number) or has_special_characters(name) or has_special_characters(rank) or has_special_characters(company):
+            return jsonify({"success": False, "message": "Inputs contain invalid special characters."}), 400
+
+        # 2. Strict Integer Boundary & Negative Value Prevention
+        if ser_qty < 0 or pws_qty < 0:
+            return jsonify({"success": False, "message": "Issued quantities cannot be negative."}), 400
+
+        if ser_qty == 0 and pws_qty == 0:
             return jsonify({"success": False, "message": "Specify at least 1 SER or PWS quantity to issue."}), 400
 
-        # Verify personnel exists
-        personnel = ArmyPersonnel.query.filter_by(army_number=army_number).first()
-        if not personnel:
-            return jsonify({"success": False, "message": f"Personnel with Army Number '{army_number}' not found."}), 404
-
-        # Find TrackUnitItems record
+        # 3. IDOR / Authorization Check: Verify TrackUnitItems belongs to user's unit
         unit_item = TrackUnitItems.query.get(rec_id)
         if not unit_item:
             return jsonify({"success": False, "message": "Item record not found."}), 404
 
-        # Available stock validation
-        current_res_ser = getattr(unit_item, 'available_ser', 0) or 0
-        current_res_pws = getattr(unit_item, 'available_pws', 0) or 0
-        current_held_ser = getattr(unit_item, 'ser', 0) or 0
-        current_held_pws = getattr(unit_item, 'pws', 0) or 0
+        if unit_item.unit_name and unit_item.unit_name.lower().strip() != unit_name.lower().strip():
+            return jsonify({"success": False, "message": "Unauthorized access: Item does not belong to your unit."}), 403
+
+        # Find or create ArmyPersonnel record
+        personnel = ArmyPersonnel.query.filter_by(army_number=army_number).first()
+        if not personnel:
+            if not name or not rank:
+                return jsonify({"success": False, "message": "Rank and Personnel Name are required for new Army Number."}), 400
+            personnel = ArmyPersonnel(
+                army_number=army_number,
+                name=name,
+                rank=rank,
+                company=company or None,
+                unit_name=unit_name
+            )
+            db.session.add(personnel)
+            db.session.flush()
+        else:
+            if name: personnel.name = name
+            if rank: personnel.rank = rank
+            if company: personnel.company = company
+            if not personnel.unit_name: personnel.unit_name = unit_name
+
+        # Fetch ALL entries for this unit & item to calculate cumulative available stock
+        all_unit_items = TrackUnitItems.query.filter(
+            db.func.lower(db.func.trim(TrackUnitItems.unit_name)) == (unit_item.unit_name or '').lower().strip(),
+            TrackUnitItems.item_id == unit_item.item_id
+        ).order_by(TrackUnitItems.issued_at.desc(), TrackUnitItems.id.desc()).all()
+
+        current_res_ser = sum((getattr(r, 'available_ser', 0) or 0) for r in all_unit_items)
+        current_res_pws = sum((getattr(r, 'available_pws', 0) or 0) for r in all_unit_items)
+        current_held_ser = sum((getattr(r, 'ser', 0) or 0) for r in all_unit_items)
+        current_held_pws = sum((getattr(r, 'pws', 0) or 0) for r in all_unit_items)
 
         # Total available for issue
         total_ser_avail = current_res_ser + current_held_ser
@@ -651,22 +719,36 @@ def issue_to_personnel():
         if pws_qty > total_pws_avail:
             return jsonify({"success": False, "message": f"Cannot issue {pws_qty} PWS. Available PWS stock is {total_pws_avail}."}), 400
 
-        # Deduct from TrackUnitItems (res first, then held)
+        # Deduct from TrackUnitItems (res first, then held) across all records
         rem_ser = ser_qty
-        if current_res_ser > 0:
-            ded_res_ser = min(current_res_ser, rem_ser)
-            unit_item.available_ser = current_res_ser - ded_res_ser
-            rem_ser -= ded_res_ser
-        if rem_ser > 0:
-            unit_item.ser = max(0, current_held_ser - rem_ser)
+        for r in all_unit_items:
+            r_avail_ser = getattr(r, 'available_ser', 0) or 0
+            if rem_ser > 0 and r_avail_ser > 0:
+                ded = min(r_avail_ser, rem_ser)
+                r.available_ser = r_avail_ser - ded
+                rem_ser -= ded
+            r_held_ser = getattr(r, 'ser', 0) or 0
+            if rem_ser > 0 and r_held_ser > 0:
+                ded = min(r_held_ser, rem_ser)
+                r.ser = r_held_ser - ded
+                rem_ser -= ded
+            if rem_ser <= 0:
+                break
 
         rem_pws = pws_qty
-        if current_res_pws > 0:
-            ded_res_pws = min(current_res_pws, rem_pws)
-            unit_item.available_pws = current_res_pws - ded_res_pws
-            rem_pws -= ded_res_pws
-        if rem_pws > 0:
-            unit_item.pws = max(0, current_held_pws - rem_pws)
+        for r in all_unit_items:
+            r_avail_pws = getattr(r, 'available_pws', 0) or 0
+            if rem_pws > 0 and r_avail_pws > 0:
+                ded = min(r_avail_pws, rem_pws)
+                r.available_pws = r_avail_pws - ded
+                rem_pws -= ded
+            r_held_pws = getattr(r, 'pws', 0) or 0
+            if rem_pws > 0 and r_held_pws > 0:
+                ded = min(r_held_pws, rem_pws)
+                r.pws = r_held_pws - ded
+                rem_pws -= ded
+            if rem_pws <= 0:
+                break
 
         # Update or create UnitTpsStock record
         tps_rec = UnitTpsStock.query.filter_by(
@@ -713,3 +795,225 @@ def issue_to_personnel():
         db.session.rollback()
         print(e)
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@unit_bp.route('/history_ledger', methods=['GET'])
+def history_ledger():
+    if "user_id" not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        user = LoginUser.query.get(session["user_id"])
+        username = user.username if user else session.get("username", "Unit")
+        
+        unit_names = set()
+        if user:
+            if user.username:
+                unit_names.add(user.username.strip())
+                unit_names.add(user.username.replace('_', ' ').strip())
+                unit_names.add(user.username.replace(' ', '_').strip())
+            if user.org and user.org.name:
+                unit_names.add(user.org.name.strip())
+                unit_names.add(user.org.name.replace('_', ' ').strip())
+                unit_names.add(user.org.name.replace(' ', '_').strip())
+
+        unit_names_list = [name.lower() for name in unit_names] if unit_names else [username.lower()]
+
+        # 1. Fetch Army Personnel in this unit
+        personnel_records = ArmyPersonnel.query.filter(
+            db.func.lower(ArmyPersonnel.unit_name).in_(unit_names_list)
+        ).order_by(ArmyPersonnel.name.asc()).all()
+
+        personnel_map = {}
+        for p in personnel_records:
+            personnel_map[p.army_number] = {
+                "id": p.id,
+                "army_number": p.army_number,
+                "name": p.name,
+                "rank": p.rank,
+                "company": p.company or "N/A",
+                "items": [],
+                "total_ser": 0,
+                "total_pws": 0,
+                "total_held": 0
+            }
+
+        # 2. Query UnitTpsStock records for this unit
+        tps_records = UnitTpsStock.query.filter(
+            db.func.lower(UnitTpsStock.unit_name).in_(unit_names_list)
+        ).all()
+
+        total_ser_issued = 0
+        total_pws_issued = 0
+
+        for rec in tps_records:
+            ser = rec.tps_ser or 0
+            pws = rec.tps_pws or 0
+            total = ser + pws
+            if total <= 0:
+                continue
+
+            total_ser_issued += ser
+            total_pws_issued += pws
+
+            item_name = rec.item.item_name if rec.item else f"Item #{rec.item_id}"
+            item_cat = getattr(rec.item, 'category', 'N/A') if rec.item else 'N/A'
+            item_au = getattr(rec.item, 'a_u', 'Nos') if rec.item else 'Nos'
+
+            army_num = rec.army_number
+            if army_num in personnel_map:
+                personnel_map[army_num]["items"].append({
+                    "item_id": rec.item_id,
+                    "item_name": item_name,
+                    "category": item_cat,
+                    "a_u": item_au,
+                    "tps_ser": ser,
+                    "tps_pws": pws,
+                    "total_held": total
+                })
+                personnel_map[army_num]["total_ser"] += ser
+                personnel_map[army_num]["total_pws"] += pws
+                personnel_map[army_num]["total_held"] += total
+            else:
+                p_rec = ArmyPersonnel.query.filter_by(army_number=army_num).first()
+                p_name = p_rec.name if p_rec else army_num
+                p_rank = p_rec.rank if p_rec else ""
+                p_coy = p_rec.company if p_rec else "N/A"
+                personnel_map[army_num] = {
+                    "id": p_rec.id if p_rec else 0,
+                    "army_number": army_num,
+                    "name": p_name,
+                    "rank": p_rank,
+                    "company": p_coy or "N/A",
+                    "items": [{
+                        "item_id": rec.item_id,
+                        "item_name": item_name,
+                        "category": item_cat,
+                        "a_u": item_au,
+                        "tps_ser": ser,
+                        "tps_pws": pws,
+                        "total_held": total
+                    }],
+                    "total_ser": ser,
+                    "total_pws": pws,
+                    "total_held": total
+                }
+
+        personnel_holdings = list(personnel_map.values())
+        companies = sorted(list(set(p["company"] for p in personnel_holdings if p["company"] and p["company"] != "N/A")))
+
+        # 3. Query Transactions for history log
+        txns = Transactions.query.filter(
+            db.func.lower(Transactions.issued_by).in_(unit_names_list)
+        ).order_by(Transactions.timestamp.desc()).limit(100).all()
+
+        transaction_logs = []
+        for t in txns:
+            item_name = t.item.item_name if t.item else f"Item #{t.item_id}"
+            received_personnel = personnel_map.get(t.received_by)
+            rec_display = f"{received_personnel['rank']} {received_personnel['name']} ({t.received_by})" if received_personnel and received_personnel.get('name') != t.received_by else t.received_by
+
+            transaction_logs.append({
+                "id": t.id,
+                "item_name": item_name,
+                "received_by": rec_display,
+                "army_number": t.received_by,
+                "ser": t.ser or 0,
+                "pws": t.pws or 0,
+                "remarks": t.remarks or "",
+                "timestamp": t.timestamp.strftime("%d %b %Y, %H:%M") if t.timestamp else "—"
+            })
+
+        soldiers_with_items = sum(1 for p in personnel_holdings if p["total_held"] > 0)
+
+        return jsonify({
+            "success": True,
+            "unit_name": username,
+            "personnel_holdings": personnel_holdings,
+            "transactions": transaction_logs,
+            "companies": companies,
+            "summary": {
+                "total_personnel": len(personnel_holdings),
+                "total_personnel_with_items": soldiers_with_items,
+                "total_ser_issued": total_ser_issued,
+                "total_pws_issued": total_pws_issued,
+                "total_items_issued": total_ser_issued + total_pws_issued
+            }
+        }), 200
+
+    except Exception as e:
+        print(e)
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@unit_bp.route('/unit_logs', methods=['GET'])
+def get_unit_logs():
+    if "user_id" not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        user = LoginUser.query.get(session["user_id"])
+        username = user.username if user else session.get("username", "Unit")
+        
+        unit_names = set()
+        if user:
+            if user.username:
+                unit_names.add(user.username.strip())
+                unit_names.add(user.username.replace('_', ' ').strip())
+                unit_names.add(user.username.replace(' ', '_').strip())
+            if user.org and user.org.name:
+                unit_names.add(user.org.name.strip())
+                unit_names.add(user.org.name.replace('_', ' ').strip())
+                unit_names.add(user.org.name.replace(' ', '_').strip())
+
+        unit_names_list = [name.lower() for name in unit_names] if unit_names else [username.lower()]
+
+        # Query all personnel in unit to construct personnel lookup dict
+        personnel_records = ArmyPersonnel.query.filter(
+            db.func.lower(ArmyPersonnel.unit_name).in_(unit_names_list)
+        ).all()
+        personnel_map = {p.army_number: p for p in personnel_records}
+
+        # Query Transactions
+        txns = Transactions.query.filter(
+            db.func.lower(Transactions.issued_by).in_(unit_names_list)
+        ).order_by(Transactions.timestamp.desc()).all()
+
+        logs = []
+        for t in txns:
+            item_name = t.item.item_name if t.item else f"Item #{t.item_id}"
+            p_rec = personnel_map.get(t.received_by) or ArmyPersonnel.query.filter_by(army_number=t.received_by).first()
+            if p_rec:
+                rec_display = f"{p_rec.rank} {p_rec.name} ({p_rec.army_number})"
+                company = p_rec.company or "N/A"
+            else:
+                rec_display = t.received_by
+                company = "N/A"
+
+            ser = t.ser or 0
+            pws = t.pws or 0
+            logs.append({
+                "id": t.id,
+                "timestamp": t.timestamp.strftime("%d %b %Y, %H:%M:%S") if t.timestamp else "—",
+                "issued_by": t.issued_by,
+                "received_by": rec_display,
+                "army_number": t.received_by,
+                "company": company,
+                "item_name": item_name,
+                "ser": ser,
+                "pws": pws,
+                "total": ser + pws,
+                "remarks": t.remarks or "—"
+            })
+
+        return jsonify({
+            "success": True,
+            "unit_name": username,
+            "total_logs": len(logs),
+            "logs": logs
+        }), 200
+
+    except Exception as e:
+        print(e)
+        return jsonify({"success": False, "message": str(e)}), 500
+

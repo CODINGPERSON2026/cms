@@ -1,6 +1,6 @@
 """
-Conversation Memory Module for CMS AI Business Assistant.
-Tracks user session context, turn history, and filters across turns.
+Conversation Memory Module for CMS AI Assistant.
+Tracks user session context, short-term turn history, and filters across turns.
 """
 
 from typing import Dict, Any, List, Optional
@@ -11,7 +11,7 @@ MAX_SESSION_AGE_SECONDS = 3600  # 1 hour memory retention
 
 
 class ConversationMemory:
-    """Session-based memory store for AI chatbot sessions."""
+    """Session-based memory store for AI assistant sessions."""
 
     @staticmethod
     def get_session(session_id: str = "default_user") -> Dict[str, Any]:
@@ -51,7 +51,7 @@ class ConversationMemory:
             "intent": intent,
             "timestamp": time.time()
         })
-        # Keep max 10 turns
+        # Retain last 10 turns
         if len(session["turns"]) > 10:
             session["turns"] = session["turns"][-10:]
 
@@ -66,11 +66,10 @@ class ConversationMemory:
     def extract_contextual_filter(user_prompt: str, last_filter: Optional[str] = None) -> Optional[str]:
         """
         Extract item/category/unit filter from follow-up prompts.
-        Example: "Only shirts" -> returns "shirt"
+        Example: "Only Jackets" -> returns "jacket"
         """
         clean = user_prompt.lower().strip()
         
-        # Phrases like "only shirts", "just jacket", "show trousers"
         if "only " in clean:
             return clean.split("only ")[-1].strip(" .!?,")
         if "just " in clean:
@@ -79,7 +78,7 @@ class ConversationMemory:
             return clean.split("filter by ")[-1].strip(" .!?,")
         
         words = clean.split()
-        if len(words) <= 3 and last_filter:
-            return clean
+        if len(words) <= 4 and last_filter:
+            return last_filter
 
         return last_filter
