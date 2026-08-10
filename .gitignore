@@ -1,111 +1,131 @@
 # =========================
+
 # Python
+
 # =========================
-__pycache__/
-*.py[c]
+
+**pycache**/
+*.py[cod]
 *.pyo
 *.pyd
 *.so
 
 # =========================
+
 # Virtual Environment
+
 # =========================
+
 venv/
 .venv/
 env/
 ENV/
 
 # =========================
+
 # Environment Variables
-# =========================
-.env
-.env.*
 
 # =========================
-# Flask
+
+.env
+.env.*
+!.env.sample
+
 # =========================
+
+# Flask
+
+# =========================
+
 instance/
 .webassets-cache/
 
 # =========================
+
 # Logs
+
 # =========================
+
 *.log
 logs/
 
 # =========================
+
 # Database
+
 # =========================
+
 *.sqlite
 *.sqlite3
 
 # =========================
+
 # VS Code
+
 # =========================
+
 .vscode/
 
 # =========================
+
 # PyCharm
+
 # =========================
+
 .idea/
 
 # =========================
+
 # Jupyter
+
 # =========================
+
 .ipynb_checkpoints/
 
 # =========================
+
 # Build / Distribution
+
 # =========================
+
 build/
 dist/
 *.egg-info/
 .eggs/
 
 # =========================
+
 # Testing
+
 # =========================
+
 .pytest_cache/
 .coverage
 htmlcov/
 
 # =========================
+
 # Mypy
+
 # =========================
+
 .mypy_cache/
 
 # =========================
+
 # OS Files
+
 # =========================
+
 .DS_Store
 Thumbs.db
 
 # =========================
+
 # Temporary Files
+
 # =========================
+
 *.tmp
 *.bak
 *.swp
-# Environment variables
-.env
-
-# Python cache
-__pycache__/
-*.py[cod]
-
-# Virtual environments
-venv/
-.venv/
-env/
-
-# IDE files
-.vscode/
-.idea/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-__pycache__/
-*.py[cod]
-.env
