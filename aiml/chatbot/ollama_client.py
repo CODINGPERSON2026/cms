@@ -1,6 +1,6 @@
 """
 Ollama Client Module for CMS AI Assistant.
-Provides a unified interface for interacting with Ollama (Llama 3.2),
+Provides a unified interface for interacting with Ollama (configured via MODEL_NAME),
 handling streaming responses, structured JSON requests, and offline fallbacks.
 """
 
@@ -8,11 +8,7 @@ import json
 import os
 from typing import Generator, Dict, Any, List, Optional
 import ollama
-from dotenv import load_dotenv
-
-load_dotenv()
-
-DEFAULT_MODEL = os.getenv("MODEL_NAME", "llama3.2:latest")
+from aiml.config import MODEL_NAME
 
 
 class OllamaClient:
@@ -20,7 +16,7 @@ class OllamaClient:
 
     @staticmethod
     def get_model_name() -> str:
-        return os.getenv("MODEL_NAME", DEFAULT_MODEL)
+        return MODEL_NAME
 
     @classmethod
     def generate_stream(

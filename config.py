@@ -6,6 +6,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
+    MODEL_NAME = os.getenv("MODEL_NAME", "qwen2.5:7b")
 
     SQLALCHEMY_DATABASE_URI = URL.create(
         drivername=os.getenv("DB_DRIVER"),

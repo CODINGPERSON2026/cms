@@ -9,7 +9,12 @@ from typing import Dict, Any, List, Optional, Tuple
 
 
 MENU_GRAPH_TRIGGERS = [
-    "show graph", "graph", "chart", "visualization", "visualize", "draw graph", "draw chart"
+    "show graph", "graph", "chart", "visualization", "visualize", "draw graph", "draw chart",
+    "give me a graph", "give me a grapg", "give me graph", "give me grapg",
+    "generate a graph", "generate a grpah", "generate graph", "generate grpah",
+    "make a graph", "make graph", "create a graph", "create graph",
+    "plot a graph", "plot graph", "show me a graph", "show me graph",
+    "generate chart", "generate a chart", "give me a chart", "give me chart"
 ]
 
 MENU_ANALYTICS_TRIGGERS = [
@@ -23,12 +28,12 @@ MENU_EXPORT_TRIGGERS = [
 
 def is_menu_trigger_request(prompt: str) -> Optional[str]:
     """Check if prompt is asking for a graph/analytics/export selection menu."""
-    clean = prompt.lower().strip()
-    if clean in MENU_GRAPH_TRIGGERS or any(t == clean for t in MENU_GRAPH_TRIGGERS):
+    clean = prompt.lower().strip(" .!?,")
+    if any(t in clean for t in MENU_GRAPH_TRIGGERS) or clean in ["graph", "chart", "visualize"]:
         return "GRAPH_MENU"
-    if clean in MENU_ANALYTICS_TRIGGERS or any(t == clean for t in MENU_ANALYTICS_TRIGGERS):
+    if any(t in clean for t in MENU_ANALYTICS_TRIGGERS) or clean in ["analytics", "analysis"]:
         return "ANALYTICS_MENU"
-    if clean in MENU_EXPORT_TRIGGERS or any(t == clean for t in MENU_EXPORT_TRIGGERS):
+    if any(t in clean for t in MENU_EXPORT_TRIGGERS) or clean in ["export", "report", "download"]:
         return "EXPORT_MENU"
     return None
 
@@ -36,7 +41,7 @@ def is_menu_trigger_request(prompt: str) -> Optional[str]:
 def build_selection_menu_payload(menu_type: str) -> Dict[str, Any]:
     """Constructs interactive selection menu prompt text and choice buttons."""
     if menu_type == "GRAPH_MENU":
-        text = "Choose a graph type:\n\n📊 **Graph Options**\n1. Bar Chart (Recommended)\n2. Pie Chart\n3. Line Chart\n4. Horizontal Bar Chart"
+        text = "Which graph would you like me to generate?\n\nPlease choose one of the options below:\n\n📊 **Graph Options**\n1. Bar Chart (Recommended)\n2. Pie Chart\n3. Line Chart\n4. Horizontal Bar Chart"
         choices = [
             {"label": "1. Bar Chart", "val": "1"},
             {"label": "2. Pie Chart", "val": "2"},

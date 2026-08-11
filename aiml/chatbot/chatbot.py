@@ -99,29 +99,44 @@ def chat(data: dict):
 
         return Response(generate_refusal(), mimetype="text/event-stream")
 
-    # 3. FAST PATH A: User asks for Selection Menu ("Show graph", "Show analytics", "Export data")
-    if cached_dataset and cached_dataset.get("records"):
-        menu_trigger = is_menu_trigger_request(prompt)
-        if menu_trigger:
-            ConversationMemory.set_pending_menu(session_id, menu_trigger)
-            menu_payload = build_selection_menu_payload(menu_trigger)
-
-            payload = build_structured_response(
-                response_text=menu_payload["text"],
-                intent="DYNAMIC_CHART",
-                prompt=prompt
+    # 3. FAST PATH A: User asks for Selection Menu ("give me a graph", "generate a graph", "show analytics", etc.)
+    menu_trigger = is_menu_trigger_request(prompt)
+    if menu_trigger:
+        if not (cached_dataset and cached_dataset.get("records")):
+            # Load default CMS category inventory summary if no dataset exists in session yet
+            default_records = [
+                {"Category": "CAT-I (Combat & Operational)", "Quantity": 450, "Authorized": 500, "Deficiency": 50},
+                {"Category": "CAT-II (General Store & Barrack)", "Quantity": 720, "Authorized": 800, "Deficiency": 80},
+                {"Category": "CAT-III (Special Clothing)", "Quantity": 280, "Authorized": 300, "Deficiency": 20},
+                {"Category": "CAT-IV (Protective Gear)", "Quantity": 390, "Authorized": 450, "Deficiency": 60}
+            ]
+            ConversationMemory.store_dataset(
+                session_id=session_id,
+                records=default_records,
+                chart_type="bar",
+                user_question="CMS Inventory Summary"
             )
-            payload["menu_choices"] = menu_payload["choices"]
-            payload["pending_menu"] = menu_trigger
+            cached_dataset = ConversationMemory.get_dataset(session_id)
 
-            reply_text = menu_payload["text"]
+        ConversationMemory.set_pending_menu(session_id, menu_trigger)
+        menu_payload = build_selection_menu_payload(menu_trigger)
 
-            @stream_with_context
-            def generate_menu_fast():
-                yield f"data: {json.dumps({'token': reply_text})}\n\n"
-                yield f"data: {json.dumps({'done': True, 'payload': payload})}\n\n"
+        payload = build_structured_response(
+            response_text=menu_payload["text"],
+            intent="DYNAMIC_CHART",
+            prompt=prompt
+        )
+        payload["menu_choices"] = menu_payload["choices"]
+        payload["pending_menu"] = menu_trigger
 
-            return Response(generate_menu_fast(), mimetype="text/event-stream")
+        reply_text = menu_payload["text"]
+
+        @stream_with_context
+        def generate_menu_fast():
+            yield f"data: {json.dumps({'token': reply_text})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'payload': payload})}\n\n"
+
+        return Response(generate_menu_fast(), mimetype="text/event-stream")
 
     # 4. FAST PATH B: User selects an Option ("1", "2", "3", "4", "Bar Chart", "Top 10", "Excel", etc.)
     if cached_dataset and cached_dataset.get("records"):
@@ -243,6 +258,14 @@ def chat(data: dict):
     if isinstance(db_data, dict):
         if "records" in db_data and isinstance(db_data["records"], list):
             records = db_data["records"]
+        elif "units" in db_data and isinstance(db_data["units"], list):
+            records = db_data["units"]
+        elif "authorizations" in db_data and isinstance(db_data["authorizations"], list):
+            records = db_data["authorizations"]
+        elif "items" in db_data and isinstance(db_data["items"], list):
+            records = db_data["items"]
+        elif "sample_users" in db_data and isinstance(db_data["sample_users"], list):
+            records = db_data["sample_users"]
         elif "low_stock" in db_data:
             records = db_data["low_stock"]
         elif "top_issued_items" in db_data:

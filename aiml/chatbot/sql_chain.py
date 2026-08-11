@@ -7,9 +7,7 @@ Enforces strict security checks blocking any write/modifying SQL operations.
 import re
 from typing import Dict, Any, List, Optional
 from extensions import db
-from dotenv import load_dotenv
-
-load_dotenv()
+from aiml.config import MODEL_NAME
 
 # Forbidden SQL keywords to strictly enforce READ-ONLY access
 FORBIDDEN_SQL_KEYWORDS = [
@@ -72,11 +70,11 @@ class LangChainSQLChain:
         if cls._llm is None:
             try:
                 from langchain_ollama import ChatOllama
-                cls._llm = ChatOllama(model="llama3.2:latest", temperature=0)
+                cls._llm = ChatOllama(model=MODEL_NAME, temperature=0)
             except Exception as e:
                 try:
                     from langchain_community.chat_models import ChatOllama
-                    cls._llm = ChatOllama(model="llama3.2:latest", temperature=0)
+                    cls._llm = ChatOllama(model=MODEL_NAME, temperature=0)
                 except Exception as ex:
                     print(f"Notice initializing ChatOllama LLM: {ex}")
                     return None

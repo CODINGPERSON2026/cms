@@ -86,11 +86,22 @@ class SummaryTool:
             lines.append(f"- Total FOD Depot Stock: {db_data.get('fod_depot_stock', 0)} units")
             lines.append(f"- Grand Total Reserve Stock: {db_data.get('grand_total_reserve', 0)} units")
 
-        elif intent == "REPORT_GEN":
-            lines.append("CMS Executive Inventory Report:")
-            lines.append(f"- Total Catalog Products: {db_data.get('catalog_items_count', 0)}")
-            lines.append(f"- Total Stock Held: {db_data.get('total_held_stock', 0)} units")
-            lines.append(f"- Outstanding Unit Deficiencies: {db_data.get('deficiencies_count', 0)} items")
+        elif intent in ("UNIT_INFO", "DOU_INFO"):
+            units = db_data.get("units") or db_data.get("records") or db_data.get("comparison", [])
+            lines.append("Unit Personnel & Posted Strength Details:")
+            lines.append(f"- Total Units Found: {len(units)}")
+            for idx, u in enumerate(units, 1):
+                u_name = u.get("unit_name") or u.get("name") or "Unit"
+                posted = u.get("posted_strength") if u.get("posted_strength") is not None else u.get("posted", 0)
+                auth = u.get("authorized_strength") if u.get("authorized_strength") is not None else u.get("auth_strength", u.get("auth", 0))
+                lines.append(f"{idx}. Unit \"{u_name}\": Posted Strength = {posted} | Authorized Strength = {auth}")
+
+        elif "records" in db_data and db_data["records"]:
+            records = db_data["records"]
+            lines.append(f"Database Query Results ({len(records)} records):")
+            for idx, rec in enumerate(records[:10], 1):
+                item_str = ", ".join([f"{k}: \"{v}\"" for k, v in list(rec.items())[:4]])
+                lines.append(f"{idx}. {item_str}")
 
         else:
             lines.append("CMS Inventory Information:")

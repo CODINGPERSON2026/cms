@@ -256,15 +256,37 @@ def query_unit_and_dou_info(unit_name: Optional[str] = None) -> Dict[str, Any]:
             query = query.filter(Divs.name.ilike(f"%{unit_name}%"))
 
         divs = query.all()
-        unit_list = [{"name": d.name, "auth_strength": d.authorized_strength or 0, "posted_strength": d.posted_strength or 0} for d in divs]
+        unit_list = [
+            {
+                "unit_name": d.name,
+                "posted_strength": d.posted_strength or 0,
+                "authorized_strength": d.authorized_strength or 0
+            }
+            for d in divs
+        ]
+
+        if not unit_list:
+            s_query = Strength.query
+            if unit_name:
+                s_query = s_query.filter(Strength.unit_name.ilike(f"%{unit_name}%"))
+            s_recs = s_query.all()
+            unit_list = [
+                {
+                    "unit_name": s.unit_name,
+                    "posted_strength": s.posted_strength or 0,
+                    "authorized_strength": s.authorized_strength or 0
+                }
+                for s in s_recs
+            ]
 
         return {
             "units_count": len(unit_list),
-            "units": unit_list[:10]
+            "units": unit_list,
+            "records": unit_list
         }
     except Exception as e:
         print(f"Error querying unit info: {e}")
-        return {"units_count": 0, "units": [], "error": str(e)}
+        return {"units_count": 0, "units": [], "records": [], "error": str(e)}
 
 
 def query_users_info() -> Dict[str, Any]:
@@ -388,11 +410,12 @@ def query_unit_comparison() -> Dict[str, Any]:
 
         return {
             "units_compared": len(comparison),
-            "comparison": comparison[:10]
+            "comparison": comparison,
+            "records": comparison
         }
     except Exception as e:
         print(f"Error querying unit comparison: {e}")
-        return {"units_compared": 0, "comparison": [], "error": str(e)}
+        return {"units_compared": 0, "comparison": [], "records": [], "error": str(e)}
 
 
 def query_inventory_report() -> Dict[str, Any]:

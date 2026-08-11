@@ -11,7 +11,27 @@ class TableResponseFormatter(BaseResponseFormatter):
         table_rows = []
         md_table_lines = []
 
-        if "low_stock" in db_data:
+        records = (
+            db_data.get("records") or
+            db_data.get("units") or
+            db_data.get("comparison") or
+            db_data.get("authorizations") or
+            db_data.get("items") or
+            db_data.get("sample_users")
+        )
+
+        if records and isinstance(records, list) and len(records) > 0 and isinstance(records[0], dict):
+            keys = list(records[0].keys())
+            headers = [k.replace("_", " ").title() for k in keys]
+            md_table_lines.append("| " + " | ".join(headers) + " |")
+            md_table_lines.append("|" + "|".join(["---"] * len(keys)) + "|")
+
+            for rec in records:
+                row_vals = [str(rec.get(k, "")) for k in keys]
+                md_table_lines.append("| " + " | ".join(row_vals) + " |")
+                table_rows.append(rec)
+
+        elif "low_stock" in db_data:
             md_table_lines = [
                 "| Product / Item | Unit | Held | Auth | Status |",
                 "|---|---|---|---|---|"
@@ -35,7 +55,7 @@ class TableResponseFormatter(BaseResponseFormatter):
             for item in db_data["top_issued_items"][:6]:
                 row = {
                     "product": item.get("item_name", "Item"),
-                    "issued_qty": item.get("qty", 0),
+                    "issued_qty": item.get("issued_qty", item.get("qty", 0)),
                     "category": "Clothing"
                 }
                 table_rows.append(row)
