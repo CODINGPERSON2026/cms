@@ -1,0 +1,4079 @@
+{% extends '/base.html' %}
+
+{% block page_title %}2 FOD Dashboard{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/scme/" class="nav-item active">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/scme/add-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-packing"></i>
+    <span class="nav-tooltip">Add Stock</span>
+</a>
+<a href="/scme/current-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-tooltip">Available Stock</span>
+</a>
+<a href="/scme/monthly-reports" class="nav-item">
+    <i class="fa-solid fa-calendar-days"></i>
+    <span class="nav-tooltip">Monthly Reports</span>
+</a>
+<!-- <a href="/logs/" class="nav-item">
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <span class="nav-tooltip">Activity Logs</span>
+</a> -->
+{% endblock %}
+
+{% block head %}
+<style>
+    .dashboard-container {
+        padding: 10px 20px 20px 20px;
+    }
+
+    /* ── Tab bar ── */
+    .ledger-tabs {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 0;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .ledger-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 22px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.86rem;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 8px 8px 0 0;
+        position: relative;
+        transition: all 0.2s;
+        top: 1px;
+    }
+
+    .ledger-tab i {
+        font-size: 0.82rem;
+    }
+
+    .ledger-tab:hover {
+        color: var(--text-primary);
+        background: var(--accent-muted);
+    }
+
+    .ledger-tab.active {
+        color: var(--accent);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-bottom: 1px solid var(--bg-surface);
+    }
+
+    /* ── Action Buttons in Metric Row ── */
+    .card-row-btn-action {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.82rem;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        background: transparent;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 14px;
+        box-sizing: border-box;
+    }
+    .card-row-btn-action:hover, .card-row-btn-action:focus {
+        background-color: var(--accent);
+        color: #ffffff !important;
+        border-color: var(--accent);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .card-row-btn-info {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.82rem;
+        border: 1px solid #38bdf8;
+        color: #0ea5e9;
+        background: transparent;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 14px;
+        box-sizing: border-box;
+    }
+    .card-row-btn-info:hover, .card-row-btn-info:focus {
+        background-color: #0ea5e9;
+        color: #ffffff !important;
+        border-color: #0ea5e9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+    }
+
+    .card-row-btn-auth {
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        border: 1.5px solid #3b82f6;
+        color: #2563eb;
+        background: transparent;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 14px;
+        box-sizing: border-box;
+    }
+    .card-row-btn-auth:hover, .card-row-btn-auth:focus {
+        background-color: #2563eb;
+        color: #ffffff !important;
+        border-color: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .modal {
+        z-index: 1060 !important;
+    }
+    .modal-backdrop {
+        z-index: 1050 !important;
+    }
+
+    .ledger-tab .tab-soon {
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 5px;
+        background: var(--bg-raised);
+        color: var(--text-muted);
+        border: 1px solid var(--border-dim);
+    }
+
+    /* ── Tab Switch Loader Bar ── */
+    .tab-loader-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), #38bdf8, var(--accent));
+        box-shadow: 0 0 10px var(--accent-glow), 0 0 6px #38bdf8;
+        z-index: 1000;
+        opacity: 0;
+        transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+        border-radius: 2px;
+    }
+
+    .tab-panel {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-panel.active {
+        display: block;
+        opacity: 1;
+    }
+
+    /* ── ECC placeholder panel ── */
+    .coming-soon {
+        background: var(--bg-surface);
+        border: 1px dashed var(--border-dim);
+        border-radius: 18px;
+        padding: 70px 40px;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .coming-soon i {
+        font-size: 2.6rem;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .coming-soon h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 8px;
+    }
+
+    .coming-soon p {
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
+    /* ── Metric Cards Grid ── */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 14px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+        transition: all var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; right: 0;
+        width: 45px; height: 45px;
+        background: var(--accent-muted);
+        border-radius: 50% 0 0 0;
+        opacity: 0.5;
+        transition: transform 0.3s;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .metric-card:hover::after {
+        transform: scale(1.5);
+    }
+
+    .metric-card-clickable {
+        cursor: pointer;
+    }
+
+    .metric-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .metric-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .metric-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .metric-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    /* Color mappings for icon boxes */
+    .icon-box-primary { background-color: var(--accent-muted); color: var(--accent); }
+    .icon-box-success { background-color: rgba(13, 217, 6, 0.08); color: #0c9e05; }
+    .icon-box-danger { background-color: rgba(192, 57, 43, 0.08); color: var(--danger); }
+    .icon-box-warning { background-color: rgba(184, 134, 11, 0.08); color: var(--warning); }
+
+    /* ── Chart Panels Grid ── */
+    .chart-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 991.98px) {
+        .chart-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chart-panel-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chart-panel-header {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .chart-panel-header::-webkit-scrollbar {
+        height: 4px;
+    }
+    .chart-panel-header::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .chart-panel-header::-webkit-scrollbar-thumb {
+        background: var(--border-dim);
+        border-radius: 2px;
+    }
+    .chart-panel-header::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+    }
+
+    .chart-panel-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+    }
+
+    .chart-panel-title i {
+        color: var(--accent);
+    }
+
+    .chart-panel-filter {
+        padding: 4px 8px;
+        height: 28px;
+        border-radius: 7px;
+        border: 1px solid var(--border-dim);
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        font-size: 0.73rem;
+        font-weight: 600;
+        outline: none;
+        min-width: 80px;
+        max-width: 150px;
+        cursor: pointer;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+    }
+
+    .chart-panel-filter:hover {
+        border-color: var(--accent);
+    }
+
+    .chart-panel-filter:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-muted);
+    }
+
+    /* Full visibility for item select dropdowns across charts */
+    #eccItemChartFilter,
+    #itemChartFilter,
+    #eccDefPieItemFilter,
+    #defPieItemFilter,
+    .chart-panel-filter.filter-item-wide {
+        min-width: 180px;
+        max-width: 320px;
+        width: auto;
+    }
+
+    /* Provide comfortable room for unit filters */
+    #eccUnitChartFilter,
+    #unitChartFilter {
+        min-width: 110px;
+        max-width: 190px;
+        width: auto;
+    }
+
+    #eccDivisionChartFilter,
+    #eccTopDefDivisionFilter {
+        min-width: 85px;
+        max-width: 140px;
+    }
+
+    .chart-nav-btn {
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+        max-width: 26px !important;
+        padding: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        border: 1px solid var(--border-dim);
+        border-radius: 6px;
+        font-size: 0.65rem;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .chart-nav-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-muted);
+    }
+
+    .chart-canvas-wrapper {
+        padding: 24px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        min-height: 350px;
+        position: relative;
+    }
+
+    /* Override Highcharts credits and default tooltip borders */
+    .highcharts-credits {
+        display: none !important;
+    }
+
+    .deficiency-high {
+        color: var(--danger) !important;
+    }
+
+    .deficiency-ok {
+        color: #10b981 !important;
+    }
+
+    /* ── Ledger Table Filter Bar ── */
+    .ledger-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        padding: 14px 24px;
+        border-bottom: 1px solid var(--border-dim);
+        background: var(--bg-surface);
+    }
+
+    .ledger-filter-bar select {
+        padding: 4px 10px;
+        height: 30px;
+        border-radius: 7px;
+        border: 1px solid var(--border-dim);
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        font-size: 0.76rem;
+        font-weight: 600;
+        outline: none;
+        min-width: 110px;
+    }
+
+    .ledger-filter-bar .ledger-clear-btn {
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--border-dim);
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .ledger-filter-bar .ledger-clear-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .ledger-filter-bar .ledger-result-count {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-left: auto;
+        font-weight: 600;
+    }
+
+    /* Info Tooltips */
+    .info-tooltip-wrapper {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        margin-left: 8px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        transition: color 0.2s;
+    }
+    .info-tooltip-wrapper:hover {
+        color: var(--accent);
+    }
+
+    /* Style Bootstrap tooltips with white background and black text */
+    .tooltip .tooltip-inner {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid var(--border-dim) !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        font-weight: 500 !important;
+        font-size: 0.78rem !important;
+        padding: 8px 12px !important;
+    }
+
+    .tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+        border-bottom-color: #ffffff !important;
+    }
+    .tooltip.bs-tooltip-top .tooltip-arrow::before {
+        border-top-color: #ffffff !important;
+    }
+    .tooltip.bs-tooltip-start .tooltip-arrow::before {
+        border-left-color: #ffffff !important;
+    }
+    .tooltip.bs-tooltip-end .tooltip-arrow::before {
+        border-right-color: #ffffff !important;
+    }
+
+    /* ── Excel View Modal Custom Styles ── */
+    #eccExcelViewModal .modal-fullscreen {
+        max-width: 98% !important;
+        width: 98% !important;
+        margin: 10px auto;
+    }
+    
+    #eccExcelViewModal .modal-content {
+        height: calc(100vh - 20px) !important;
+    }
+
+    /* Print styles */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #excelTableContainer, #excelTableContainer * {
+            visibility: visible;
+        }
+        #excelTableContainer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            max-height: none !important;
+        }
+        #eccExcelViewModal {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+        }
+        .modal-dialog {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            height: auto !important;
+        }
+        .modal-header, .modal-footer, .btn, input[type="range"] {
+            display: none !important;
+        }
+        @page {
+            size: landscape;
+            margin: 0.5cm;
+        }
+    }
+
+    /* Excel Table Style */
+    .excel-table {
+        border-collapse: collapse;
+        font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+        font-size: 11px;
+        width: max-content;
+        min-width: 100%;
+        background-color: #ffffff;
+        color: #333333;
+    }
+
+    .excel-table th, .excel-table td {
+        border: 1px solid #999b9e;
+        padding: 5px 8px;
+        vertical-align: middle;
+        line-height: 1.3;
+    }
+
+    .excel-table th {
+        font-weight: bold;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        background-color: #f3f4f6;
+        color: #1f2937;
+    }
+
+    .excel-table tbody tr:hover {
+        background-color: rgba(243, 244, 246, 0.6) !important;
+    }
+
+    /* Excel Header Colors (inspired by screenshot) */
+    .excel-header-title {
+        font-size: 14px;
+        font-weight: 800;
+        text-align: center;
+        padding: 12px;
+        background-color: #ffffff;
+        border-bottom: 2px solid #000000 !important;
+        color: #000000;
+        text-transform: uppercase;
+    }
+    
+    .excel-header-sno, .excel-header-item, .excel-header-scale {
+        background-color: #f2f2f2 !important;
+        color: #000000 !important;
+    }
+
+    .excel-header-auth {
+        background-color: #fae8ff !important; /* Soft Pastel Purple */
+        color: #701a75 !important;
+    }
+
+    .excel-header-ob {
+        background-color: #ffedd5 !important; /* Soft Pastel Orange/Peach */
+        color: #9a3412 !important;
+    }
+
+    .excel-header-recd {
+        background-color: #ccfbf1 !important; /* Soft Pastel Teal */
+        color: #115e59 !important;
+    }
+
+    .excel-header-issd {
+        background-color: #fef3c7 !important; /* Soft Pastel Amber/Yellow */
+        color: #92400e !important;
+    }
+
+    .excel-header-stk {
+        background-color: #ede9fe !important; /* Soft Pastel Indigo */
+        color: #3730a3 !important;
+    }
+
+    .excel-header-totalstk {
+        background-color: #e0f2fe !important; /* Soft Pastel Blue */
+        color: #075985 !important;
+    }
+
+    .excel-header-add {
+        background-color: #fef08a !important; /* Soft Pastel Yellow */
+        color: #854d0e !important;
+    }
+
+    .excel-header-net {
+        background-color: #22d3ee !important; /* Soft Cyan */
+        color: #0891b2 !important;
+    }
+
+    .excel-header-remarks {
+        background-color: #fae8ff !important; /* Soft Violet/Pink */
+        color: #86198f !important;
+    }
+
+    .excel-header-tps {
+        background-color: #ffe4e6 !important; /* Soft Rose */
+        color: #9f1239 !important;
+    }
+
+    /* Column alignment & formatting */
+    .excel-cell-num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .excel-cell-center {
+        text-align: center;
+    }
+
+    .excel-cell-bold {
+        font-weight: bold;
+    }
+
+    /* Excel Cell Background Colors matching headers */
+    .excel-bg-auth {
+        background-color: #faf5ff;
+    }
+    
+    .excel-bg-ob-free {
+        background-color: #fffaf0;
+    }
+    
+    .excel-bg-ob-res {
+        background-color: #fcf6f5;
+    }
+
+    .excel-bg-recd {
+        background-color: #f0fdfa;
+    }
+
+    .excel-bg-issd {
+        background-color: #fffdf5;
+    }
+
+    .excel-bg-stk-free {
+        background-color: #f5f3ff;
+    }
+    
+    .excel-bg-stk-res {
+        background-color: #f3f0ff;
+    }
+
+    .excel-bg-totalstk {
+        background-color: #f0f9ff;
+    }
+
+    .excel-bg-add {
+        background-color: #fefce8;
+    }
+
+    .excel-bg-net {
+        background-color: #ecfeff;
+        font-weight: bold;
+    }
+
+    .excel-bg-remarks {
+        background-color: #faf5ff;
+    }
+
+    .excel-bg-tps {
+        background-color: #fff1f2;
+    }
+
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 0.3cm 0.4cm;
+        }
+        html, body {
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        body * {
+            visibility: hidden;
+        }
+        .print-active, .print-active * {
+            visibility: visible;
+        }
+        .print-active {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: auto;
+            overflow: visible !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .print-active .modal-footer,
+        .print-active .btn-close,
+        .print-active button,
+        .print-active input,
+        .print-active select,
+        .print-active .excel-zoom-controls,
+        .print-active #eccLedgerClearFilters,
+        .print-active .ledger-result-count {
+            display: none !important;
+        }
+        .print-active table {
+            width: 100% !important;
+            min-width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 7.5px !important;
+            table-layout: auto !important;
+        }
+        .print-active th, .print-active td {
+            border: 1px solid #999 !important;
+            padding: 2px 3px !important;
+            font-size: 7.5px !important;
+            word-break: break-word !important;
+            line-height: 1.15 !important;
+        }
+        .print-active .category-header-row td {
+            font-size: 9px !important;
+            padding: 4px 6px !important;
+            background-color: #0f172a !important;
+            color: #38bdf8 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="position: relative;">
+    <div id="tabLoaderBar" class="tab-loader-bar"></div>
+
+
+
+    <!-- ══════════════════════════ SCME TAB PANEL (Commented out for now - showing ECC tab only) ══════════════════════════ -->
+    {% if false %}
+    <div class="tab-panel" id="panelScme" role="tabpanel">
+
+    <!-- Top Row Actions Toolbar -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h4 class="mb-0" style="color: var(--text-primary); font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 9px;">
+            <i class="fa-solid fa-gauge-high" style="color: var(--accent);"></i>
+            <span>SCME Overview &amp; Quick Actions</span>
+        </h4>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/scme/enter-items" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-file-signature"></i>
+                <span>Record Issued Item</span>
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-open-add-item-auth d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalSetItemAuth" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Div Item Auth</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#ledgerTableModal" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-table"></i>
+                <span>Tabular View</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 4 Equal Metric & Action Cards Grid -->
+    <div class="metric-grid mb-4">
+        <!-- 1. Active Units -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveUnits">
+            <div class="metric-icon-box icon-box-primary">
+                <i class="fa-solid fa-sitemap"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Active Units</span>
+                <span class="metric-value">{{ active_units }}</span>
+            </div>
+        </div>
+
+        <!-- 2. Critical Alerts -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalCriticalAlerts">
+            <div class="metric-icon-box {% if critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Critical Alerts</span>
+                <span class="metric-value" {% if critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ critical_alerts }}</span>
+            </div>
+        </div>
+
+        <!-- 3. Registered Item -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredItems">
+            <div class="metric-icon-box" style="background: rgba(16, 185, 129, 0.12); color: #059669;">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Registered Item</span>
+                <span style="font-size: 0.88rem; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    View Catalog <i class="fa-solid fa-arrow-right fs-7 ms-1"></i>
+                </span>
+            </div>
+        </div>
+
+        <!-- 4. INSERT AUTH -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#insertAuthModal">
+            <div class="metric-icon-box" style="background: rgba(37, 99, 235, 0.12); color: #2563eb;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">2FOD Auth</span>
+                <span style="font-size: 0.88rem; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    INSERT AUTH FOR 2FOD <i class="fa-solid fa-plus fs-7 ms-1"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chart Row -->
+    <div class="chart-row">
+        <!-- Grouped Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    Productive Analysis
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares authorized scales, held stock levels, and defi count for each active unit.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="unitChartFilter" class="chart-panel-filter" aria-label="Filter chart by unit">
+                    </select>
+                    <select id="itemChartFilter" class="chart-panel-filter" aria-label="Filter chart by item">
+                        <option value="">All Items</option>
+                    </select>
+                    <select id="categoryChartFilter" class="chart-panel-filter" aria-label="Filter chart by category">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="unitBarChart" data-chart='{{ unit_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- Horizontal Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Top 5 Defi Items
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Highlights the items with the highest overall shortage volume across all units.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="topDefCategoryFilter" class="chart-panel-filter" aria-label="Filter chart by category">
+                        <option value="">All Categories</option>
+                        <option value="CAT-I">CAT-I</option>
+                        <option value="CAT-II">CAT-II</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="itemPrismChart" data-chart='{{ item_chart_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Chart Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="chart-row-secondary animate-fade-in">
+        <!-- Pie Chart: Deficiency Share by Unit -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    Item-based Share by Units
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes the percentage share of the defi of the selected item contributed by each unit.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:8px; flex-wrap:nowrap; flex-shrink: 0;">
+                    <select id="defPieItemFilter" class="chart-panel-filter" aria-label="Select item for defi share">
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="unitDeficiencyPieChart" data-chart='{{ unit_deficiency_share_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- Supply Readiness -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    Supply Readiness by Div
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Calculates the percentage of authorized items currently held for each unit.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="unitReadinessColumnChart" data-chart='{{ unit_readiness_data | tojson }}' style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Bootstrap Modal for Table View -->
+    <div class="modal fade" id="ledgerTableModal" tabindex="-1" aria-labelledby="ledgerTableModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 20px 24px;">
+                    <h5 class="modal-title" id="ledgerTableModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent);"></i>
+                        Issued Ledgers Summary Table
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
+                </div>
+
+                <!-- ── Filter Bar (Unit + Category) ── -->
+                <div class="ledger-filter-bar">
+                    <select id="ledgerUnitFilter" aria-label="Filter by unit">
+                        <option value="">All Units</option>
+                    </select>
+                    <select id="ledgerCategoryFilter" aria-label="Filter by category">
+                        <option value="">All Categories</option>
+                    </select>
+                    <button type="button" id="ledgerClearFilters" class="ledger-clear-btn">
+                        <i class="fa-solid fa-rotate-left me-1"></i>Clear
+                    </button>
+                    <span id="ledgerResultCount" class="ledger-result-count"></span>
+                </div>
+
+                <div class="modal-body" style="padding: 0;">
+                    <table class="table-custom" style="width: 100%; border-collapse: collapse; margin: 0;">
+                        <thead style="position: sticky; top: 0; z-index: 10;">
+                            <tr>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Unit</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Item</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Cat</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Scale</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">A/U</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Held</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); text-align: center;">Defi</th>
+                                <th style="padding: 14px 20px; background-color: var(--bg-raised); color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border-dim);">Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if issued_items %}
+                                {% for record in issued_items %}
+                                <tr class="ledger-row"
+                                    data-unit="{{ record.unit_name.replace('_', ' ').upper() }}"
+                                    data-category="{{ record.item.category }}"
+                                    style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
+                                    <td style="padding: 14px 20px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">{{ record.unit_name.replace('_', ' ').upper() }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; color: var(--text-primary);">{{ record.item.item_name }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem;"><span class="badge-category">{{ record.item.category }}</span></td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums;">{{ record.scale }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums;">{{ record.a_u }}</td>
+                                    <td style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums;">{{ record.held }}</td>
+                                    <td class="{% if record.deficiency > 0 %}deficiency-high{% else %}deficiency-ok{% endif %}" style="padding: 14px 20px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700;">
+                                        {{ record.deficiency }}
+                                    </td>
+                                    <td style="padding: 14px 20px; font-size: 0.82rem; color: var(--text-secondary);">
+                                        {{ record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else '' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="empty-state" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                        <i class="fa-solid fa-receipt" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                        No ledger records found.
+                                    </td>
+                                </tr>
+                            {% endif %}
+
+                            <!-- Shown only when active filters match nothing -->
+                            <tr id="ledgerNoResults" style="display:none;">
+                                <td colspan="8" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                    <i class="fa-solid fa-filter-circle-xmark" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                    No records match your filters.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 16px 24px;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: var(--bg-raised); border-color: var(--border-dim); color: var(--text-primary);">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% include 'modals/modals.html' %}
+    <!-- ══════════════════════════ END SCME TAB PANEL ══════════════════════════ -->
+
+    <!-- ══════════════════════════ ECC TAB PANEL ══════════════════════════ -->
+    <div class="tab-panel active" id="panelEcc" role="tabpanel">
+
+    <!-- Top Row Actions Toolbar -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h4 class="mb-0" style="color: var(--text-primary); font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 9px;">
+            <i class="fa-solid fa-layer-group" style="color: var(--accent);"></i>
+            <span>ECC Overview &amp; Quick Actions</span>
+        </h4>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/scme/enter-items" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span>Issue Item</span>
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-open-add-item-auth d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalSetItemAuth" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Div Item Auth</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-table"></i>
+                <span>Tabular View</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 4 Equal Metric & Action Cards Grid -->
+    <div class="metric-grid mb-4">
+        <!-- 1. Dependent DOUs -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalActiveDivisions">
+            <div class="metric-icon-box icon-box-primary">
+                <i class="fa-solid fa-sitemap"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Dependent DOU</span>
+                <span class="metric-value">{{ active_ecc_divisions }}</span>
+            </div>
+        </div>
+
+        <!-- 2. Critical Alerts -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalEccCriticalAlerts">
+            <div class="metric-icon-box {% if ecc_critical_alerts > 0 %}icon-box-warning{% else %}icon-box-primary{% endif %}">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Critical Alerts</span>
+                <span class="metric-value" {% if ecc_critical_alerts > 0 %}style="color: var(--warning);"{% endif %}>{{ ecc_critical_alerts }}</span>
+            </div>
+        </div>
+
+        <!-- 3. Registered ECC Items -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#modalRegisteredEccItems">
+            <div class="metric-icon-box" style="background: rgba(16, 185, 129, 0.12); color: #059669;">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Registered ECC Items</span>
+                <span style="font-size: 0.88rem; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    View Catalog <i class="fa-solid fa-arrow-right fs-7 ms-1"></i>
+                </span>
+            </div>
+        </div>
+
+        <!-- 4. INSERT AUTH -->
+        <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#insertAuthModal">
+            <div class="metric-icon-box" style="background: rgba(37, 99, 235, 0.12); color: #2563eb;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">2FOD Auth</span>
+                <span style="font-size: 0.88rem; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    INSERT 2FOD AUTH <i class="fa-solid fa-plus fs-7 ms-1"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chart Row -->
+    <div class="chart-row">
+        <!-- Grouped Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    Item Analysis
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares scales, stock, and defi levels for each reporting division.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items: center; justify-content: flex-end;">
+                    <select id="eccDivisionChartFilter" class="chart-panel-filter" aria-label="Filter chart by division">
+                    </select>
+                    <select id="eccUnitChartFilter" class="chart-panel-filter" aria-label="Filter chart by unit">
+                        <option value="">All Units</option>
+                    </select>
+                    <select id="eccItemChartFilter" class="chart-panel-filter filter-item-wide" aria-label="Filter chart by item">
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccUnitBarChart" 
+                     data-chart='{{ ecc_chart_data | tojson }}' 
+                     data-division-units='{{ (division_child_units_map or {}) | tojson }}'
+                     data-unit-chart='{{ (ecc_child_units_chart_data or []) | tojson }}'
+                     style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- Horizontal Bar Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    TOP DEFI ITEMS
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Highlights the items with highest shortage quantity.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:6px; flex-wrap:nowrap; flex-shrink: 0; align-items: center;">
+                    <select id="eccTopDefDivisionFilter" class="chart-panel-filter" aria-label="Filter chart by division">
+                    </select>
+                    <select id="eccTopDefCategoryFilter" class="chart-panel-filter" aria-label="Filter chart by category">
+                        <option value="">All Categories</option>
+                        <option value="CAT-I">CAT-I</option>
+                        <option value="CAT-II">CAT-II</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccItemPrismChart" style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Chart Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="chart-row-secondary animate-fade-in">
+        <!-- Pie Chart -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    ECC SHARE
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes stock held percentage breakdown by division for a chosen item.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:6px; flex-wrap:nowrap; flex-shrink: 0; align-items: center;">
+                    <select id="eccDefPieItemFilter" class="chart-panel-filter" aria-label="Select item for defi share">
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccUnitDeficiencyPieChart" style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+
+        <!-- SER vs PWS Stock -->
+        <div class="chart-panel-card">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-column"></i>
+                    SER vs PWS Stock
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compares SER stock vs PWS stock levels for the selected division.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:6px; flex-wrap:nowrap; flex-shrink: 0; align-items: center;">
+                    <!-- Pagination controls -->
+                    <button type="button" id="eccSerPwsPrevBtn" class="chart-nav-btn" aria-label="Previous Page">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span id="eccSerPwsPageIndicator" style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); min-width:32px; text-align:center;">1 / 3</span>
+                    <button type="button" id="eccSerPwsNextBtn" class="chart-nav-btn" aria-label="Next Page">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <select id="eccSerPwsUnitFilter" class="chart-panel-filter" aria-label="Filter by unit/division">
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <div id="eccSerPwsColumnChart" style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Third Row: Overall Analysis Chart (Replaces Posted Strength by Unit) -->
+    <div style="margin-top: 24px;" class="animate-fade-in">
+        <div class="chart-panel-card" style="margin: 0;">
+            <div class="chart-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <h3 class="chart-panel-title">
+                    <i class="fa-solid fa-chart-column" style="color: var(--accent);"></i>
+                    Overall Analysis
+                    <span class="info-tooltip-wrapper" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Visualizes AUTH vs Stock Held with 2 FOD for ECC items by Category.">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                </h3>
+                <div style="display:flex; gap:10px; align-items:center; flex-shrink: 0;">
+                    <label for="overallCategoryFilter" style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0;">
+                        <i class="fa-solid fa-filter me-1"></i>Category:
+                    </label>
+                    <select id="overallCategoryFilter" class="chart-panel-filter" style="min-width: 140px; font-weight: 700; border-radius: 8px; padding: 4px 10px;" aria-label="Select Category for Overall Analysis">
+                        <option value="CAT-I" selected>CAT I</option>
+                        <option value="CAT-II">CAT II</option>
+                        <option value="ALL">ALL CATEGORIES</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrapper" style="min-height: 380px;">
+                <div id="overallAnalysisBarChart" data-chart='{{ overall_analysis_data | tojson }}' style="width: 100%; height: 380px;"></div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Bootstrap Modal for ECC Table View -->
+    <div class="modal fade" id="eccLedgerTableModal" tabindex="-1" aria-labelledby="eccLedgerTableModalLabel" aria-hidden="true">
+        <div id="eccLedgerTableModalDialog" class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: max-content; min-width: 75%; margin: 1.75rem auto; transition: max-width 0.3s ease;">
+            <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 16px 24px;">
+                    <h5 class="modal-title" id="eccLedgerTableModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent);"></i>
+                        ECC Monthly Summary 
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
+                </div>
+
+                <!-- ── Filter Bar (Division + Category) ── -->
+                <div class="ledger-filter-bar">
+                    <select id="eccLedgerDivisionFilter" aria-label="Filter by division">
+                        <option value="">All </option>
+                    </select>
+                    <select id="eccLedgerCategoryFilter" aria-label="Filter by category">
+                        <option value="">All Categories</option>
+                        <option value="CAT-I">CAT-I</option>
+                        <option value="CAT-II">CAT-II</option>
+                    </select>
+                    <button type="button" id="eccLedgerClearFilters" class="ledger-clear-btn">
+                        <i class="fa-solid fa-rotate-left me-1"></i>Clear
+                    </button>
+                    <span id="eccLedgerResultCount" class="ledger-result-count"></span>
+                </div>
+
+                <!-- ── Dynamic Unit/Division Top Header Block ── -->
+                <div id="eccLedgerSelectedHeaderBlock" style="display: none; padding: 12px 24px; background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-building-flag" style="color: var(--accent); font-size: 1.1rem;"></i>
+                    <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">Showing Unit: </span>
+                    <span id="eccLedgerSelectedDivision" style="font-weight: 800; font-size: 0.95rem; color: var(--accent); text-transform: uppercase;"></span>
+                </div>
+
+                <div class="modal-body" style="padding: 0; overflow-x: auto;">
+                    <table class="table-custom" style="width: max-content; min-width: 100%; border-collapse: collapse; margin: 0 auto;">
+                        <thead style="position: sticky; top: 0; z-index: 10;">
+                            <tr>
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; text-align: center; white-space: nowrap; width: 45px;">S.No.</th>
+                                <th rowspan="2" class="ecc-col-division" style="padding: 10px 10px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; white-space: nowrap; width: 100px;">Unit</th>
+                                <th rowspan="2" style="padding: 10px 10px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; white-space: nowrap; width: 200px;">Item</th>
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid #cbd5e1; text-align: center; white-space: nowrap; width: 70px;">CAT</th>
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #f3e8ff; color: #6b21a8; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border: 1px solid #d8b4fe; text-align: center; white-space: nowrap; width: 85px;">Auth Unit</th>
+                                
+                                <!-- PREVIOUS MONTH GROUP HEADER (EXCEL BLUE THEME) -->
+                                <th colspan="3" style="padding: 8px 12px; background-color: #dbeafe; color: #1d4ed8; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #bfdbfe; border-right: 2px solid #3b82f6; text-align: center; white-space: nowrap;">
+                                    <i class="fa-solid fa-clock-rotate-left" style="margin-right: 4px; opacity: 0.85;"></i> PREVIOUS MONTH
+                                </th>
+
+                                <!-- ISSUED DURING MONTH GROUP HEADER (ORANGE THEME) -->
+                                <th colspan="3" style="padding: 8px 12px; background-color: #ffedd5; color: #c2410c; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #fed7aa; border-right: 2px solid #f97316; text-align: center; white-space: nowrap;">
+                                    <i class="fa-solid fa-arrow-right-from-bracket" style="margin-right: 4px; opacity: 0.85;"></i> ISSUED DURING MONTH
+                                </th>
+
+                                <!-- STOCK HELD GROUP HEADER (EXCEL GREEN THEME) -->
+                                <th colspan="3" style="padding: 8px 12px; background-color: #dcfce7; color: #15803d; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #bbf7d0; border-right: 2px solid #22c55e; text-align: center; white-space: nowrap;">
+                                    <i class="fa-solid fa-boxes-stacked" style="margin-right: 4px; opacity: 0.85;"></i> STOCK HELD
+                                </th>
+
+                                <th rowspan="2" style="padding: 10px 8px; background-color: #fee2e2; color: #b91c1c; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border: 1px solid #fca5a5; text-align: center; white-space: nowrap; width: 65px;">Defi</th>
+                            </tr>
+                            <tr>
+                                <!-- PREVIOUS MONTH SUB-HEADERS -->
+                                <th style="padding: 6px 8px; background-color: #eff6ff; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bfdbfe; text-align: center; white-space: nowrap; width: 60px;">Ser</th>
+                                <th style="padding: 6px 8px; background-color: #eff6ff; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bfdbfe; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
+                                <th style="padding: 6px 8px; background-color: #dbeafe; color: #1d4ed8; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; border: 1px solid #bfdbfe; border-right: 2px solid #3b82f6; text-align: center; white-space: nowrap; width: 65px;">Total</th>
+
+                                <!-- ISSUED DURING MONTH SUB-HEADERS -->
+                                <th style="padding: 6px 8px; background-color: #fff7ed; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #fed7aa; text-align: center; white-space: nowrap; width: 60px;">SER</th>
+                                <th style="padding: 6px 8px; background-color: #fff7ed; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #fed7aa; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
+                                <th style="padding: 6px 8px; background-color: #ffedd5; color: #c2410c; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; border: 1px solid #fed7aa; border-right: 2px solid #f97316; text-align: center; white-space: nowrap; width: 65px;">Total</th>
+
+                                <!-- STOCK HELD SUB-HEADERS -->
+                                <th style="padding: 6px 8px; background-color: #f0fdf4; color: #059669; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bbf7d0; text-align: center; white-space: nowrap; width: 60px;">Ser</th>
+                                <th style="padding: 6px 8px; background-color: #f0fdf4; color: #d97706; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border: 1px solid #bbf7d0; text-align: center; white-space: nowrap; width: 60px;">PWS</th>
+                                <th style="padding: 6px 8px; background-color: #dcfce7; color: #15803d; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; border: 1px solid #bbf7d0; border-right: 2px solid #22c55e; text-align: center; white-space: nowrap; width: 65px;">Held</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if ecc_states %}
+                                {% set ns = namespace(count=0) %}
+                                {% for record in ecc_states %}
+                                {% set u_name = (record.unit_name or '').replace('_', ' ').strip().upper() %}
+                                {% if u_name and u_name != '2 FOD' %}
+                                {% set ns.count = ns.count + 1 %}
+                                <tr class="ecc-ledger-row"
+                                    data-division="{{ u_name }}"
+                                    data-category="{{ record.item.category if record.item else '' }}"
+                                    style="border-bottom: 1px solid var(--border-dim); transition: background-color 0.2s;">
+                                    <td style="padding: 8px 10px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--text-secondary); border: 1px solid var(--border-dim); white-space: nowrap;">{{ ns.count }}</td>
+                                    <td style="padding: 8px 10px; font-weight: 700; font-size: 0.85rem; color: var(--text-primary); border: 1px solid var(--border-dim); white-space: nowrap;">{{ u_name }}</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); border: 1px solid var(--border-dim); white-space: nowrap;">{{ record.item.item_name if record.item else '' }}</td>
+                                    <td style="padding: 8px 6px; font-size: 0.82rem; color: var(--text-secondary); border: 1px solid var(--border-dim); text-align: center; white-space: nowrap;">{{ record.item.category if record.item else '' }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #6b21a8; font-weight: 700; border: 1px solid var(--border-dim); background-color: rgba(243, 232, 255, 0.2); white-space: nowrap;">{{ record.unit_auth or 0 }}</td>
+                                    
+                                    <!-- PREVIOUS MONTH SPLIT DATA -->
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(219, 234, 254, 0.25); white-space: nowrap;">{{ record.prev_ser or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(219, 234, 254, 0.25); white-space: nowrap;">{{ record.prev_pws or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #1d4ed8; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #3b82f6; background: rgba(219, 234, 254, 0.45); white-space: nowrap;">{{ record.prev_total or 0 }}</td>
+
+                                    <!-- ISSUED DURING MONTH DATA -->
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(255, 237, 213, 0.25); white-space: nowrap;">{{ record.issd_ser or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(255, 237, 213, 0.25); white-space: nowrap;">{{ record.issd_pws or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #c2410c; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #f97316; background: rgba(255, 237, 213, 0.45); white-space: nowrap;">{{ record.issd_total or 0 }}</td>
+
+                                    <!-- STOCK HELD DATA (SER -> PWS -> HELD) -->
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #059669; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_ser or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #d97706; font-weight: 600; border: 1px solid var(--border-dim); background: rgba(220, 252, 231, 0.25); white-space: nowrap;">{{ record.stock_pws or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; color: #15803d; font-weight: 800; border: 1px solid var(--border-dim); border-right: 2px solid #22c55e; background: rgba(220, 252, 231, 0.45); white-space: nowrap;">{{ record.stock_total or 0 }}</td>
+                                    <td style="padding: 8px 8px; font-size: 0.85rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 800; border: 1px solid var(--border-dim); background: {% if record.deficiency <= 0 %}rgba(220, 252, 231, 0.3){% else %}rgba(254, 226, 226, 0.3){% endif %}; white-space: nowrap; color: {% if record.deficiency <= 0 %}#059669{% else %}#b91c1c{% endif %};">{{ record.deficiency or 0 }}</td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="22" class="empty-state" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                        <i class="fa-solid fa-receipt" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                        No ECC monthly state records found.
+                                    </td>
+                                </tr>
+                            {% endif %}
+
+                            <!-- Shown only when active filters match nothing -->
+                            <tr id="eccLedgerNoResults" style="display:none;">
+                                <td colspan="22" style="padding: 50px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                                    <i class="fa-solid fa-filter-circle-xmark" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px; display: block;"></i>
+                                    No records match your filters.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 16px 24px;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #dc3545; border-color: #dc3545; color: #fff;">Close</button>
+                 
+                    <button type="button" class="btn btn-secondary px-4" id="btnPrintLedgerTable" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #198754; border-color: #198754; color: #fff;">Print</button>
+                    
+                    <!-- Excel View button commented out for now: can be uncommented later
+                    <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#eccExcelViewModal" id="btnOpenExcelView" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #107c41; border-color: #107c41; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-file-excel"></i> Excel View
+                    </button>
+                    -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Modal for ECC Excel View -->
+    <div class="modal fade" id="eccExcelViewModal" tabindex="-1" aria-labelledby="eccExcelViewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen modal-dialog-centered" style="max-width: 98%; width: 98%;">
+            <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); height: 95vh; display: flex; flex-direction: column;">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-raised);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h5 class="modal-title" id="eccExcelViewModalLabel" style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px; margin: 0;">
+                            <i class="fa-solid fa-file-excel" style="color: #107c41; font-size: 1.4rem;"></i>
+                            ECC Monthly Summary (Excel Spreadsheet View)
+                        </h5>
+                    </div>
+                    
+                    <!-- Controls block -->
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <!-- Zoom Slider -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-magnifying-glass-plus me-1"></i>Zoom:</span>
+                            <input type="range" id="eccExcelZoomRange" min="50" max="100" value="80" style="width: 100px; cursor: pointer; accent-color: #107c41;">
+                            <span id="eccExcelZoomVal" style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); width: 35px;">80%</span>
+                        </div>
+                        
+                        <!-- Action buttons -->
+                        <button type="button" class="btn btn-success" id="btnExportToExcel" style="background: #107c41; border-color: #107c41; border-radius: 10px; font-weight: 600; font-size: 0.85rem; padding: 8px 16px; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-download"></i> Export Excel
+                        </button>
+                        
+                        <button type="button" class="btn btn-info" id="btnPrintExcelView" style="background: #0284c7; border-color: #0284c7; border-radius: 10px; font-weight: 600; font-size: 0.85rem; padding: 8px 16px; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-print"></i> Print Sheet
+                        </button>
+                        
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: opacity(0.7);"></button>
+                    </div>
+                </div>
+
+                <div class="modal-body" style="padding: 20px; overflow: auto; flex-grow: 1; background: #f8fafc;">
+                    <div id="excelTableContainer" style="overflow: auto; max-height: 100%; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #ffffff;">
+                        <!-- The pivoted spreadsheet table will be dynamically generated here -->
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 12px 24px; background: var(--bg-raised); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); font-style: italic;">
+                        * Note: This view combines records from all divisions and formats them side-by-side. 2 FOD data includes Reserve stock.
+                    </span>
+                    <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; font-size: 0.85rem; background: #dc3545; border-color: #dc3545; color: #fff;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Offline Local Highcharts (2D — no 3D module needed) -->
+<script src="{{ url_for('static', filename='highcharts.js') }}"></script>
+
+<script>
+    // Serialize ECC monthly states for JavaScript pivot table
+    const eccStatesData = [
+        {% for s in ecc_states %}
+        {
+            id: {{ s.id or 0 }},
+            item_id: {{ s.item_id or 0 }},
+            item_name: "{{ s.item.item_name if s.item else 'Unknown Item' }}",
+            category: "{{ s.item.category if s.item else '' }}",
+            scale: "{{ s.scale or '1 per indl' }}",
+            auth_auth: {{ s.auth_auth or 0 }},
+            auth_res: {{ s.auth_res or 0 }},
+            auth_total: {{ s.auth_total or 0 }},
+            unit_auth: {{ s.unit_auth or 0 }},
+            bbf_division: "{{ s.bbf_division or '' }}",
+            bbf_ser: {{ s.bbf_ser or 0 }},
+            bbf_pws: {{ s.bbf_pws or 0 }},
+            bbf_total: {{ s.bbf_total or 0 }},
+            bbf_comd: {{ s.bbf_comd or 0 }},
+            bbf_ihq: {{ s.bbf_ihq or 0 }},
+            recd_ser: {{ s.recd_ser or 0 }},
+            recd_pws: {{ s.recd_pws or 0 }},
+            recd_comd: {{ s.recd_comd or 0 }},
+            recd_ihq: {{ s.recd_ihq or 0 }},
+            recd_total: {{ s.recd_total or 0 }},
+            issd_ser: {{ s.issd_ser or 0 }},
+            issd_pws: {{ s.issd_pws or 0 }},
+            issd_total: {{ s.issd_total or 0 }},
+            stock_ser: {{ s.stock_ser or 0 }},
+            stock_pws: {{ s.stock_pws or 0 }},
+            stock_total: {{ s.stock_total or 0 }},
+            stock_comd: {{ s.stock_comd or 0 }},
+            stock_ihq: {{ s.stock_ihq or 0 }},
+            add_knd: {{ s.add_knd or 0 }},
+            add_tn_model: {{ s.add_tn_model or 0 }},
+            add_n_area_otg: {{ s.add_n_area_otg or 0 }},
+            add_idt_ict: {{ s.add_idt_ict or 0 }},
+            add_remarks_ro_bal: {{ s.add_remarks_ro_bal or 0 }},
+            tps: {{ s.tps or 0 }},
+            deficiency: {{ s.deficiency or 0 }},
+            has_whole_auth: {{ 'true' if s.has_whole_auth else 'false' }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    function exportToExcel(tableId, filename) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const html = table.outerHTML;
+        
+        // Add XML Excel template wrapper to preserve styles and formatting
+        const template = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <!--[if gte mso 9]>
+                <xml>
+                    <x:ExcelWorkbook>
+                        <x:ExcelWorksheets>
+                            <x:Name>ECC Monthly Summary</x:Name>
+                            <x:WorksheetOptions>
+                                <x:DisplayGridlines/>
+                            </x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <style>
+                table { border-collapse: collapse; }
+                th, td { border: 1px solid #999b9e; font-family: Calibri, sans-serif; font-size: 11px; }
+                .excel-header-title { font-size: 14px; font-weight: bold; background-color: #ffffff; text-align: center; }
+                .excel-header-sno, .excel-header-item, .excel-header-scale { background-color: #f2f2f2; }
+                .excel-header-auth { background-color: #fae8ff; color: #701a75; }
+                .excel-header-ob { background-color: #ffedd5; color: #9a3412; }
+                .excel-header-recd { background-color: #ccfbf1; color: #115e59; }
+                .excel-header-issd { background-color: #fef3c7; color: #92400e; }
+                .excel-header-stk { background-color: #ede9fe; color: #3730a3; }
+                .excel-header-totalstk { background-color: #e0f2fe; color: #075985; }
+                .excel-header-add { background-color: #fef08a; color: #854d0e; }
+                .excel-header-net { background-color: #22d3ee; color: #0891b2; }
+                .excel-header-remarks { background-color: #fae8ff; color: #86198f; }
+                .excel-header-tps { background-color: #ffe4e6; color: #9f1239; }
+                .excel-cell-num { text-align: right; }
+                .excel-cell-center { text-align: center; }
+                .excel-cell-bold { font-weight: bold; }
+                .excel-bg-auth { background-color: #faf5ff; }
+                .excel-bg-ob-free { background-color: #fffaf0; }
+                .excel-bg-ob-res { background-color: #fcf6f5; }
+                .excel-bg-recd { background-color: #f0fdfa; }
+                .excel-bg-issd { background-color: #fffdf5; }
+                .excel-bg-stk-free { background-color: #f5f3ff; }
+                .excel-bg-stk-res { background-color: #f3f0ff; }
+                .excel-bg-totalstk { background-color: #f0f9ff; }
+                .excel-bg-add { background-color: #fefce8; }
+                .excel-bg-net { background-color: #ecfeff; }
+                .excel-bg-remarks { background-color: #faf5ff; }
+                .excel-bg-tps { background-color: #fff1f2; }
+            </style>
+        </head>
+        <body>
+            ${html}
+        </body>
+        </html>
+    `;
+    
+    const blob = new Blob([template], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'ECC_Monthly_Summary.xls';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function renderExcelViewTable() {
+    // 1. Group records by unique (item_name, bbf_division) and take the latest one (since eccStatesData is desc-ordered, first is latest)
+    const normDivName = d => (d || '').toString().trim().replace(/_/g, ' ').toUpperCase();
+    const is2Fod = d => normDivName(d) === '2 FOD';
+
+    const latestRecordsMap = new Map();
+    eccStatesData.forEach(record => {
+        if (record.bbf_division) {
+            record.bbf_division = normDivName(record.bbf_division);
+        }
+        const key = `${record.item_name}||${record.bbf_division || ''}`;
+        if (!latestRecordsMap.has(key)) {
+            latestRecordsMap.set(key, record);
+        }
+    });
+    const activeStates = Array.from(latestRecordsMap.values());
+
+    // 2. Identify divisions
+    const allDivisions = Array.from(new Set(activeStates.map(r => normDivName(r.bbf_division)).filter(Boolean)));
+    const has2Fod = allDivisions.some(d => is2Fod(d));
+    const otherDivisions = allDivisions.filter(d => !is2Fod(d)).sort((a, b) => {
+        const is619A = a.includes('619') ? 0 : 1;
+        const is619B = b.includes('619') ? 0 : 1;
+        if (is619A !== is619B) return is619A - is619B;
+        return a.localeCompare(b);
+    });
+    const divisionsOrder = has2Fod ? ['2 FOD', ...otherDivisions] : otherDivisions;
+
+    // 3. Identify unique items ordered by CAT-I first, then CAT-II
+    function catSortRank(item) {
+        const rec = activeStates.find(r => r.item_name === item);
+        const cat = (rec && rec.category ? rec.category : '').toUpperCase().replace(/[\s-]/g, '');
+        if (cat.includes('CAT1') || (cat.includes('CATI') && !cat.includes('CATII'))) return 1;
+        if (cat.includes('CAT2') || cat.includes('CATII')) return 2;
+        return 3;
+    }
+    const itemNames = Array.from(new Set(activeStates.map(r => r.item_name).filter(Boolean)));
+    itemNames.sort((a, b) => {
+        const rA = catSortRank(a);
+        const rB = catSortRank(b);
+        if (rA !== rB) return rA - rB;
+        return a.localeCompare(b);
+    });
+
+    // 4. Calculate colspans
+    const obColspan = 6;
+    const recdColspan = 4;
+    const issdColspan = 2;
+    const stkHeldColspan = 4;
+    const tpsColspan = divisionsOrder.length + 1;
+
+    // 5. Generate Table HTML
+    let html = `
+        <table class="excel-table" id="eccExcelTable">
+            <thead>
+                <!-- Sheet Title Row -->
+                <tr>
+                    <th colspan="${3 + 3 + obColspan + recdColspan + issdColspan + stkHeldColspan + 2 + 5 + 2 + tpsColspan}" class="excel-header-title">
+                        MONTHLY REPORT FOR THE MONTH OF ${new Date().toLocaleString('default', { month: 'long' }).toUpperCase()} ${new Date().getFullYear()}
+                    </th>
+                </tr>
+                <!-- Header Row 1 -->
+                <tr>
+                    <th rowspan="3" class="excel-header-sno">S.No</th>
+                    <th rowspan="3" class="excel-header-item">Item</th>
+                    <th rowspan="3" class="excel-header-scale">Scale</th>
+                    <th colspan="3" class="excel-header-auth">Auth</th>
+                    <th colspan="${obColspan}" class="excel-header-ob">BBF (of last month)</th>
+                    <th colspan="${recdColspan}" class="excel-header-recd">Qty Received during this month</th>
+                    <th colspan="${issdColspan}" class="excel-header-issd">Qty Issued/Tfr during the month</th>
+                    <th colspan="${stkHeldColspan}" class="excel-header-stk">Stk Held</th>
+                    <th colspan="2" class="excel-header-totalstk">Total Stk Held (net Res)</th>
+                    <th colspan="5" class="excel-header-add">Additional Assets / Liabilities</th>
+                    <th rowspan="3" class="excel-header-net">Net Assets</th>
+                    <th rowspan="3" class="excel-header-remarks">REMARKS ( RO Bal Issue )</th>
+                    <th rowspan="3" class="excel-header-tps">Stk Held with Trps</th>
+                </tr>
+                <!-- Header Row 2 -->
+                <tr>
+                    <th rowspan="2" class="excel-header-auth">Auth</th>
+                    <th rowspan="2" class="excel-header-auth">Res</th>
+                    <th rowspan="2" class="excel-header-auth">Total</th>
+                    
+                    <!-- BBF sub-headers -->
+                    <th colspan="2" class="excel-header-ob">Free Stk</th>
+                    <th colspan="2" class="excel-header-ob">Res Stk</th>
+                    <th colspan="2" class="excel-header-ob">Total Stk (Incl Res)</th>
+                    
+                    <!-- Recd sub-headers -->
+                    <th colspan="2" class="excel-header-recd">Free Stk</th>
+                    <th colspan="2" class="excel-header-recd">Res Stk</th>
+                    
+                    <!-- Issued sub-headers -->
+                    <th rowspan="2" class="excel-header-issd">Ser</th>
+                    <th rowspan="2" class="excel-header-issd">PWS</th>
+                    
+                    <!-- Stk Held sub-headers -->
+                    <th colspan="2" class="excel-header-stk">Free Stk</th>
+                    <th colspan="2" class="excel-header-stk">Res Stk</th>
+                    
+                    <!-- Total Stk Held sub-headers -->
+                    <th rowspan="2" class="excel-header-totalstk">Ser</th>
+                    <th rowspan="2" class="excel-header-totalstk">PWS</th>
+                    
+                    <!-- Additional sub-headers -->
+                    <th rowspan="2" class="excel-header-add">KND</th>
+                    <th rowspan="2" class="excel-header-add">TN MODEL</th>
+                    <th rowspan="2" class="excel-header-add">N AREA OTG</th>
+                    <th rowspan="2" class="excel-header-add">IDT/ICT</th>
+                    <th rowspan="2" class="excel-header-add">TOTAL DUES IN</th>
+                </tr>
+                <!-- Header Row 3 -->
+                <tr>
+                    <!-- BBF columns -->
+                    <th class="excel-header-ob">Ser</th>
+                    <th class="excel-header-ob">PWS</th>
+                    <th class="excel-header-ob">Comd</th>
+                    <th class="excel-header-ob">IHQ</th>
+                    <th class="excel-header-ob">Ser</th>
+                    <th class="excel-header-ob">PWS</th>
+                    
+                    <!-- Recd columns -->
+                    <th class="excel-header-recd">Ser</th>
+                    <th class="excel-header-recd">PWS</th>
+                    <th class="excel-header-recd">Comd</th>
+                    <th class="excel-header-recd">IHQ</th>
+                    
+                    <!-- Stk Held columns -->
+                    <th class="excel-header-stk">Ser</th>
+                    <th class="excel-header-stk">PWS</th>
+                    <th class="excel-header-stk">Comd</th>
+                    <th class="excel-header-stk">IHQ</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // 6. Generate Rows
+    const cat1Names = itemNames.filter(i => catSortRank(i) === 1).sort((a,b) => a.localeCompare(b));
+    const cat2Names = itemNames.filter(i => catSortRank(i) === 2).sort((a,b) => a.localeCompare(b));
+    const catOtherNames = itemNames.filter(i => catSortRank(i) === 3).sort((a,b) => a.localeCompare(b));
+
+    const categoryGroups = [
+        { label: 'CATEGORY - I (CAT-I)', items: cat1Names },
+        { label: 'CATEGORY - II (CAT-II)', items: cat2Names },
+        { label: 'OTHER ITEMS', items: catOtherNames }
+    ].filter(g => g.items.length > 0);
+
+    const totalColspan = 3 + 3 + obColspan + recdColspan + issdColspan + stkHeldColspan + 2 + 5 + 2 + tpsColspan;
+
+    let scmeRowIndex = 0;
+    categoryGroups.forEach((group) => {
+        html += `
+        <tr class="category-header-row" style="background-color: #0f172a; color: #ffffff;">
+            <td colspan="${totalColspan}" style="padding: 10px 14px; text-align: left; background: #0f172a; color: #38bdf8; font-size: 13px; text-transform: uppercase; font-weight: 800; border: 1px solid #1e293b; letter-spacing: 0.5px;">
+                <i class="fa-solid fa-layer-group" style="margin-right: 8px; color: #38bdf8;"></i> ${group.label}
+            </td>
+        </tr>`;
+
+        group.items.forEach((itemName) => {
+            const itemStates = activeStates.filter(r => r.item_name === itemName);
+            
+            // Find state for each division
+            const rec2Fod = itemStates.find(r => is2Fod(r.bbf_division));
+            const recsOther = otherDivisions.map(d => itemStates.find(r => normDivName(r.bbf_division) === normDivName(d)));
+            const recsAll = divisionsOrder.map(d => itemStates.find(r => normDivName(r.bbf_division) === normDivName(d)));
+
+            // Scale
+            const scaleVal = itemStates[0] ? itemStates[0].scale : '-';
+
+            // Auth
+            const hasWholeAuth = itemStates.some(r => r.has_whole_auth);
+            let auth_auth = 0;
+            let auth_res = 0;
+            if (hasWholeAuth && itemStates.length > 0) {
+                auth_auth = itemStates[0].auth_auth || 0;
+                auth_res = itemStates[0].auth_res || 0;
+            } else {
+                auth_auth = itemStates.reduce((sum, r) => sum + (r.auth_auth || 0), 0);
+                auth_res = itemStates.reduce((sum, r) => sum + (r.auth_res || 0), 0);
+            }
+            const auth_total = auth_auth + auth_res;
+
+            // OB Calculations
+            const ob_2fod_ser  = itemStates.reduce((sum, r) => sum + (r.bbf_ser || 0), 0);
+            const ob_2fod_pws  = itemStates.reduce((sum, r) => sum + (r.bbf_pws || 0), 0);
+            const ob_2fod_comd = itemStates.reduce((sum, r) => sum + (r.bbf_comd || 0), 0);
+            const ob_2fod_ihq  = itemStates.reduce((sum, r) => sum + (r.bbf_ihq || 0), 0);
+            const ob_total_ser = ob_2fod_ser + ob_2fod_comd + ob_2fod_ihq;
+            const ob_total_pws = ob_2fod_pws;
+
+            // Recd Calculations
+            const recd_ser = itemStates.reduce((maxVal, r) => Math.max(maxVal, r.recd_ser || 0), 0);
+            const recd_pws = itemStates.reduce((maxVal, r) => Math.max(maxVal, r.recd_pws || 0), 0);
+            const recd_comd = itemStates.reduce((maxVal, r) => Math.max(maxVal, r.recd_comd || 0), 0);
+            const recd_ihq = itemStates.reduce((maxVal, r) => Math.max(maxVal, r.recd_ihq || 0), 0);
+
+            // Issued Calculations
+            let issd_ser_sum = 0;
+            let issd_pws_sum = 0;
+            if (rec2Fod) {
+                issd_ser_sum = rec2Fod.issd_ser || 0;
+                issd_pws_sum = rec2Fod.issd_pws || 0;
+            } else {
+                recsAll.forEach(r => {
+                    if (r) {
+                        issd_ser_sum += (r.issd_ser || 0);
+                        issd_pws_sum += (r.issd_pws || 0);
+                    }
+                });
+            }
+
+            // Stk Held Calculations
+            const stock_2fod_ser  = itemStates.reduce((sum, r) => sum + (r.stock_ser || 0), 0);
+            const stock_2fod_pws  = itemStates.reduce((sum, r) => sum + (r.stock_pws || 0), 0);
+            const stock_2fod_comd = itemStates.reduce((sum, r) => sum + (r.stock_comd || 0), 0);
+            const stock_2fod_ihq  = itemStates.reduce((sum, r) => sum + (r.stock_ihq || 0), 0);
+            const stock_total_ser = stock_2fod_ser + stock_2fod_comd + stock_2fod_ihq;
+            const stock_total_pws = stock_2fod_pws;
+
+            // Additional fields
+            const add_knd = itemStates.reduce((sum, r) => sum + (r.add_knd || 0), 0);
+            const add_tn_model = itemStates.reduce((sum, r) => sum + (r.add_tn_model || 0), 0);
+            const add_n_area_otg = itemStates.reduce((sum, r) => sum + (r.add_n_area_otg || 0), 0);
+            const add_idt_ict = itemStates.reduce((sum, r) => sum + (r.add_idt_ict || 0), 0);
+            const add_remarks_ro_bal = itemStates.reduce((sum, r) => sum + (r.add_remarks_ro_bal || 0), 0);
+            const total_dynamic = add_knd + add_tn_model + add_n_area_otg + add_idt_ict;
+
+            // Net Assets calculation
+            const net_assets = stock_total_ser + total_dynamic - auth_total;
+
+            // TPS calculations
+            let tps_sum = 0;
+            const tps_values = recsAll.map(r => {
+                const val = r ? (r.tps || 0) : 0;
+                tps_sum += val;
+                return val;
+            });
+
+            scmeRowIndex++;
+
+            html += `
+                <tr style="border-bottom: 1px solid #999b9e;">
+                    <td class="excel-cell-center">${scmeRowIndex}</td>
+                    <td class="excel-cell-bold">${itemName}</td>
+                    <td class="excel-cell-center">${scaleVal}</td>
+                    
+                    <!-- Auth -->
+                    <td class="excel-cell-num excel-bg-auth">${auth_auth}</td>
+                    <td class="excel-cell-num excel-bg-auth">${auth_res}</td>
+                    <td class="excel-cell-num excel-bg-auth excel-cell-bold">${auth_total}</td>
+                    
+                    <!-- BBF -->
+                    <td class="excel-cell-num excel-bg-ob-free">${ob_2fod_ser}</td>
+                    <td class="excel-cell-num excel-bg-ob-free">${ob_2fod_pws}</td>
+                    <td class="excel-cell-num excel-bg-ob-res">${ob_2fod_comd}</td>
+                    <td class="excel-cell-num excel-bg-ob-res">${ob_2fod_ihq}</td>
+                    <td class="excel-cell-num excel-bg-ob-free excel-cell-bold">${ob_total_ser}</td>
+                    <td class="excel-cell-num excel-bg-ob-free excel-cell-bold">${ob_total_pws}</td>
+                    
+                    <!-- Recd -->
+                    <td class="excel-cell-num excel-bg-recd excel-cell-bold">${recd_ser}</td>
+                    <td class="excel-cell-num excel-bg-recd excel-cell-bold">${recd_pws}</td>
+                    <td class="excel-cell-num excel-bg-recd excel-cell-bold" style="color:#0f766e;">${recd_comd}</td>
+                    <td class="excel-cell-num excel-bg-recd excel-cell-bold" style="color:#0f766e;">${recd_ihq}</td>
+                    
+                    <!-- Issued -->
+                    <td class="excel-cell-num excel-bg-issd excel-cell-bold">${issd_ser_sum}</td>
+                    <td class="excel-cell-num excel-bg-issd excel-cell-bold">${issd_pws_sum}</td>
+                    
+                    <!-- Stk Held -->
+                    <td class="excel-cell-num excel-bg-stk-free">${stock_2fod_ser}</td>
+                    <td class="excel-cell-num excel-bg-stk-free">${stock_2fod_pws}</td>
+                    <td class="excel-cell-num excel-bg-stk-res">${stock_2fod_comd}</td>
+                    <td class="excel-cell-num excel-bg-stk-res">${stock_2fod_ihq}</td>
+                    
+                    <!-- Total Stk Held -->
+                    <td class="excel-cell-num excel-bg-totalstk excel-cell-bold">${stock_total_ser}</td>
+                    <td class="excel-cell-num excel-bg-totalstk excel-cell-bold">${stock_total_pws}</td>
+                    
+                    <!-- Additional fields -->
+                    <td class="excel-cell-num excel-bg-add">${add_knd}</td>
+                    <td class="excel-cell-num excel-bg-add">${add_tn_model}</td>
+                    <td class="excel-cell-num excel-bg-add">${add_n_area_otg}</td>
+                    <td class="excel-cell-num excel-bg-add">${add_idt_ict}</td>
+                    <td class="excel-cell-num excel-bg-add excel-cell-bold">${total_dynamic}</td>
+                    
+                    <!-- Net Assets -->
+                    <td class="excel-cell-num excel-bg-net" style="color: ${net_assets < 0 ? '#b91c1c' : '#047857'};">${net_assets}</td>
+                    
+                    <!-- Remarks -->
+                    <td class="excel-cell-num excel-bg-remarks">${add_remarks_ro_bal}</td>
+                    
+                    <!-- TPS -->
+                    <td class="excel-cell-num excel-bg-tps excel-cell-bold">${tps_sum}</td>
+                </tr>
+            `;
+        });
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById('excelTableContainer').innerHTML = html;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+
+    // ── Tab switching with smooth loader progress bar & anti-flicker reflow ──
+    const tabs = document.querySelectorAll(".ledger-tab");
+    const panels = {
+        scme: document.getElementById("panelScme"),
+        ecc: document.getElementById("panelEcc")
+    };
+    const loaderBar = document.getElementById("tabLoaderBar");
+    let isTabSwitching = false;
+
+    tabs.forEach(tab => {
+        tab.addEventListener("click", function () {
+            const target = this.dataset.tab;
+
+            if (this.classList.contains("active") || isTabSwitching) return;
+            isTabSwitching = true;
+
+            // 1. Start top loader progress bar
+            if (loaderBar) {
+                loaderBar.style.transition = 'none';
+                loaderBar.style.width = '0%';
+                loaderBar.style.opacity = '1';
+                void loaderBar.offsetWidth; // force reflow
+                loaderBar.style.transition = 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease';
+                loaderBar.style.width = '70%';
+            }
+
+            // Update tab button active states
+            tabs.forEach(t => {
+                const on = t === this;
+                t.classList.toggle("active", on);
+                t.setAttribute("aria-selected", on ? "true" : "false");
+            });
+
+            // Fade out active panel
+            const currentPanel = document.querySelector(".tab-panel.active");
+            if (currentPanel) {
+                currentPanel.style.opacity = '0';
+            }
+
+            setTimeout(() => {
+                // Toggle tab panels
+                Object.keys(panels).forEach(key => {
+                    if (panels[key]) {
+                        if (key === target) {
+                            panels[key].classList.add("active");
+                            panels[key].style.display = "block";
+                            void panels[key].offsetWidth; // force reflow
+                            panels[key].style.opacity = "1";
+                        } else {
+                            panels[key].classList.remove("active");
+                            panels[key].style.display = "none";
+                            panels[key].style.opacity = "0";
+                        }
+                    }
+                });
+
+                // Finish progress bar to 100%
+                if (loaderBar) {
+                    loaderBar.style.width = '100%';
+                }
+
+                // Reflow Highcharts instantly to prevent visual pops/glitches
+                if (window.Highcharts && Highcharts.charts) {
+                    Highcharts.charts.forEach(chart => {
+                        if (chart) chart.reflow();
+                    });
+                }
+                window.dispatchEvent(new Event('resize'));
+
+                // Fade out loader bar
+                setTimeout(() => {
+                    if (loaderBar) {
+                        loaderBar.style.opacity = '0';
+                        setTimeout(() => {
+                            loaderBar.style.width = '0%';
+                            isTabSwitching = false;
+                        }, 200);
+                    } else {
+                        isTabSwitching = false;
+                    }
+                }, 160);
+            }, 100);
+        });
+    });
+
+    // Move modal to body to prevent stacking and z-index issues caused by parent CSS layouts
+    const modalEl = document.getElementById('ledgerTableModal');
+    if (modalEl) {
+        document.body.appendChild(modalEl);
+    }
+    const eccModalEl = document.getElementById('eccLedgerTableModal');
+    if (eccModalEl) {
+        document.body.appendChild(eccModalEl);
+    }
+    const eccExcelModalEl = document.getElementById('eccExcelViewModal');
+    if (eccExcelModalEl) {
+        document.body.appendChild(eccExcelModalEl);
+    }
+
+    // Zoom control
+    const zoomRange = document.getElementById('eccExcelZoomRange');
+    const zoomVal = document.getElementById('eccExcelZoomVal');
+    if (zoomRange && zoomVal) {
+        zoomRange.addEventListener('input', function() {
+            const val = this.value;
+            zoomVal.textContent = val + '%';
+            const table = document.getElementById('eccExcelTable');
+            if (table) {
+                table.style.zoom = (val / 100);
+                table.style.fontSize = (11 * val / 100) + 'px';
+            }
+        });
+    }
+
+    // Export to Excel control
+    const btnExport = document.getElementById('btnExportToExcel');
+    if (btnExport) {
+        btnExport.addEventListener('click', function() {
+            exportToExcel('eccExcelTable', 'ECC_Monthly_Summary_Report.xls');
+        });
+    }
+
+    // Print sheet control for Excel View
+    const btnPrintExcel = document.getElementById('btnPrintExcelView');
+    if (btnPrintExcel) {
+        btnPrintExcel.addEventListener('click', function() {
+            const modalContent = document.querySelector('#eccExcelViewModal .modal-content');
+            if (modalContent) {
+                modalContent.classList.add('print-active');
+                window.print();
+                modalContent.classList.remove('print-active');
+            }
+        });
+    }
+
+    // Print control for standard Ledger table
+    const btnPrintLedger = document.getElementById('btnPrintLedgerTable');
+    if (btnPrintLedger) {
+        btnPrintLedger.addEventListener('click', function() {
+            const modalContent = document.querySelector('#eccLedgerTableModal .modal-content');
+            if (modalContent) {
+                modalContent.classList.add('print-active');
+                window.print();
+                modalContent.classList.remove('print-active');
+            }
+        });
+    }
+
+    // Open Excel View modal handler
+    const btnOpenExcel = document.getElementById('btnOpenExcelView');
+    if (btnOpenExcel) {
+        btnOpenExcel.addEventListener('click', function() {
+            // First render the table
+            renderExcelViewTable();
+            // Default zoom style
+            const table = document.getElementById('eccExcelTable');
+            if (table && zoomRange) {
+                table.style.fontSize = (11 * zoomRange.value / 100) + 'px';
+            }
+        });
+    }
+
+    const unitChartDom = document.getElementById('unitBarChart');
+    const unitChartData = unitChartDom ? JSON.parse(unitChartDom.dataset.chart) : [];
+    const itemChartDom = document.getElementById('itemPrismChart');
+    const itemChartData = itemChartDom ? JSON.parse(itemChartDom.dataset.chart) : [];
+    const eccChartDom = document.getElementById('eccUnitBarChart');
+    const eccChartData = eccChartDom ? JSON.parse(eccChartDom.dataset.chart) : [];
+    const divisionUnitsMap = (eccChartDom && eccChartDom.dataset.divisionUnits) ? JSON.parse(eccChartDom.dataset.divisionUnits) : {};
+    const eccUnitChartData = (eccChartDom && eccChartDom.dataset.unitChart) ? JSON.parse(eccChartDom.dataset.unitChart) : [];
+    const allDivAdminsList = {{ (all_div_admins or []) | tojson }};
+
+    // Global theme variables mapped from CSS
+    const computedStyles = getComputedStyle(document.documentElement);
+    let textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || "#1a2420";
+    let textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
+    let borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
+    let chartAuth = computedStyles.getPropertyValue('--chart-auth').trim() || "#3498db";
+    let chartHeld = computedStyles.getPropertyValue('--chart-held').trim() || "#2ecc71";
+    let chartDef = computedStyles.getPropertyValue('--chart-def').trim() || "#e74c3c";
+    let chartSer = computedStyles.getPropertyValue('--chart-ser').trim() || "#27ae60";
+    let chartPws = computedStyles.getPropertyValue('--chart-pws').trim() || "#9b59b6";
+    let chartStrength = computedStyles.getPropertyValue('--chart-strength').trim() || "#16a085";
+
+    // Global chart instance variables for dynamic theme updating
+    let chartUnitBar = null;
+    let chartItemPrism = null;
+    let chartUnitDeficiencyPie = null;
+    let chartUnitReadiness = null;
+
+    let chartEccUnitBar = null;
+    let chartEccItemPrism = null;
+    let chartEccUnitDeficiencyPie = null;
+    let chartEccSerPws = null;
+    let chartOverallAnalysis = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ECC CHARTS INITIALIZATION
+    // ─────────────────────────────────────────────────────────────────────────
+    if (eccChartDom) {
+
+        const rawEccDivs = [
+            ...(Array.isArray(allDivAdminsList) ? allDivAdminsList : []),
+            ...eccChartData.map(d => d.division)
+        ];
+        const divMap = new Map();
+        rawEccDivs.filter(Boolean).forEach(d => {
+            const label = d.replace(/_/g, ' ').trim().toUpperCase();
+            if (label && label !== '2 FOD' && !divMap.has(label)) {
+                divMap.set(label, d);
+            }
+        });
+        const allEccDivs = Array.from(divMap.values());
+        allEccDivs.sort((a, b) => {
+            const is619A = a.includes('619') ? 0 : 1;
+            const is619B = b.includes('619') ? 0 : 1;
+            if (is619A !== is619B) return is619A - is619B;
+
+            const numA = parseInt(a.replace(/\D/g, '')) || 9999;
+            const numB = parseInt(b.replace(/\D/g, '')) || 9999;
+            if (numA !== numB) return numA - numB;
+            return a.localeCompare(b);
+        });
+
+        const allEccItems = [...new Set(eccChartData.map(d => d.item_name))].sort();
+        const allEccCats = [...new Set(eccChartData.map(d => d.category))].sort();
+
+        function formatEccDivLabel(d) {
+            return d ? d.replace(/_/g, ' ').toUpperCase() : '';
+        }
+
+        function getChildUnitsForDiv(selectedDiv) {
+            if (!selectedDiv) return [];
+            const normDiv = selectedDiv.replace(/_/g, ' ').trim().toLowerCase();
+            for (const [k, v] of Object.entries(divisionUnitsMap)) {
+                if (k.replace(/_/g, ' ').trim().toLowerCase() === normDiv) {
+                    return Array.isArray(v) ? v : [];
+                }
+            }
+            return [];
+        }
+
+        let defaultEccDiv = '';
+        if (allEccDivs.length > 0) {
+            const div619 = allEccDivs.find(d => d.includes('619'));
+            const non2Fod = allEccDivs.find(d => d.replace(/_/g, ' ').toUpperCase() !== '2 FOD');
+            defaultEccDiv = div619 || non2Fod || allEccDivs[0];
+        }
+        let defaultEccItem = '';
+        if (allEccItems.length > 0) {
+            defaultEccItem = allEccItems[0];
+        }
+        const initialEccChildUnits = getChildUnitsForDiv(defaultEccDiv);
+        let defaultEccUnit = initialEccChildUnits.length > 0 ? initialEccChildUnits[0] : '';
+
+        function aggregateEccUnitChart(divisionFilter, unitFilter, itemFilter) {
+            let rows = [];
+            if (unitFilter) {
+                const normUnit = (unitFilter || '').replace(/_/g, ' ').trim().toLowerCase();
+                rows = eccUnitChartData.filter(d => {
+                    const normU = (d.unit_name || '').replace(/_/g, ' ').trim().toLowerCase();
+                    return normU === normUnit && (!itemFilter || d.item_name === itemFilter);
+                });
+            } else {
+                const normFilter = (divisionFilter || '').replace(/_/g, ' ').trim().toLowerCase();
+                rows = eccChartData.filter(d => {
+                    const normD = (d.division || '').replace(/_/g, ' ').trim().toLowerCase();
+                    return normD === normFilter && (!itemFilter || d.item_name === itemFilter);
+                });
+            }
+            const totalAuth = rows.reduce((sum, r) => sum + (r.unit_auth || 0), 0);
+            const totalHeld = rows.reduce((sum, r) => sum + (r.stock_total !== undefined ? r.stock_total : ((r.stock_ser || 0) + (r.stock_pws || 0))), 0);
+            const totalDef = rows.reduce((sum, r) => sum + (r.deficiency !== undefined ? r.deficiency : ((r.unit_auth || 0) - (r.stock_total || 0))), 0);
+            return {
+                auth: totalAuth,
+                held: totalHeld,
+                def: totalDef
+            };
+        }
+
+        function getTopDeficientEccItems(divisionFilter, categoryFilter) {
+            const itemTotals = {};
+            const normFilter = (divisionFilter || '').replace(/_/g, ' ').trim().toLowerCase();
+            eccChartData.forEach(d => {
+                const normD = (d.division || '').replace(/_/g, ' ').trim().toLowerCase();
+                const matchDiv = !divisionFilter || normD === normFilter;
+                const matchCat = !categoryFilter || d.category === categoryFilter;
+                if (matchDiv && matchCat) {
+                    itemTotals[d.item_name] = (itemTotals[d.item_name] || 0) + (d.deficiency || 0);
+                }
+            });
+            const sorted = Object.entries(itemTotals)
+                .map(([name, def]) => ({ name, def }))
+                .filter(x => x.def > 0)
+                .sort((a, b) => b.def - a.def)
+                .slice(0, 5);
+            
+            return {
+                categories: sorted.map(x => x.name),
+                data: sorted.map(x => x.def)
+            };
+        }
+
+        const initialEccAgg = aggregateEccUnitChart(defaultEccDiv, defaultEccUnit, defaultEccItem);
+
+        chartEccUnitBar = Highcharts.chart('eccUnitBarChart', {
+            chart: {
+                type: 'column',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: ['Qty Metrics'],
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '10px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: 'Quantity',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim
+            },
+            plotOptions: {
+                column: {
+                    grouping: true,
+                    shadow: false,
+                    borderRadius: 5,
+                    dataLabels: {
+                        enabled: true,
+                        crop: false,
+                        overflow: 'none',
+                        formatter: function() {
+                            if (this.point && this.point.rawVal !== undefined) {
+                                return this.point.rawVal;
+                            }
+                            return this.y;
+                        },
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '10px',
+                            textOutline: 'none',
+                            color: textPrimary
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Authorized',
+                data: [{ y: initialEccAgg.auth, rawVal: initialEccAgg.auth }],
+                color: chartAuth
+            }, {
+                name: 'Held',
+                data: [{ y: initialEccAgg.held, rawVal: initialEccAgg.held }],
+                color: chartHeld
+            }, {
+                name: 'Defi',
+                data: [{ y: Math.max(0, initialEccAgg.def), rawVal: initialEccAgg.def }],
+                color: chartDef
+            }],
+            legend: {
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+                borderWidth: 1,
+                borderColor: borderDim,
+                style: {
+                    color: textPrimary
+                },
+                pointFormatter: function() {
+                    const displayVal = (this.rawVal !== undefined) ? this.rawVal : this.y;
+                    return `<span style="color:${this.color}">\u25CF</span> ${this.series.name}: <b>${displayVal}</b><br/>`;
+                }
+            },
+            credits: { enabled: false }
+        });
+
+        const eccDivFilterSel = document.getElementById('eccDivisionChartFilter');
+        const eccUnitFilterSel = document.getElementById('eccUnitChartFilter');
+        const eccItemFilterSel = document.getElementById('eccItemChartFilter');
+
+        function populateEccUnitFilter(selectedDiv) {
+            if (!eccUnitFilterSel) return;
+            const prevVal = eccUnitFilterSel.value;
+            eccUnitFilterSel.innerHTML = '<option value="">All Units</option>';
+            if (!selectedDiv) return;
+
+            const childUnits = getChildUnitsForDiv(selectedDiv);
+
+            if (Array.isArray(childUnits)) {
+                childUnits.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u;
+                    opt.textContent = u.replace(/_/g, ' ');
+                    opt.title = u.replace(/_/g, ' ');
+                    eccUnitFilterSel.appendChild(opt);
+                });
+            }
+
+            if (prevVal && Array.isArray(childUnits) && childUnits.includes(prevVal)) {
+                eccUnitFilterSel.value = prevVal;
+            } else if (Array.isArray(childUnits) && childUnits.length > 0) {
+                eccUnitFilterSel.value = childUnits[0];
+            } else {
+                eccUnitFilterSel.value = '';
+            }
+            if (eccUnitFilterSel.selectedIndex >= 0) {
+                eccUnitFilterSel.title = eccUnitFilterSel.options[eccUnitFilterSel.selectedIndex]?.text || '';
+            }
+        }
+
+        if (eccDivFilterSel && eccItemFilterSel) {
+            allEccDivs.forEach(div => {
+                eccDivFilterSel.insertAdjacentHTML('beforeend', `<option value="${div}">${formatEccDivLabel(div)}</option>`);
+            });
+            eccItemFilterSel.insertAdjacentHTML('beforeend', `<option value="">All Items</option>`);
+            allEccItems.forEach(i => {
+                eccItemFilterSel.insertAdjacentHTML('beforeend', `<option value="${i}" title="${i}">${i}</option>`);
+            });
+
+            if (defaultEccDiv) {
+                eccDivFilterSel.value = defaultEccDiv;
+                populateEccUnitFilter(defaultEccDiv);
+            }
+            eccItemFilterSel.value = defaultEccItem;
+
+            function refreshEccUnitChart() {
+                const divVal = eccDivFilterSel ? eccDivFilterSel.value : '';
+                const unitVal = eccUnitFilterSel ? eccUnitFilterSel.value : '';
+                const itemVal = eccItemFilterSel ? eccItemFilterSel.value : '';
+                const agg = aggregateEccUnitChart(divVal, unitVal, itemVal);
+                if (chartEccUnitBar) {
+                    chartEccUnitBar.series[0].setData([{ y: agg.auth, rawVal: agg.auth }]);
+                    chartEccUnitBar.series[1].setData([{ y: agg.held, rawVal: agg.held }]);
+                    chartEccUnitBar.series[2].setData([{ y: Math.max(0, agg.def), rawVal: agg.def }]);
+                }
+                if (eccItemFilterSel) {
+                    eccItemFilterSel.title = eccItemFilterSel.value || 'All Items';
+                }
+                if (eccUnitFilterSel && eccUnitFilterSel.selectedIndex >= 0) {
+                    eccUnitFilterSel.title = eccUnitFilterSel.options[eccUnitFilterSel.selectedIndex]?.text || '';
+                }
+            }
+
+            eccDivFilterSel.addEventListener('change', () => {
+                populateEccUnitFilter(eccDivFilterSel.value);
+                refreshEccUnitChart();
+            });
+            if (eccUnitFilterSel) {
+                eccUnitFilterSel.addEventListener('change', refreshEccUnitChart);
+            }
+            eccItemFilterSel.addEventListener('change', refreshEccUnitChart);
+
+            refreshEccUnitChart();
+        }
+
+        const eccTopDefDivFilter = document.getElementById('eccTopDefDivisionFilter');
+        if (eccTopDefDivFilter) {
+            eccTopDefDivFilter.insertAdjacentHTML('beforeend', `<option value="">All DIV</option>`);
+            allEccDivs.forEach(div => {
+                eccTopDefDivFilter.insertAdjacentHTML('beforeend', `<option value="${div}">${formatEccDivLabel(div)}</option>`);
+            });
+            if (defaultEccDiv) {
+                eccTopDefDivFilter.value = defaultEccDiv;
+            }
+        }
+
+        const initialEccTopDef = getTopDeficientEccItems(eccTopDefDivFilter ? eccTopDefDivFilter.value : defaultEccDiv, '');
+        chartEccItemPrism = Highcharts.chart('eccItemPrismChart', {
+            chart: {
+                type: 'bar',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: initialEccTopDef.categories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '9px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Defi Quantity',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 5,
+                    dataLabels: {
+                        enabled: true,
+                        crop: false,
+                        overflow: 'none',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            textOutline: 'none',
+                            color: textPrimary
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Defi',
+                data: initialEccTopDef.data,
+                color: chartDef,
+                showInLegend: false
+            }],
+            tooltip: {
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+                borderWidth: 1,
+                borderColor: borderDim,
+                style: { color: textPrimary }
+            },
+            credits: { enabled: false }
+        });
+
+        const eccTopDefCategoryFilter = document.getElementById('eccTopDefCategoryFilter');
+
+        function refreshEccTopDefChart() {
+            const divVal = eccTopDefDivFilter ? eccTopDefDivFilter.value : '';
+            const catVal = eccTopDefCategoryFilter ? eccTopDefCategoryFilter.value : '';
+            const data = getTopDeficientEccItems(divVal, catVal);
+            if (chartEccItemPrism) {
+                chartEccItemPrism.update({
+                    xAxis: { categories: data.categories },
+                    series: [{ data: data.data }]
+                });
+            }
+        }
+
+        if (eccTopDefDivFilter) {
+            eccTopDefDivFilter.addEventListener('change', refreshEccTopDefChart);
+        }
+        if (eccTopDefCategoryFilter) {
+            eccTopDefCategoryFilter.addEventListener('change', refreshEccTopDefChart);
+        }
+
+        const eccPieItemFilter = document.getElementById('eccDefPieItemFilter');
+        if (eccPieItemFilter) {
+            const allEccPieItems = [...new Set(eccChartData.map(d => d.item_name))].sort();
+
+            allEccPieItems.forEach(i => {
+                eccPieItemFilter.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
+            });
+
+            function getEccPieBreakdownForItem(selectedItem) {
+                const rows = eccChartData.filter(d => d.item_name === selectedItem);
+                return rows
+                    .map(d => ({
+                        name: formatEccDivLabel(d.division),
+                        y: d.stock_total
+                    }))
+                    .filter(pt => pt.y > 0);
+            }
+
+            const defaultEccPieItem = allEccPieItems.length > 0 ? allEccPieItems[0] : '';
+            if (defaultEccPieItem) {
+                eccPieItemFilter.value = defaultEccPieItem;
+            }
+
+            const initialEccPieData = getEccPieBreakdownForItem(defaultEccPieItem);
+
+            chartEccUnitDeficiencyPie = Highcharts.chart('eccUnitDeficiencyPieChart', {
+                chart: {
+                    type: 'pie',
+                    backgroundColor: 'transparent'
+                },
+                title: { text: null },
+                tooltip: {
+                    pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)',
+                    backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+                    borderWidth: 1,
+                    borderColor: borderDim,
+                    style: { color: textPrimary }
+                },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f}%',
+                            style: {
+                                color: textPrimary,
+                                fontWeight: 'bold',
+                                fontSize: '9px',
+                                textOutline: 'none'
+                            }
+                        }
+                    }
+                },
+                series: [{
+                    name: 'Stock Held',
+                    colorByPoint: true,
+                    data: initialEccPieData
+                }],
+                credits: { enabled: false }
+            });
+
+            eccPieItemFilter.addEventListener('change', function () {
+                const data = getEccPieBreakdownForItem(this.value);
+                if (chartEccUnitDeficiencyPie) {
+                    chartEccUnitDeficiencyPie.series[0].setData(data);
+                }
+            });
+        }
+    }
+
+    // unitChartData is now granular: one row per (unit, item, category) combination,
+    // so the chart can be filtered by unit, item, and/or category on the client side.
+    function formatUnitLabel(u) {
+        return u.replace(/_/g, ' ').toUpperCase();
+    }
+
+    const allUnitNames = [...new Set(unitChartData.map(d => d.unit_name))].filter(u => u && u.replace(/_/g, ' ').toUpperCase() !== '2 FOD');
+    const allItemNames = [...new Set(unitChartData.map(d => d.item_name))].sort();
+    const allCategories = [...new Set(unitChartData.map(d => d.category))].sort();
+
+    // Aggregates rows down to per-unit totals for whichever unit/item/category filters are active.
+    // Passing '' (empty string) for a filter means "no restriction" on that dimension.
+    function aggregateUnitChart(unitFilter, itemFilter, categoryFilter) {
+        const units = unitFilter ? [unitFilter] : allUnitNames;
+        const au = [], held = [], def = [];
+
+        units.forEach(u => {
+            const rows = unitChartData.filter(d =>
+                d.unit_name === u &&
+                (!itemFilter || d.item_name === itemFilter) &&
+                (!categoryFilter || d.category === categoryFilter)
+            );
+            au.push(rows.reduce((sum, r) => sum + r.a_u, 0));
+            held.push(rows.reduce((sum, r) => sum + r.held, 0));
+            def.push(rows.reduce((sum, r) => sum + r.deficiency, 0));
+        });
+
+        return {
+            categories: units.map(formatUnitLabel),
+            au, held, def
+        };
+    }
+
+    // Helper to get top 5 deficient items dynamically
+    function getTopDeficientItems(categoryFilter) {
+        const itemTotals = {};
+        unitChartData.forEach(d => {
+            if (!categoryFilter || d.category === categoryFilter) {
+                itemTotals[d.item_name] = (itemTotals[d.item_name] || 0) + d.deficiency;
+            }
+        });
+        const sorted = Object.entries(itemTotals)
+            .map(([name, def]) => ({ name, def }))
+            .filter(x => x.def > 0)
+            .sort((a, b) => b.def - a.def)
+            .slice(0, 5);
+        
+        return {
+            categories: sorted.map(x => x.name),
+            data: sorted.map(x => x.def)
+        };
+    }
+
+    const non2FodUnit = allUnitNames.find(u => u.replace(/_/g, ' ').toUpperCase() !== '2 FOD');
+    const defaultUnit = non2FodUnit || (allUnitNames.length > 0 ? allUnitNames[0] : '');
+    const defaultItem = '';
+    const defaultCategory = '';
+    const initialAgg = aggregateUnitChart(defaultUnit, defaultItem, defaultCategory);
+    const unitCategories = initialAgg.categories;
+    const auSeries = initialAgg.au;
+    const heldSeries = initialAgg.held;
+    const defSeries = initialAgg.def;
+
+    const initialTopDef = getTopDeficientItems('');
+    const itemCategories = initialTopDef.categories;
+    const itemDeficiencies = initialTopDef.data;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 1: UNIT LEDGER COMPARISON (2D GROUPED COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (unitChartDom) {
+    chartUnitBar = Highcharts.chart('unitBarChart', {
+        chart: {
+            type: 'column',
+            backgroundColor: 'transparent'
+        },
+        title: { text: null },
+        xAxis: {
+            categories: unitCategories,
+            labels: {
+                style: {
+                    color: textSecondary,
+                    fontWeight: 'bold',
+                    fontSize: '9px'
+                }
+            },
+            gridLineColor: borderDim,
+            lineColor: borderDim
+        },
+        yAxis: {
+            min: 0,
+            title: {
+                text: 'Quantity',
+                style: { color: textSecondary, fontWeight: 'bold' }
+            },
+            labels: {
+                style: { color: textSecondary }
+            },
+            gridLineColor: borderDim
+        },
+        plotOptions: {
+            column: {
+                grouping: true,
+                shadow: false,
+                borderRadius: 5,
+                dataLabels: {
+                    enabled: true,
+                    crop: false,
+                    overflow: 'none',
+                    formatter: function() {
+                        if (this.point && this.point.rawVal !== undefined) {
+                            return this.point.rawVal;
+                        }
+                        return this.y;
+                    },
+                    style: {
+                        fontWeight: 'bold',
+                        fontSize: '9px',
+                        textOutline: 'none',
+                        color: textPrimary
+                    }
+                }
+            }
+        },
+        series: [{
+            name: 'Authorised (A/U)',
+            data: auSeries.map(v => ({ y: v, rawVal: v })),
+            color: chartAuth
+        }, {
+            name: 'Held',
+            data: heldSeries.map(v => ({ y: v, rawVal: v })),
+            color: chartHeld
+        }, {
+            name: 'Defi',
+            data: defSeries.map(v => ({ y: Math.max(0, v), rawVal: v })),
+            color: chartDef
+        }],
+        legend: {
+            itemStyle: {
+                color: textPrimary,
+                textTransform: 'uppercase',
+                fontSize: '9px',
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+            borderWidth: 1,
+            borderColor: borderDim,
+            style: {
+                color: textPrimary
+            },
+            pointFormatter: function() {
+                const displayVal = (this.rawVal !== undefined) ? this.rawVal : this.y;
+                return `<span style="color:${this.color}">\u25CF</span> ${this.series.name}: <b>${displayVal}</b><br/>`;
+            }
+        },
+        credits: { enabled: false }
+    });
+
+    // ── Unit / Item / Category filters for the ledger comparison chart ──
+    const unitFilterSel = document.getElementById('unitChartFilter');
+    const itemFilterSel = document.getElementById('itemChartFilter');
+    const categoryFilterSel = document.getElementById('categoryChartFilter');
+
+    if (unitFilterSel && itemFilterSel && categoryFilterSel) {
+        allUnitNames.forEach(u => {
+            unitFilterSel.insertAdjacentHTML('beforeend', `<option value="${u}">${formatUnitLabel(u)}</option>`);
+        });
+        allItemNames.forEach(i => {
+            itemFilterSel.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
+        });
+        allCategories.forEach(c => {
+            categoryFilterSel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`);
+        });
+
+        if (defaultUnit) {
+            unitFilterSel.value = defaultUnit;
+        }
+        itemFilterSel.value = defaultItem;
+        categoryFilterSel.value = defaultCategory;
+
+        function refreshUnitChart() {
+            const agg = aggregateUnitChart(unitFilterSel.value, itemFilterSel.value, categoryFilterSel.value);
+            if (chartUnitBar) {
+                chartUnitBar.update({
+                    xAxis: { categories: agg.categories },
+                    series: [
+                        { data: agg.au.map(v => ({ y: v, rawVal: v })) },
+                        { data: agg.held.map(v => ({ y: v, rawVal: v })) },
+                        { data: agg.def.map(v => ({ y: Math.max(0, v), rawVal: v })) }
+                    ]
+                });
+            }
+        }
+
+        unitFilterSel.addEventListener('change', refreshUnitChart);
+        itemFilterSel.addEventListener('change', refreshUnitChart);
+        categoryFilterSel.addEventListener('change', refreshUnitChart);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 2: TOP 5 DEFICIENT ITEMS (2D HORIZONTAL BAR CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    chartItemPrism = Highcharts.chart('itemPrismChart', {
+        chart: {
+            type: 'bar',
+            backgroundColor: 'transparent'
+        },
+        title: { text: null },
+        xAxis: {
+            categories: itemCategories,
+            labels: {
+                style: {
+                    color: textSecondary,
+                    fontWeight: 'bold',
+                    fontSize: '9px'
+                }
+            },
+            gridLineColor: borderDim,
+            lineColor: borderDim
+        },
+        yAxis: {
+            title: {
+                text: 'Defi Quantity',
+                style: { color: textSecondary, fontWeight: 'bold' }
+            },
+            labels: {
+                style: { color: textSecondary }
+            },
+            gridLineColor: borderDim
+        },
+        plotOptions: {
+            bar: {
+                colorByPoint: false,
+                borderRadius: 5,
+                dataLabels: {
+                    enabled: true,
+                    crop: false,
+                    overflow: 'none',
+                    style: {
+                        fontWeight: 'bold',
+                        fontSize: '9px',
+                        textOutline: 'none',
+                        color: textPrimary
+                    }
+                }
+            }
+        },
+        series: [{
+            name: 'Defi',
+            data: itemDeficiencies,
+            color: chartDef,
+            showInLegend: false
+        }],
+        tooltip: {
+            backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+            borderWidth: 1,
+            borderColor: borderDim,
+            style: {
+                color: textPrimary
+            }
+        },
+        credits: { enabled: false }
+    });
+
+    const topDefCategoryFilter = document.getElementById('topDefCategoryFilter');
+    if (topDefCategoryFilter) {
+        topDefCategoryFilter.addEventListener('change', function () {
+            const data = getTopDeficientItems(this.value);
+            if (chartItemPrism) {
+                chartItemPrism.update({
+                    xAxis: { categories: data.categories },
+                    series: [{ data: data.data }]
+                });
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 3: ITEM-BASED DEFICIENCY SHARE BY UNIT (2D PIE CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const pieItemFilter = document.getElementById('defPieItemFilter');
+
+    if (pieItemFilter) {
+        // Collect items that have deficiency
+        const itemShortages = {};
+        unitChartData.forEach(d => {
+            itemShortages[d.item_name] = (itemShortages[d.item_name] || 0) + d.deficiency;
+        });
+
+        // Group items: those with def > 0 first, then others
+        const itemsWithShortage = Object.entries(itemShortages)
+            .filter(([name, def]) => def > 0)
+            .map(([name, def]) => name)
+            .sort();
+        const itemsWithoutShortage = Object.entries(itemShortages)
+            .filter(([name, def]) => def <= 0)
+            .map(([name, def]) => name)
+            .sort();
+        const allPieItems = [...itemsWithShortage, ...itemsWithoutShortage];
+
+        allPieItems.forEach(i => {
+            pieItemFilter.insertAdjacentHTML('beforeend', `<option value="${i}">${i}</option>`);
+        });
+
+        function getPieBreakdownForItem(selectedItem) {
+            const rows = unitChartData.filter(d => d.item_name === selectedItem);
+            return rows
+                .map(d => ({
+                    name: formatUnitLabel(d.unit_name),
+                    y: d.deficiency
+                }))
+                .filter(pt => pt.y > 0);
+        }
+
+        const defaultPieItem = allPieItems.length > 0 ? allPieItems[0] : '';
+        if (defaultPieItem) {
+            pieItemFilter.value = defaultPieItem;
+        }
+
+        const initialPieData = getPieBreakdownForItem(defaultPieItem);
+
+        chartUnitDeficiencyPie = Highcharts.chart('unitDeficiencyPieChart', {
+            chart: {
+                type: 'pie',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.y} ({point.percentage:.1f}%)',
+                        connectorColor: textSecondary,
+                        connectorWidth: 1.5,
+                        distance: 20,
+                        style: {
+                            color: textPrimary,
+                            fontSize: '10px'
+                        }
+                    },
+                    showInLegend: true
+                }
+            },
+            series: [{
+                name: 'Defi Qty',
+                data: initialPieData
+            }],
+            legend: {
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+                borderWidth: 1,
+                borderColor: borderDim,
+                style: {
+                    color: textPrimary
+                },
+                pointFormat: '{series.name}: <b>{point.y}</b> ({point.percentage:.1f}%)'
+            },
+            credits: { enabled: false }
+        });
+
+        pieItemFilter.addEventListener('change', function () {
+            const selectedItem = this.value;
+            const newData = getPieBreakdownForItem(selectedItem);
+            if (chartUnitDeficiencyPie) {
+                chartUnitDeficiencyPie.series[0].setData(newData);
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 4: SUPPLY READINESS BY UNIT (2D COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const readinessEl = document.getElementById('unitReadinessColumnChart');
+    const readinessData = readinessEl ? JSON.parse(readinessEl.dataset.chart) : [];
+
+    if (readinessEl) {
+        const readinessCategories = readinessData.map(d => d.unit_name);
+        const readinessRates = readinessData.map(d => d.rate);
+
+        chartUnitReadiness = Highcharts.chart('unitReadinessColumnChart', {
+            chart: {
+                type: 'column',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: readinessCategories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '9px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Readiness Rate (%)',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    format: '{value}%',
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim,
+                max: 100
+            },
+            plotOptions: {
+                column: {
+                    colorByPoint: true,
+                    borderRadius: 5,
+                    colors: readinessRates.map(val => {
+                        if (val >= 80) return '#10b981'; // Emerald green
+                        if (val >= 50) return '#f59e0b'; // Amber
+                        return '#ef4444'; // Red
+                    }),
+                    dataLabels: {
+                        enabled: true,
+                        format: '{point.y:.1f}%',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            textOutline: 'none',
+                            color: textPrimary
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Readiness Rate',
+                data: readinessRates,
+                showInLegend: false
+            }],
+            tooltip: {
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+                borderWidth: 1,
+                borderColor: borderDim,
+                style: {
+                    color: textPrimary
+                },
+                valueSuffix: '%'
+            },
+            credits: { enabled: false }
+        });
+    }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 5: SUPPLY READINESS BY DIV FOR ECC (2D COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 5: SER VS PWS STOCK FOR ECC (2D GROUPED COLUMN CHART)
+    // ─────────────────────────────────────────────────────────────────────────
+    const eccSerPwsFilter = document.getElementById('eccSerPwsUnitFilter');
+    const eccSerPwsChartEl = document.getElementById('eccSerPwsColumnChart');
+
+    if (eccSerPwsChartEl && eccSerPwsFilter) {
+        // 1. Populate Unit Filter dropdown (skipping '2 FOD')
+        const rawDistinctDivs = [
+            ...(Array.isArray(allDivAdminsList) ? allDivAdminsList : []),
+            ...eccChartData.map(d => d.division)
+        ];
+        const distMap = new Map();
+        rawDistinctDivs.filter(Boolean).forEach(d => {
+            const label = d.replace(/_/g, ' ').trim().toUpperCase();
+            if (label && label !== '2 FOD' && !distMap.has(label)) {
+                distMap.set(label, d);
+            }
+        });
+        const distinctDivisions = Array.from(distMap.values());
+        distinctDivisions.sort((a, b) => {
+            const is619A = a.includes('619') ? 0 : 1;
+            const is619B = b.includes('619') ? 0 : 1;
+            if (is619A !== is619B) return is619A - is619B;
+
+            const numA = parseInt(a.replace(/\D/g, '')) || 9999;
+            const numB = parseInt(b.replace(/\D/g, '')) || 9999;
+            if (numA !== numB) return numA - numB;
+            return a.localeCompare(b);
+        });
+        eccSerPwsFilter.insertAdjacentHTML('beforeend', '<option value="">All DIV</option>');
+        distinctDivisions.forEach(div => {
+            eccSerPwsFilter.insertAdjacentHTML('beforeend', `<option value="${div}">${formatEccDivLabel(div)}</option>`);
+        });
+
+        // Default to first division (prioritizing 619)
+        const div619SerPws = distinctDivisions.find(d => d.includes('619'));
+        const defaultSerPwsDiv = div619SerPws || (distinctDivisions.length > 0 ? distinctDivisions[0] : '');
+        if (defaultSerPwsDiv) {
+            eccSerPwsFilter.value = defaultSerPwsDiv;
+        }
+
+        // Pagination variables
+        let currentPage = 0;
+        const pageSize = 5;
+        
+        // 2. Helper to fetch aggregate data
+        function getEccSerPwsChartData(divisionFilter) {
+            const itemTotals = {};
+            const normFilter = (divisionFilter || '').replace(/_/g, ' ').trim().toLowerCase();
+            eccChartData.forEach(d => {
+                const normD = (d.division || '').replace(/_/g, ' ').trim().toLowerCase();
+                if (!divisionFilter || normD === normFilter) {
+                    if (!itemTotals[d.item_name]) {
+                        itemTotals[d.item_name] = { ser: 0, pws: 0 };
+                    }
+                    let totalSer = (d.available_ser || 0) + (d.stock_ser || 0);
+                    let totalPws = (d.available_pws || 0) + (d.stock_pws || 0);
+                    if (totalSer === 0 && totalPws === 0 && (d.stock_total || 0) > 0) {
+                        totalSer = d.stock_total;
+                    }
+                    itemTotals[d.item_name].ser += totalSer;
+                    itemTotals[d.item_name].pws += totalPws;
+                }
+            });
+            const categories = Object.keys(itemTotals).sort();
+            const serData = categories.map(name => itemTotals[name].ser);
+            const pwsData = categories.map(name => itemTotals[name].pws);
+            return {
+                categories: categories,
+                ser: serData,
+                pws: pwsData
+            };
+        }
+
+        // 3. Render function for the paginated chart view
+        function renderPaginatedSerPwsChart() {
+            const fullData = getEccSerPwsChartData(eccSerPwsFilter.value);
+            const totalItems = fullData.categories.length;
+            const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+            // Constrain currentPage range
+            if (currentPage >= totalPages) currentPage = totalPages - 1;
+            if (currentPage < 0) currentPage = 0;
+
+            // Get slice for the current page
+            const categoriesPage = fullData.categories.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+            const serPage = fullData.ser.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+            const pwsPage = fullData.pws.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+
+            // Update chart data
+            if (chartEccSerPws) {
+                chartEccSerPws.xAxis[0].setCategories(categoriesPage, false);
+                chartEccSerPws.series[0].setData(serPage, false);
+                chartEccSerPws.series[1].setData(pwsPage, true);
+            }
+
+            // Update navigation label
+            const pageIndicator = document.getElementById('eccSerPwsPageIndicator');
+            if (pageIndicator) {
+                pageIndicator.textContent = (currentPage + 1) + " / " + totalPages;
+            }
+
+            // Enable/disable navigation buttons
+            const prevBtn = document.getElementById('eccSerPwsPrevBtn');
+            const nextBtn = document.getElementById('eccSerPwsNextBtn');
+            if (prevBtn) {
+                prevBtn.style.opacity = currentPage === 0 ? "0.4" : "1";
+                prevBtn.style.pointerEvents = currentPage === 0 ? "none" : "auto";
+            }
+            if (nextBtn) {
+                nextBtn.style.opacity = currentPage === totalPages - 1 ? "0.4" : "1";
+                nextBtn.style.pointerEvents = currentPage === totalPages - 1 ? "none" : "auto";
+            }
+        }
+
+        const initialSerPwsAgg = getEccSerPwsChartData(eccSerPwsFilter.value);
+        const initialCategories = initialSerPwsAgg.categories.slice(0, pageSize);
+        const initialSer = initialSerPwsAgg.ser.slice(0, pageSize);
+        const initialPws = initialSerPwsAgg.pws.slice(0, pageSize);
+
+        chartEccSerPws = Highcharts.chart('eccSerPwsColumnChart', {
+            chart: {
+                type: 'column',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: initialCategories,
+                labels: {
+                    style: {
+                        color: textSecondary,
+                        fontWeight: 'bold',
+                        fontSize: '9px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Stock Quantity',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim
+            },
+            plotOptions: {
+                column: {
+                    grouping: true,
+                    shadow: false,
+                    borderRadius: 5,
+                    dataLabels: {
+                        enabled: true,
+                        crop: false,
+                        overflow: 'none',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            textOutline: 'none',
+                            color: textPrimary
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'SER Stock',
+                data: initialSer,
+                color: chartSer
+            }, {
+                name: 'PWS Stock',
+                data: initialPws,
+                color: chartPws
+            }],
+            legend: {
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+                borderWidth: 1,
+                borderColor: borderDim,
+                style: {
+                    color: textPrimary
+                }
+            },
+            credits: { enabled: false }
+        });
+
+        // Initialize buttons & listeners
+        const prevBtn = document.getElementById('eccSerPwsPrevBtn');
+        const nextBtn = document.getElementById('eccSerPwsNextBtn');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 0) {
+                    currentPage--;
+                    renderPaginatedSerPwsChart();
+                }
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                currentPage++;
+                renderPaginatedSerPwsChart();
+            });
+        }
+
+        // Initialize page indicator styling state
+        renderPaginatedSerPwsChart();
+
+        // 3. Bind Filter event listener
+        eccSerPwsFilter.addEventListener('change', function () {
+            currentPage = 0; // Reset to first page
+            renderPaginatedSerPwsChart();
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHART 6: OVERALL ANALYSIS (AUTH vs STK HELD WITH 2 FOD BY CATEGORY)
+    // ─────────────────────────────────────────────────────────────────────────
+    const overallAnalysisEl = document.getElementById('overallAnalysisBarChart');
+    if (overallAnalysisEl) {
+        const overallRawData = JSON.parse(overallAnalysisEl.dataset.chart || "[]");
+        const overallCategoryFilter = document.getElementById('overallCategoryFilter');
+
+        function renderOverallAnalysisChart() {
+            const selectedCat = overallCategoryFilter ? overallCategoryFilter.value : 'CAT-I';
+
+            // Filter items based on selected category
+            let filteredItems = overallRawData;
+            if (selectedCat !== 'ALL') {
+                filteredItems = overallRawData.filter(item => {
+                    const c = (item.category || '').toUpperCase().replace(/[\s-]/g, '');
+                    const target = selectedCat.toUpperCase().replace(/[\s-]/g, '');
+                    return c === target;
+                });
+            }
+
+            const categories = filteredItems.map(d => d.item_name);
+            const authValues = filteredItems.map(d => d.auth);
+            const stkValues = filteredItems.map(d => d.stk_held_2fod);
+
+            if (chartOverallAnalysis) {
+                chartOverallAnalysis.destroy();
+            }
+
+            chartOverallAnalysis = Highcharts.chart('overallAnalysisBarChart', {
+                chart: {
+                    type: 'column',
+                    backgroundColor: 'transparent'
+                },
+                title: { text: null },
+                xAxis: {
+                    categories: categories,
+                    labels: {
+                        rotation: -30,
+                        style: {
+                            color: textSecondary,
+                            fontWeight: '600',
+                            fontSize: '10px'
+                        }
+                    },
+                    gridLineColor: borderDim,
+                    lineColor: borderDim
+                },
+                yAxis: {
+                    title: {
+                        text: 'Quantity',
+                        style: { color: textSecondary, fontWeight: 'bold' }
+                    },
+                    labels: {
+                        style: { color: textSecondary }
+                    },
+                    gridLineColor: borderDim,
+                    min: 0
+                },
+                plotOptions: {
+                    column: {
+                        grouping: true,
+                        borderRadius: 4,
+                        borderWidth: 0,
+                        pointPadding: 0.1,
+                        groupPadding: 0.15,
+                        dataLabels: {
+                            enabled: true,
+                            crop: false,
+                            overflow: 'none',
+                            style: {
+                                fontWeight: 'bold',
+                                fontSize: '10px',
+                                textOutline: 'none',
+                                color: textPrimary
+                            },
+                            formatter: function() {
+                                return this.y > 0 ? this.y : '';
+                            }
+                        }
+                    }
+                },
+                series: [{
+                    name: 'AUTH',
+                    data: authValues,
+                    color: '#3b82f6'
+                }, {
+                    name: 'STK HELD WITH 2 FOD',
+                    data: stkValues,
+                    color: '#10b981'
+                }],
+                legend: {
+                    enabled: true,
+                    itemStyle: {
+                        color: textPrimary,
+                        textTransform: 'uppercase',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    shared: true,
+                    backgroundColor: computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff',
+                    borderWidth: 1,
+                    borderColor: borderDim,
+                    style: {
+                        color: textPrimary
+                    }
+                },
+                credits: { enabled: false }
+            });
+        }
+
+        renderOverallAnalysisChart();
+
+        if (overallCategoryFilter) {
+            overallCategoryFilter.addEventListener('change', renderOverallAnalysisChart);
+        }
+    }
+
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEDGER TABLE FILTERS (Unit + Category) — client-side
+    // ─────────────────────────────────────────────────────────────────────────
+    const unitSel   = document.getElementById('ledgerUnitFilter');
+    const catSel    = document.getElementById('ledgerCategoryFilter');
+
+    if (unitSel && catSel) {
+        const clearBtn  = document.getElementById('ledgerClearFilters');
+        const countEl   = document.getElementById('ledgerResultCount');
+        const noResults = document.getElementById('ledgerNoResults');
+        const rows      = Array.from(document.querySelectorAll('.ledger-row'));
+
+        // Populate dropdowns from the rows themselves (only values that exist, sorted, de-duped)
+        [...new Set(rows.map(r => r.dataset.unit).filter(Boolean))].sort()
+            .forEach(u => unitSel.insertAdjacentHTML('beforeend', `<option value="${u}">${u}</option>`));
+        [...new Set(rows.map(r => r.dataset.category).filter(Boolean))].sort()
+            .forEach(c => catSel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
+
+        function applyLedgerFilters() {
+            const unit = unitSel.value;
+            const cat  = catSel.value;
+            let visible = 0;
+
+            rows.forEach(row => {
+                const show = (!unit || row.dataset.unit === unit) &&
+                             (!cat  || row.dataset.category === cat);
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            if (noResults) {
+                noResults.style.display = (rows.length > 0 && visible === 0) ? '' : 'none';
+            }
+            if (countEl) {
+                countEl.textContent = rows.length ? (visible + ' of ' + rows.length + ' shown') : '';
+            }
+        }
+
+        unitSel.addEventListener('change', applyLedgerFilters);
+        catSel.addEventListener('change', applyLedgerFilters);
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                unitSel.value = '';
+                catSel.value = '';
+                applyLedgerFilters();
+            });
+        }
+
+        applyLedgerFilters();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CROSS-FILTER SYNC: unit & item dropdowns stay in sync across all charts
+    // ─────────────────────────────────────────────────────────────────────────
+    (function setupCrossFilterSync() {
+        // All unit-type selects
+        const unitSelects = [
+            document.getElementById('unitChartFilter'),          // SCME Productive Analysis
+            document.getElementById('eccDivisionChartFilter'),   // ECC Item Analysis
+            document.getElementById('eccTopDefDivisionFilter'),  // ECC Top 5 Defi
+            document.getElementById('eccSerPwsUnitFilter'),      // ECC Ser/PWS chart
+            document.getElementById('ledgerUnitFilter'),         // SCME Ledger Modal
+            document.getElementById('eccLedgerDivisionFilter')   // ECC Ledger Modal
+        ].filter(Boolean);
+
+        // All item-type selects
+        const itemSelects = [
+            document.getElementById('itemChartFilter'),       // SCME Productive Analysis
+            document.getElementById('eccItemChartFilter'),    // ECC Item Analysis
+            document.getElementById('defPieItemFilter'),      // SCME Pie chart
+            document.getElementById('eccDefPieItemFilter')    // ECC SHARE Pie chart
+        ].filter(Boolean);
+
+        let _syncing = false;
+
+        function normUnit(s) {
+            return String(s || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+        }
+
+        function normItem(s) {
+            return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        }
+
+        function syncGroup(selects, changedEl, isUnit) {
+            if (_syncing) return;
+            _syncing = true;
+            const rawVal = changedEl.value;
+            const normFn = isUnit ? normUnit : normItem;
+            const targetNorm = normFn(rawVal);
+
+            selects.forEach(sel => {
+                if (sel === changedEl) return;
+
+                if (!rawVal) {
+                    // Empty / "All" selected
+                    const emptyOpt = Array.from(sel.options).find(o => !o.value);
+                    if (emptyOpt && sel.value !== emptyOpt.value) {
+                        sel.value = emptyOpt.value;
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    return;
+                }
+
+                // Find matching option in target select using normalized string comparison
+                const matchingOpt = Array.from(sel.options).find(o => normFn(o.value) === targetNorm);
+                if (matchingOpt && sel.value !== matchingOpt.value) {
+                    sel.value = matchingOpt.value;
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+            _syncing = false;
+        }
+
+        unitSelects.forEach(sel => {
+            sel.addEventListener('change', () => syncGroup(unitSelects, sel, true));
+        });
+
+        itemSelects.forEach(sel => {
+            sel.addEventListener('change', () => syncGroup(itemSelects, sel, false));
+        });
+    })();
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ECC LEDGER TABLE FILTERS (Division + Category) — client-side
+    // ─────────────────────────────────────────────────────────────────────────
+    const eccDivSel = document.getElementById('eccLedgerDivisionFilter');
+    const eccCatSel = document.getElementById('eccLedgerCategoryFilter');
+
+    if (eccDivSel && eccCatSel) {
+        const eccClearBtn  = document.getElementById('eccLedgerClearFilters');
+        const eccCountEl   = document.getElementById('eccLedgerResultCount');
+        const eccNoResults = document.getElementById('eccLedgerNoResults');
+        const eccRows      = Array.from(document.querySelectorAll('.ecc-ledger-row'));
+
+        // Populate dropdowns from all division admins and existing rows (skipping 2 FOD)
+        const rawLedgerDivs = [
+            ...(Array.isArray(allDivAdminsList) ? allDivAdminsList.map(d => d.replace(/_/g, ' ').toUpperCase()) : []),
+            ...eccRows.map(r => r.dataset.division)
+        ];
+        const ledgerDivs = [...new Set(rawLedgerDivs.filter(Boolean))].filter(d => {
+            const norm = (d || '').replace(/_/g, ' ').trim().toUpperCase();
+            return norm && norm !== '2 FOD';
+        });
+        ledgerDivs.sort((a, b) => {
+            const is619A = a.includes('619') ? 0 : 1;
+            const is619B = b.includes('619') ? 0 : 1;
+            if (is619A !== is619B) return is619A - is619B;
+
+            const numA = parseInt(a.replace(/\D/g, '')) || 9999;
+            const numB = parseInt(b.replace(/\D/g, '')) || 9999;
+            if (numA !== numB) return numA - numB;
+            return a.localeCompare(b);
+        });
+        ledgerDivs.forEach(div => eccDivSel.insertAdjacentHTML('beforeend', `<option value="${div}">${div}</option>`));
+
+        function applyEccLedgerFilters() {
+            const div = eccDivSel.value;
+            const cat = eccCatSel.value;
+            let visible = 0;
+
+            const headerBlock = document.getElementById('eccLedgerSelectedHeaderBlock');
+            const headerDivName = document.getElementById('eccLedgerSelectedDivision');
+            if (headerBlock && headerDivName) {
+                if (div) {
+                    headerDivName.textContent = div;
+                    headerBlock.style.display = 'flex';
+                } else {
+                    headerBlock.style.display = 'none';
+                    headerDivName.textContent = '';
+                }
+            }
+
+            let visibleIdx = 1;
+            eccRows.forEach(row => {
+                const show = (!div || row.dataset.division === div) &&
+                             (!cat || row.dataset.category === cat);
+                row.style.display = show ? '' : 'none';
+                if (show) {
+                    const snoCell = row.querySelector('td:first-child');
+                    if (snoCell) {
+                        snoCell.textContent = visibleIdx++;
+                    }
+                    visible++;
+                }
+            });
+
+            if (eccNoResults) {
+                eccNoResults.style.display = (eccRows.length > 0 && visible === 0) ? '' : 'none';
+            }
+            if (eccCountEl) {
+                eccCountEl.textContent = eccRows.length ? (visible + ' of ' + eccRows.length + ' shown') : '';
+            }
+        }
+
+        eccDivSel.addEventListener('change', applyEccLedgerFilters);
+        eccCatSel.addEventListener('change', applyEccLedgerFilters);
+        if (eccClearBtn) {
+            eccClearBtn.addEventListener('click', function () {
+                eccDivSel.value = '';
+                eccCatSel.value = '';
+                applyEccLedgerFilters();
+            });
+        }
+
+        applyEccLedgerFilters();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DYNAMIC THEME SYNCHRONIZATION FOR HIGHCHARTS
+    // ─────────────────────────────────────────────────────────────────────────
+    function updateAllChartsTheme() {
+        const computedStyles = getComputedStyle(document.documentElement);
+        textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || "#1a2420";
+        textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || "#4d6358";
+        borderDim = computedStyles.getPropertyValue('--border-dim').trim() || "#e2e7e4";
+        chartAuth = computedStyles.getPropertyValue('--chart-auth').trim() || "#3498db";
+        chartHeld = computedStyles.getPropertyValue('--chart-held').trim() || "#2ecc71";
+        chartDef = computedStyles.getPropertyValue('--chart-def').trim() || "#e74c3c";
+        chartSer = computedStyles.getPropertyValue('--chart-ser').trim() || "#27ae60";
+        chartPws = computedStyles.getPropertyValue('--chart-pws').trim() || "#9b59b6";
+        chartStrength = computedStyles.getPropertyValue('--chart-strength').trim() || "#16a085";
+
+        const bgSurface = computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff';
+
+        // 1. Common Axis, Grid, Tooltip, and Legend Style mappings
+        const axisUpdate = {
+            xAxis: {
+                labels: { style: { color: textSecondary } },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: { style: { color: textSecondary } },
+                labels: { style: { color: textSecondary } },
+                gridLineColor: borderDim
+            },
+            tooltip: {
+                backgroundColor: bgSurface,
+                borderColor: borderDim,
+                style: { color: textPrimary }
+            },
+            legend: {
+                itemStyle: { color: textPrimary }
+            }
+        };
+
+        // 2. Apply theme updates individually to all instantiated charts
+        if (chartUnitBar) {
+            chartUnitBar.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartAuth },
+                    { color: chartHeld },
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartItemPrism) {
+            chartItemPrism.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    bar: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartUnitDeficiencyPie) {
+            chartUnitDeficiencyPie.update({
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    pie: {
+                        dataLabels: {
+                            connectorColor: textSecondary,
+                            style: { color: textPrimary }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (chartUnitReadiness) {
+            chartUnitReadiness.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                }
+            });
+        }
+
+        if (chartEccUnitBar) {
+            chartEccUnitBar.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartAuth },
+                    { color: chartHeld },
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartEccItemPrism) {
+            chartEccItemPrism.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    bar: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartDef }
+                ]
+            });
+        }
+
+        if (chartEccUnitDeficiencyPie) {
+            chartEccUnitDeficiencyPie.update({
+                tooltip: axisUpdate.tooltip,
+                plotOptions: {
+                    pie: {
+                        dataLabels: {
+                            style: { color: textPrimary }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (chartEccSerPws) {
+            chartEccSerPws.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    column: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartSer },
+                    { color: chartPws }
+                ]
+            });
+        }
+
+        if (chartEccUnitStrengthLine) {
+            chartEccUnitStrengthLine.update({
+                xAxis: axisUpdate.xAxis,
+                yAxis: axisUpdate.yAxis,
+                tooltip: axisUpdate.tooltip,
+                legend: axisUpdate.legend,
+                plotOptions: {
+                    line: {
+                        dataLabels: { style: { color: textPrimary } }
+                    }
+                },
+                series: [
+                    { color: chartStrength }
+                ]
+            });
+        }
+    }
+
+    // Bind custom theme change event broadcasted from base template
+    window.addEventListener('themeChanged', function () {
+        // Run update on animation frame to ensure variable styles have fully settled in the DOM
+        requestAnimationFrame(updateAllChartsTheme);
+    });
+
+    // Make sure initial state matches selected theme
+    updateAllChartsTheme();
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SET ITEM AUTHORIZATION MODAL LOGIC
+    // ══════════════════════════════════════════════════════════════════════════
+    const modalActiveDivs = document.getElementById('modalActiveDivisions');
+    const modalSetAuth = document.getElementById('modalSetItemAuth');
+    const formSetAuth = document.getElementById('formSetItemAuth');
+    const catSelectAuth = document.getElementById('setItemAuthCategory');
+    const itemSelectAuth = document.getElementById('setItemAuthItem');
+    const divSelectAuth = document.getElementById('setItemAuthDiv');
+    const alertSetAuth = document.getElementById('setItemAuthAlert');
+    const allItemOptsAuth = Array.from(itemSelectAuth ? itemSelectAuth.querySelectorAll('option') : []).slice(1);
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.btn-open-add-item-auth') || e.target.closest('#btnHeaderAddItemAuth');
+        if (btn) {
+            if (formSetAuth) formSetAuth.reset();
+            if (alertSetAuth) alertSetAuth.classList.add('d-none');
+            
+            if (modalActiveDivs) {
+                const activeDivModalBs = bootstrap.Modal.getInstance(modalActiveDivs);
+                if (activeDivModalBs) activeDivModalBs.hide();
+            }
+
+            if (modalSetAuth) {
+                const setAuthModalBs = bootstrap.Modal.getOrCreateInstance(modalSetAuth);
+                setAuthModalBs.show();
+            }
+        }
+    });
+
+    function fetchDivItemAuth() {
+        const unit = divSelectAuth ? divSelectAuth.value : '';
+        const item = itemSelectAuth ? itemSelectAuth.value : '';
+        const valInput = document.getElementById('setItemAuthValue');
+        if (!unit || !item) {
+            if (valInput) valInput.value = '';
+            return;
+        }
+        fetch(`/scme/api/get-item-auth?unit_name=${encodeURIComponent(unit)}&item_id=${encodeURIComponent(item)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && valInput) {
+                    valInput.value = (data.auth !== null && data.auth !== undefined) ? data.auth : '';
+                }
+            })
+            .catch(err => console.error("Error fetching div item auth:", err));
+    }
+
+    if (divSelectAuth) divSelectAuth.addEventListener('change', fetchDivItemAuth);
+
+    if (catSelectAuth && itemSelectAuth) {
+        catSelectAuth.addEventListener('change', function () {
+            const selCat = this.value;
+            itemSelectAuth.innerHTML = '<option value="">-- Choose Item --</option>';
+            allItemOptsAuth.forEach(opt => {
+                if (!selCat || opt.dataset.category === selCat) {
+                    itemSelectAuth.appendChild(opt.cloneNode(true));
+                }
+            });
+            fetchDivItemAuth();
+        });
+    }
+
+    if (itemSelectAuth) itemSelectAuth.addEventListener('change', fetchDivItemAuth);
+
+    if (formSetAuth) {
+        formSetAuth.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const unitName = divSelectAuth ? divSelectAuth.value : '';
+            const itemId = itemSelectAuth ? itemSelectAuth.value : '';
+            const authVal = document.getElementById('setItemAuthValue') ? document.getElementById('setItemAuthValue').value : '';
+
+            if (!unitName || !itemId || authVal === '') {
+                if (alertSetAuth) {
+                    alertSetAuth.className = 'alert alert-danger mt-2';
+                    alertSetAuth.textContent = 'Please fill in all required fields.';
+                    alertSetAuth.classList.remove('d-none');
+                }
+                return;
+            }
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            fetch('/scme/api/set-item-auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    unit_name: unitName,
+                    item_id: parseInt(itemId),
+                    auth: parseInt(authVal)
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const setAuthModalBs = bootstrap.Modal.getInstance(modalSetAuth);
+                    if (setAuthModalBs) setAuthModalBs.hide();
+
+                    if (typeof Notify !== 'undefined') {
+                        Notify.success(data.message || 'Item Authorization saved successfully!', {
+                            title: 'Set Item Authorization',
+                            btnText: 'OK',
+                            onClose: () => window.location.reload()
+                        });
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    if (typeof Notify !== 'undefined') {
+                        Notify.error(data.message || 'Error saving authorization.', { title: 'Authorization Error' });
+                    } else if (alertSetAuth) {
+                        alertSetAuth.className = 'alert alert-danger mt-2';
+                        alertSetAuth.textContent = data.message || 'Error saving authorization.';
+                        alertSetAuth.classList.remove('d-none');
+                    }
+                }
+            })
+            .catch(err => {
+                if (typeof Notify !== 'undefined') {
+                    Notify.error('Server error occurred while saving authorization.', { title: 'Connection Error' });
+                } else if (alertSetAuth) {
+                    alertSetAuth.className = 'alert alert-danger mt-2';
+                    alertSetAuth.textContent = 'Server error occurred.';
+                    alertSetAuth.classList.remove('d-none');
+                }
+            });
+        });
+    }
+});
+// INSERT AUTH Modal category filter & body move
+document.addEventListener('DOMContentLoaded', function() {
+    // Append all modals to body to prevent z-index backdrop stacking/fading issues
+    document.querySelectorAll('.modal').forEach(function(modalEl) {
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
+    });
+
+    const authCatSelect = document.getElementById('authCategorySelect');
+    const authItemSelect = document.getElementById('authItemSelect');
+    if (authCatSelect && authItemSelect) {
+        const allAuthItemOptions = Array.from(authItemSelect.querySelectorAll('option')).slice(1);
+        authCatSelect.addEventListener('change', function() {
+            const selectedCat = this.value;
+            authItemSelect.innerHTML = '<option value="">-- Select Item --</option>';
+            allAuthItemOptions.forEach(opt => {
+                const isCatMatch = !selectedCat || opt.dataset.category === selectedCat;
+                if (isCatMatch) {
+                    authItemSelect.appendChild(opt.cloneNode(true));
+                }
+            });
+        });
+    }
+
+    if (authItemSelect) {
+        authItemSelect.addEventListener('change', function() {
+            const itemId = this.value;
+            const wholeAuthInput = document.getElementById('insertAuthWholeAuth');
+            const wholeResInput = document.getElementById('insertAuthWholeRes');
+            const scaleInput = document.getElementById('insertAuthScale');
+            if (!itemId) {
+                if (wholeAuthInput) wholeAuthInput.value = '';
+                if (wholeResInput) wholeResInput.value = '';
+                if (scaleInput) scaleInput.value = '1 PER INDL';
+                return;
+            }
+            fetch(`/scme/api/get-item-auth?item_id=${encodeURIComponent(itemId)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (wholeAuthInput) {
+                            wholeAuthInput.value = (data.whole_auth !== null && data.whole_auth !== undefined) ? data.whole_auth : '';
+                        }
+                        if (wholeResInput) {
+                            wholeResInput.value = (data.whole_res !== null && data.whole_res !== undefined) ? data.whole_res : '';
+                        }
+                        if (scaleInput) {
+                            scaleInput.value = data.scale || '1 PER INDL';
+                        }
+                    }
+                })
+                .catch(err => console.error("Error fetching item auth for insert modal:", err));
+        });
+    }
+});
+</script>
+
+<!-- ── INSERT AUTH MODAL ── -->
+<div class="modal fade" id="insertAuthModal" tabindex="-1" aria-labelledby="insertAuthModalLabel" aria-hidden="true" data-bs-backdrop="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-content-custom">
+            <div class="modal-header modal-header-custom justify-content-between align-items-center">
+                <h5 class="modal-title modal-title-custom" id="insertAuthModalLabel">
+                    <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i>
+                    <span>INSERT AUTH</span>
+                </h5>
+                <button type="button" class="btn-close-theme" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form action="/scme/insert-auth" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body p-4">
+                    <!-- Option Select Category -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">SELECT CATEGORY</label>
+                        <select id="authCategorySelect" class="form-select form-select-custom">
+                            <option value="">-- Select Category --</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Select Item -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">SELECT ITEM <span class="text-danger">*</span></label>
+                        <select name="item_id" id="authItemSelect" class="form-select form-select-custom" required>
+                            <option value="">-- Select Item --</option>
+                            {% for item in items %}
+                                <option value="{{ item.id }}" data-category="{{ item.category }}" data-type="{{ item.type }}">
+                                    {{ item.item_name }} ({{ item.category }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Option Input Field AUTH -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">AUTH</label>
+                        <input type="number" id="insertAuthWholeAuth" name="whole_auth" class="form-control form-control-custom" placeholder="Enter AUTH value" min="0">
+                    </div>
+
+                    <!-- Option Input Field RES -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">RES</label>
+                        <input type="number" id="insertAuthWholeRes" name="whole_res" class="form-control form-control-custom" placeholder="Enter RES value" min="0">
+                    </div>
+
+                    <!-- Option Input Field SCALE -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">SCALE</label>
+                        <input type="text" id="insertAuthScale" name="scale" class="form-control form-control-custom" placeholder="e.g. 1 per indl or N/A">
+                    </div>
+                </div>
+                <div class="modal-footer modal-footer-custom justify-content-end gap-2">
+                    <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-modal-submit d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-check"></i>
+                        Save Record
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% include 'modals/direct_issue_modal.html' %}
+{% endblock %}

@@ -1,0 +1,466 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ user_div_name or 'DOU' }} Monthly Reports{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/division_admin/" class="nav-item">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/division_admin/monthly-reports" class="nav-item active">
+    <i class="fa-solid fa-file-invoice"></i>
+    <span class="nav-tooltip">Monthly Reports (DOU)</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .dou-mr-container {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 16px 20px;
+    }
+
+    .dou-mr-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 10px;
+        padding: 6px 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+
+    .dou-mr-toolbar-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .dou-mr-toolbar-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .dou-mr-select {
+        background: var(--bg-body);
+        border: 1px solid var(--border-dim);
+        color: var(--text-primary);
+        padding: 4px 8px;
+        border-radius: 7px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        outline: none;
+        height: 30px;
+    }
+
+    .dou-mr-btn {
+        background: var(--accent);
+        color: #ffffff;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 7px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        height: 30px;
+    }
+
+    .dou-mr-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .dou-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        padding: 12px;
+    }
+
+    .dou-excel-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 12px;
+        color: #1f2937;
+        table-layout: auto;
+    }
+
+    .dou-excel-table th {
+        border: 1px solid #9ca3af;
+        padding: 6px 8px;
+        text-align: center;
+        vertical-align: middle;
+        text-transform: uppercase;
+    }
+
+    .dou-excel-table td {
+        border: 1px solid #9ca3af;
+        padding: 6px 8px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* Table Header Styling Matching DOU Format Photograph */
+    .dou-main-title {
+        background-color: #f3f4f6;
+        color: #111827;
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 8px 10px;
+        border-bottom: 2px solid #374151;
+    }
+
+    .dou-pill-posted-table {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #1e3a8a;
+        color: #ffffff;
+        border: 1px solid #172554;
+        padding: 3px 12px;
+        border-radius: 14px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .dou-header-col {
+        background-color: #e5e7eb;
+        color: #111827;
+        font-weight: 700;
+    }
+
+    .dou-header-ob {
+        background-color: #fef3c7;
+        color: #78350f;
+        font-weight: 700;
+    }
+
+    .dou-header-recd {
+        background-color: #dbeafe;
+        color: #1e40af;
+        font-weight: 700;
+    }
+
+    .dou-header-issd {
+        background-color: #fee2e2;
+        color: #991b1b;
+        font-weight: 700;
+    }
+
+    .dou-header-stk {
+        background-color: #f3e8ff;
+        color: #6b21a8;
+        font-weight: 700;
+    }
+
+    .dou-header-unit-stk {
+        background-color: #e0e7ff;
+        color: #3730a3;
+        font-weight: 700;
+    }
+
+    .dou-header-tot-stk {
+        background-color: #ccfbf1;
+        color: #0f766e;
+        font-weight: 700;
+    }
+
+    .dou-header-net {
+        background-color: #d1fae5;
+        color: #065f46;
+        font-weight: 700;
+    }
+
+    .dou-header-cond {
+        background-color: #fce7f3;
+        color: #9d174d;
+        font-weight: 700;
+    }
+    .cell-shade-cond {
+        background-color: #fdf2f8 !important;
+    }
+
+    /* Cells */
+    .excel-cell-text {
+        text-align: left !important;
+        font-weight: 600;
+    }
+    .excel-cell-center {
+        text-align: center !important;
+    }
+    .excel-cell-num {
+        text-align: right !important;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Cell background shades related to header colors */
+    .cell-shade-col {
+        background-color: #f9fafb !important;
+    }
+    .cell-shade-ob {
+        background-color: #fffbeb !important;
+    }
+    .cell-shade-recd {
+        background-color: #eff6ff !important;
+    }
+    .cell-shade-issd {
+        background-color: #fef2f2 !important;
+    }
+    .cell-shade-stk {
+        background-color: #faf5ff !important;
+    }
+    .cell-shade-unit-stk {
+        background-color: #eef2ff !important;
+    }
+    .cell-shade-tot-stk {
+        background-color: #f0fdfa !important;
+    }
+    .cell-shade-net {
+        background-color: #ecfdf5 !important;
+    }
+
+    .dou-excel-table tbody tr:hover td {
+        filter: brightness(0.96);
+    }
+
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 0.3cm 0.4cm;
+        }
+        .dou-mr-toolbar, .sidebar, .header {
+            display: none !important;
+        }
+        .dou-table-wrapper {
+            border: none;
+            box-shadow: none;
+            padding: 0;
+        }
+        table {
+            width: 100% !important;
+            font-size: 8px !important;
+        }
+        th, td {
+            padding: 3px 4px !important;
+            font-size: 7.5px !important;
+        }
+    }
+</style>
+
+<div class="dou-mr-container">
+    <!-- Toolbar Controls -->
+    <div class="dou-mr-toolbar">
+        <div class="dou-mr-toolbar-title">
+            <i class="fa-solid fa-file-invoice" style="color: var(--accent);"></i>
+            <span>{{ user_div_name or 'DOU' }} Monthly Reports (DOU Format)</span>
+        </div>
+
+        <div class="dou-mr-toolbar-controls">
+            <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">Select Month:</label>
+            <input type="month" id="douMonthPicker" class="dou-mr-select" value="{{ selected_month_str }}" onchange="location.href='?month=' + this.value;">
+
+            <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-left:10px;">Zoom:</label>
+            <input type="range" id="douZoomRange" min="50" max="140" value="100" style="width:100px;" oninput="applyDouZoom(this.value)">
+            <span id="douZoomVal" style="font-size:0.82rem; font-weight:700;">100%</span>
+
+            <button class="dou-mr-btn" onclick="fitDouToWidth()" title="Fit all columns in view" style="background: #0f766e;">
+                <i class="fa-solid fa-arrows-left-right"></i> Fit Width
+            </button>
+
+            <button class="dou-mr-btn" onclick="window.print();">
+                <i class="fa-solid fa-print"></i> Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Table Wrapper -->
+    <div class="dou-table-wrapper" id="douTableContainer">
+        <table class="dou-excel-table">
+            <thead>
+                <!-- Main Header Title Banner -->
+                <tr>
+                    <th colspan="21" class="dou-main-title" style="padding: 4px 10px;">
+                        <div style="display: flex; justify-content: flex-end; align-items: center;">
+                            <span class="dou-pill-posted-table">
+                                <i class="fa-solid fa-users" style="margin-right: 4px;"></i>POSTED STR: {{ posted_strength }}
+                            </span>
+                        </div>
+                    </th>
+                </tr>
+
+                <!-- Header Row 1 -->
+                <tr>
+                    <th rowspan="2" class="dou-header-col">ITEM</th>
+                    <th rowspan="2" class="dou-header-col">A/U</th>
+                    <th rowspan="2" class="dou-header-col">SCALE</th>
+                    <th rowspan="2" class="dou-header-col">AUTH</th>
+                    <th colspan="2" class="dou-header-ob">BBF (OF LAST MONTH)</th>
+                    <th colspan="2" class="dou-header-recd">QTY RECEIVED DURING THIS MONTH</th>
+                    <th colspan="2" class="dou-header-issd">QTY ISSUED DURING THIS MONTH</th>
+                    <th colspan="3" class="dou-header-unit-stk">STK HELD WITH UNITS</th>
+                    <th colspan="3" class="dou-header-stk">FREE STK HELD</th>
+                    <th colspan="3" class="dou-header-tot-stk">TOTAL STOCK</th>
+                    <th rowspan="2" class="dou-header-net" style="width: 55px; max-width: 60px; line-height: 1.15; font-size: 11px; padding: 4px 4px;">SUR/<br>DEFI</th>
+                    <th rowspan="2" class="dou-header-cond" style="width: 90px; min-width: 90px; padding: 5px 4px;">TOTAL<br>CONDEMNATION</th>
+                </tr>
+
+                <!-- Header Row 2 -->
+                <tr>
+                    <th class="dou-header-ob">SER</th>
+                    <th class="dou-header-ob">PWS</th>
+                    <th class="dou-header-recd">SER</th>
+                    <th class="dou-header-recd">PWS</th>
+                    <th class="dou-header-issd">SER</th>
+                    <th class="dou-header-issd">PWS</th>
+                    <th class="dou-header-unit-stk">SER</th>
+                    <th class="dou-header-unit-stk">PWS</th>
+                    <th class="dou-header-unit-stk">TOTAL</th>
+                    <th class="dou-header-stk">SER</th>
+                    <th class="dou-header-stk">PWS</th>
+                    <th class="dou-header-stk">TOTAL</th>
+                    <th class="dou-header-tot-stk">SER</th>
+                    <th class="dou-header-tot-stk">PWS</th>
+                    <th class="dou-header-tot-stk">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if report_rows %}
+                    {% for row in report_rows %}
+                    <tr>
+                        <td class="excel-cell-text cell-shade-col">{{ row.item_name }}</td>
+                        <td class="excel-cell-center cell-shade-col">{{ row.au }}</td>
+                        <td class="excel-cell-center cell-shade-col" style="text-transform: uppercase;">{{ row.scale | upper }}</td>
+                        <td class="excel-cell-num cell-shade-col" style="font-weight:700;">{{ row.auth }}</td>
+                        <td class="excel-cell-num cell-shade-ob">{{ row.bbf_ser }}</td>
+                        <td class="excel-cell-num cell-shade-ob">{{ row.bbf_pws }}</td>
+                        <td class="excel-cell-num cell-shade-recd" style="font-weight:700; color:#1e40af;">{{ row.recd_ser }}</td>
+                        <td class="excel-cell-num cell-shade-recd" style="font-weight:700; color:#1e40af;">{{ row.recd_pws }}</td>
+                        <td class="excel-cell-num cell-shade-issd" style="font-weight:700; color:#991b1b;">{{ row.issd_ser }}</td>
+                        <td class="excel-cell-num cell-shade-issd" style="font-weight:700; color:#991b1b;">{{ row.issd_pws }}</td>
+                        <td class="excel-cell-num cell-shade-unit-stk">{{ row.unit_stk_ser }}</td>
+                        <td class="excel-cell-num cell-shade-unit-stk">{{ row.unit_stk_pws }}</td>
+                        <td class="excel-cell-num cell-shade-unit-stk" style="font-weight:700; color:#1d4ed8;">{{ row.unit_stk_total }}</td>
+                        <td class="excel-cell-num cell-shade-stk">{{ row.stk_ser }}</td>
+                        <td class="excel-cell-num cell-shade-stk">{{ row.stk_pws }}</td>
+                        <td class="excel-cell-num cell-shade-stk" style="font-weight:700; color:#6b21a8;">{{ row.stk_total }}</td>
+                        <td class="excel-cell-num cell-shade-tot-stk" style="font-weight:700; color:#0f766e;">{{ row.tot_stk_ser }}</td>
+                        <td class="excel-cell-num cell-shade-tot-stk" style="font-weight:700; color:#0f766e;">{{ row.tot_stk_pws }}</td>
+                        <td class="excel-cell-num cell-shade-tot-stk" style="font-weight:800; color:#0f766e; background-color: #ccfbf1 !important;">{{ row.tot_stk_total }}</td>
+                        <td class="excel-cell-num cell-shade-net" style="font-weight:700; color: {% if row.sur_defi > 0 %}#dc2626{% elif row.sur_defi < 0 %}#16a34a{% else %}#374151{% endif %}; width: 55px; max-width: 60px;">
+                            {% if row.sur_defi > 0 %}{{ row.sur_defi }}{% elif row.sur_defi < 0 %}+{{ (0 - row.sur_defi) }}{% else %}0{% endif %}
+                        </td>
+                        <td class="excel-cell-num cell-shade-cond" style="font-weight: 700; color: {% if row.total_condemnation > 0 %}#9d174d{% else %}#374151{% endif %};">{{ row.total_condemnation }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="21" style="text-align:center; padding: 20px; color:#6b7280;">No data found for this month.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function applyDouZoom(v, save = true) {
+        v = parseInt(v, 10);
+        const valSpan = document.getElementById('douZoomVal');
+        if (valSpan) valSpan.innerText = `${v}%`;
+        const rangeInput = document.getElementById('douZoomRange');
+        if (rangeInput) rangeInput.value = v;
+        const tbl = document.querySelector('.dou-excel-table');
+        if (tbl) {
+            tbl.style.zoom = (v / 100);
+            tbl.style.fontSize = (11 * v / 100) + 'px';
+        }
+        const wrapper = document.querySelector('.dou-table-wrapper');
+        if (wrapper) {
+            wrapper.style.fontSize = (11 * v / 100) + 'px';
+        }
+        if (save) {
+            try {
+                localStorage.setItem('dou_monthly_report_zoom', v);
+            } catch (e) {
+                console.warn('Could not save zoom setting:', e);
+            }
+        }
+    }
+
+    // Auto-fit: calculate zoom so ALL columns fit without horizontal scroll
+    function fitDouToWidth(save = true) {
+        const wrapper = document.getElementById('douTableContainer');
+        const tbl = document.querySelector('.dou-excel-table');
+        if (!wrapper || !tbl) return;
+
+        // Temporarily reset zoom to measure natural table width
+        tbl.style.zoom = 1;
+        tbl.style.fontSize = '12px';
+
+        const naturalWidth = tbl.scrollWidth;
+        const availWidth = wrapper.clientWidth - 24; // subtract padding
+
+        let fitZoom = Math.floor((availWidth / naturalWidth) * 100);
+        fitZoom = Math.max(50, Math.min(140, fitZoom)); // clamp 50–140
+
+        applyDouZoom(fitZoom, save);
+    }
+
+    // Debounced resize handler
+    let douResizeTimer = null;
+    window.addEventListener('resize', function() {
+        clearTimeout(douResizeTimer);
+        douResizeTimer = setTimeout(function() {
+            // Only auto-refit on resize if no user-saved zoom preference
+            try {
+                if (!localStorage.getItem('dou_monthly_report_zoom')) {
+                    fitDouToWidth(false);
+                }
+            } catch(e) {
+                fitDouToWidth(false);
+            }
+        }, 200);
+    });
+
+    // On page load: restore saved zoom OR auto-fit to screen
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const savedZoom = localStorage.getItem('dou_monthly_report_zoom');
+            if (savedZoom) {
+                const zoomVal = parseInt(savedZoom, 10);
+                if (!isNaN(zoomVal) && zoomVal >= 50 && zoomVal <= 140) {
+                    applyDouZoom(zoomVal, false);
+                } else {
+                    fitDouToWidth(false);
+                }
+            } else {
+                // No saved preference — auto-fit to show all columns
+                fitDouToWidth(false);
+            }
+        } catch (e) {
+            fitDouToWidth(false);
+        }
+    });
+</script>
+{% endblock %}

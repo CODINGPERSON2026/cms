@@ -1,0 +1,2610 @@
+{% extends '/base.html' %}
+
+{% block page_title %}Enter SCME Issued Data{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/scme/" class="nav-item">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/scme/add-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-packing"></i>
+    <span class="nav-tooltip">Add Stock</span>
+</a>
+<a href="/scme/current-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-tooltip">Available Stock</span>
+</a>
+<a href="/scme/monthly-reports" class="nav-item">
+    <i class="fa-solid fa-calendar-days"></i>
+    <span class="nav-tooltip">Monthly Reports</span>
+</a>
+<!-- <a href="/logs/" class="nav-item">
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <span class="nav-tooltip">Activity Logs</span>
+</a> -->
+{% endblock %}
+
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .enter-page {
+        padding: 10px 20px 20px 20px;
+        max-width: 100%;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    /* ── Tab Switch Loader Bar ── */
+    .tab-loader-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), #38bdf8, var(--accent));
+        box-shadow: 0 0 10px var(--accent-glow), 0 0 6px #38bdf8;
+        z-index: 1000;
+        opacity: 0;
+        transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+        border-radius: 2px;
+    }
+
+    .ecc-top-row-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .ecc-top-row-grid > .form-card {
+        margin-bottom: 0;
+    }
+
+    .ecc-top-row-grid > .form-card > .form-card-body {
+        overflow-y: visible;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 8px 14px;
+        border-radius: 10px;
+        transition: all 0.2s;
+        margin-bottom: 22px;
+    }
+
+    .back-link:hover {
+        color: var(--accent);
+        background: var(--accent-muted);
+    }
+
+    .back-link i {
+        font-size: 0.75rem;
+        transition: transform 0.2s;
+    }
+
+    .back-link:hover i {
+        transform: translateX(-3px);
+    }
+
+    /* ── Tab bar ── */
+    .ledger-tabs {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 0;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .ledger-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 22px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 0.86rem;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 8px 8px 0 0;
+        position: relative;
+        transition: all 0.2s;
+        top: 1px;
+    }
+
+    .ledger-tab i {
+        font-size: 0.82rem;
+    }
+
+    .ledger-tab:hover {
+        color: var(--text-primary);
+        background: var(--accent-muted);
+    }
+
+    .ledger-tab.active {
+        color: var(--accent);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-bottom: 1px solid var(--bg-surface);
+    }
+
+    .tab-panel {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-panel.active {
+        display: block;
+        opacity: 1;
+    }
+
+    .ledger-tab .tab-soon {
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 5px;
+        background: var(--bg-raised);
+        color: var(--text-muted);
+        border: 1px solid var(--border-dim);
+    }
+
+    .ecc-fod-only { display: none; }
+    .ecc-fod-only.ecc-show { display: flex; }
+    /* number-only inputs: constrain width so they don't stretch awkwardly */
+    input.ecc-num {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        text-align: center;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .form-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+
+    .form-card-header {
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        position: relative;
+    }
+
+    .form-card-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 28px;
+        right: 28px;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-dim), var(--accent));
+        opacity: 0.6;
+    }
+
+    .form-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--accent-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        font-size: 1.1rem;
+    }
+
+    .form-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .form-card-body {
+        padding: 28px;
+    }
+
+    .form-group-custom {
+        margin-bottom: 20px;
+    }
+
+    .form-label-custom {
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+    }
+
+    .form-select-custom, .form-input-custom {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-dim);
+        border-radius: 10px;
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        transition: all var(--transition);
+        outline: none;
+    }
+
+    .form-select-custom:focus, .form-input-custom:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-glow);
+        background-color: var(--bg-surface);
+    }
+
+    .form-input-custom:disabled {
+        background-color: var(--bg-raised);
+        color: var(--text-secondary);
+        opacity: 0.8;
+        cursor: not-allowed;
+    }
+
+    .btn-submit {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 28px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all var(--transition);
+    }
+
+    .btn-submit:hover {
+        background: var(--accent-dim);
+        box-shadow: 0 4px 12px var(--accent-glow);
+        transform: translateY(-1px);
+    }
+
+    .btn-submit:active {
+        transform: translateY(0);
+    }
+
+    .items-table-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+
+    .table-container {
+        padding: 0;
+        overflow-x: auto;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .table-custom th {
+        background-color: var(--bg-raised);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-dim);
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .table-custom td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-dim);
+        color: var(--text-primary);
+        font-size: 0.92rem;
+        white-space: nowrap;
+    }
+
+    .table-custom tr:last-child td {
+        border-bottom: none;
+    }
+
+    .table-custom tr {
+        transition: background-color 0.2s;
+    }
+
+    .table-custom tr:hover {
+        background-color: var(--accent-muted);
+    }
+
+    .badge-category {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background-color: var(--accent-muted);
+        color: var(--accent);
+        border: 1px solid var(--border-glow);
+    }
+
+    .badge-type {
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 4px 9px;
+        border-radius: 6px;
+        background-color: var(--bg-raised);
+        color: var(--text-primary);
+        border: 1px solid var(--border-dim);
+        letter-spacing: 0.5px;
+    }
+
+    .empty-state {
+        padding: 45px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .empty-state i {
+        font-size: 2.2rem;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        display: block;
+    }
+
+    .field-error-msg {
+        color: var(--danger);
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: none;
+        align-items: center;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .field-error-msg.show {
+        display: flex;
+    }
+
+    .input-error {
+        border-color: var(--danger) !important;
+    }
+
+    /* ── ECC placeholder panel ── */
+    .coming-soon {
+        background: var(--bg-surface);
+        border: 1px dashed var(--border-dim);
+        border-radius: 18px;
+        padding: 70px 40px;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .coming-soon i {
+        font-size: 2.6rem;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .coming-soon h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 8px;
+    }
+
+    .coming-soon p {
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border-dim);
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        min-width: 220px;
+        flex: 1;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+    }
+
+    .btn-clear-filter {
+        background: var(--bg-raised);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-dim);
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all var(--transition);
+        white-space: nowrap;
+    }
+
+    .btn-clear-filter:hover {
+        color: var(--danger);
+        border-color: var(--danger);
+    }
+
+    /* ── Row action buttons ── */
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border-dim);
+        background: var(--bg-raised);
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+        margin-right: 6px;
+    }
+
+    .action-btn-edit:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+        background: var(--accent-muted);
+    }
+
+    .action-btn-delete {
+        color: var(--danger);
+        border-color: var(--danger);
+        background: rgba(239, 68, 68, 0.08);
+    }
+
+    .action-btn-delete:hover {
+        color: #fff;
+        border-color: var(--danger);
+        background: var(--danger);
+    }
+
+    /* ── Edit Modal ── */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .modal-overlay.show {
+        display: flex;
+    }
+
+    .modal-box {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        width: 100%;
+        max-width: 720px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .modal-header h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-close {
+        background: transparent;
+        border: none;
+        font-size: 1.4rem;
+        line-height: 1;
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+
+    .modal-close:hover {
+        color: var(--danger);
+    }
+
+    .modal-body {
+        padding: 28px;
+    }
+
+    /* ── ECC FORM STYLES (ULTRA COMPACT) ── */
+    .ecc-form { max-width: 100%; margin: 0 auto; }
+    .ecc-section {
+        border: 1px solid var(--border-dim);
+        border-radius: 8px;
+        margin-bottom: 6px;
+        overflow: hidden;
+    }
+    .ecc-section-header {
+        padding: 5px 12px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex; align-items: center; gap: 6px;
+        background: var(--bg-raised);
+    }
+    .ecc-section-header i { color: var(--accent); font-size: 0.75rem; }
+    .ecc-section-header h3 {
+        margin: 0; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);
+        text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .ecc-section-header .ecc-step { display: none; }
+    .ecc-section-body {
+        padding: 8px 12px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 6px 10px;
+    }
+    .ecc-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .ecc-field.ecc-field-wide { grid-column: 1 / -1; }
+    .ecc-field label {
+        font-size: 0.6rem; font-weight: 700; letter-spacing: 0.4px;
+        text-transform: uppercase; color: var(--text-muted);
+        display: flex; align-items: center; gap: 4px;
+        white-space: nowrap;
+    }
+    .ecc-field label .req { color: var(--danger); }
+    .ecc-input {
+        width: 100%;
+        padding: 5px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border-dim);
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        font-variant-numeric: tabular-nums;
+    }
+    .ecc-input:hover  { border-color: var(--accent); }
+    .ecc-input:focus  { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+    select.ecc-input  { cursor: pointer; }
+    textarea.ecc-input { resize: vertical; min-height: 44px; font-family: inherit; }
+    .ecc-input.ecc-readonly {
+        background: var(--accent-muted);
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 800;
+        cursor: not-allowed;
+    }
+    /* three-col row for all 3 sections */
+    .ecc-top-sections-row {
+        display: grid;
+        grid-template-columns: 1.2fr 1.4fr 0.9fr;
+        gap: 6px;
+        margin-bottom: 6px;
+        align-items: start;
+    }
+    .ecc-top-sections-row .ecc-section { margin-bottom: 0; }
+
+    .ecc-actions {
+        display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
+        padding-top: 6px;
+        margin-bottom: 12px;
+    }
+    #eccAvailableStockContainer { margin-top: 3px; }
+    #eccAvailableStockBadge { font-size: 0.7rem !important; padding: 3px 7px !important; }
+    #errEccStockExceeded { font-size: 0.68rem !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="enter-page">
+    <div id="tabLoaderBar" class="tab-loader-bar"></div>
+    <!-- Back Button -->
+   
+
+    <!-- Tab bar -->
+    <div class="ledger-tabs" role="tablist">
+        <button type="button" class="ledger-tab active" id="tabEcc" data-tab="ecc" role="tab" aria-selected="true">
+            <i class="fa-solid fa-clipboard-list"></i>
+            ECC
+        </button>
+        <button type="button" class="ledger-tab" id="tabScme" data-tab="scme" role="tab" aria-selected="false">
+            <i class="fa-solid fa-file-signature"></i>
+            SCME
+        </button>
+    </div>
+
+    <!-- ══════════════════════════ SCME TAB PANEL ══════════════════════════ -->
+    <div class="tab-panel" id="panelScme" role="tabpanel">
+
+        <!-- Issued Item Data Entry Form -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fa-solid fa-file-signature"></i>
+                </div>
+                <h2 class="form-card-title">Record SCME Issued Clothing Item</h2>
+            </div>
+            <div class="form-card-body">
+                <form id="issueItemForm" autocomplete="off">
+                    <!-- record_type is fixed by the active tab -->
+                    <input type="hidden" id="recordType" name="record_type" value="SCME">
+
+                    <div class="row">
+                        <!-- Unit dropdown -->
+                        <div class="col-md-4 form-group-custom">
+                            <label class="form-label-custom" for="unitName">Select Div</label>
+                            <select id="unitName" name="unit_name" class="form-select-custom" required>
+                                <option value="">-- Choose Unit --</option>
+                                {% for u in units %}
+                                <option value="{{ u.name }}">{{ u.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="field-error-msg" id="errUnitName">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select a valid unit.
+                            </span>
+                        </div>
+
+                        <!-- Category dropdown -->
+                        <div class="col-md-4 form-group-custom">
+                            <label class="form-label-custom" for="categorySelect">Select Category</label>
+                            <select id="categorySelect" class="form-select-custom" required>
+                                <option value="">-- Choose Category --</option>
+                                {% for cat in scme_categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="field-error-msg" id="errCategory">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select a category.
+                            </span>
+                        </div>
+
+                        <!-- Item dropdown (cascading) -->
+                        <div class="col-md-4 form-group-custom">
+                            <label class="form-label-custom" for="itemId">Select Item</label>
+                            <select id="itemId" name="item_id" class="form-select-custom" required disabled>
+                                <option value="">-- Select Category First --</option>
+                            </select>
+                            <span class="field-error-msg" id="errItemId">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select a valid item.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- A/U dropdown: Nos / Prs -->
+                        <div class="col-md-4 form-group-custom">
+                            <label class="form-label-custom" for="auField">A/U (Accounting Unit)</label>
+                            <select id="auField" name="a_u" class="form-select-custom" required>
+                                <option value="">-- Choose A/U --</option>
+                                <option value="Nos">Nos</option>
+                                <option value="Prs">Prs</option>
+                            </select>
+                            <span class="field-error-msg" id="errAu">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select A/U (Nos or Prs).
+                            </span>
+                        </div>
+
+                        <!-- Unit Authorized field (max count that can be given to the unit) -->
+                        <div class="col-md-4 form-group-custom">
+                            <label class="form-label-custom" for="unitAuthField">Unit Authorized</label>
+                            <input type="text" id="unitAuthField" name="unit_authorized" class="form-input-custom" placeholder="Max authorised count for unit (e.g. 100)" required>
+                            <span class="field-error-msg" id="errUnitAuth">
+                                <i class="fa-solid fa-circle-exclamation"></i> Unit Authorized must be a positive integer.
+                            </span>
+                        </div>
+
+                        <!-- Scale (percentage) -->
+                        <div class="col-md-4 form-group-custom">
+                            <label class="form-label-custom" for="scaleField">Scale (%)</label>
+                            <input type="text" id="scaleField" name="scale" class="form-input-custom" placeholder="e.g. 50%, 75%" required>
+                            <span class="field-error-msg" id="errScale">
+                                <i class="fa-solid fa-circle-exclamation"></i> Scale must be a percentage between 1% and 100%.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Held Field -->
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="heldField">Held Quantity</label>
+                            <input type="text" id="heldField" name="held" class="form-input-custom" placeholder="Held qty (e.g. 85)" required>
+                            <span class="field-error-msg" id="errHeld">
+                                <i class="fa-solid fa-circle-exclamation"></i> Held quantity must be a positive integer.
+                            </span>
+                        </div>
+
+                        <!-- Deficiency (Deafy) Field -->
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="deafyField">Defi (Deafy)</label>
+                            <input type="text" id="deafyField" class="form-input-custom" placeholder="Auto (Unit Auth - Held)" disabled>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btnSubmit">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        Record Issued Item
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Registry history table -->
+        <div class="items-table-card">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <h2 class="form-card-title">Recorded Unit SCME Ledgers</h2>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label class="filter-label" for="filterUnit">Filter by Unit</label>
+                    <select id="filterUnit" class="form-select-custom">
+                        <option value="">All Units</option>
+                        {% for u in units %}
+                        <option value="{{ u.name }}">{{ u.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" for="filterItem">Filter by Item</label>
+                    <select id="filterItem" class="form-select-custom">
+                        <option value="">All Items</option>
+                        {% for item in items %}
+                        <option value="{{ item.item_name }}">{{ item.item_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" class="btn-clear-filter" id="btnClearFilter">
+                    <i class="fa-solid fa-filter-circle-xmark"></i> Clear Filters
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table class="table-custom" id="issuedTable">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center;">Actions</th>
+                            <th>Unit Name</th>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th style="text-align: center;">A/U</th>
+                            <th style="text-align: center;">Unit Auth</th>
+                            <th style="text-align: center;">Scale</th>
+                            <th style="text-align: center;">Held</th>
+                            <th style="text-align: center; color: var(--danger);">Defi</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="issuedTableBody">
+                        {% if issued_items %}
+                            {% for record in issued_items %}
+                            <tr id="record-row-{{ record.id }}" data-unit="{{ record.unit_name }}" data-item="{{ record.item.item_name }}">
+                                <td style="text-align: center;">
+                                    <button type="button" class="action-btn action-btn-edit"
+                                        data-id="{{ record.id }}"
+                                        data-unit="{{ record.unit_name }}"
+                                        data-category="{{ record.item.category }}"
+                                        data-item-id="{{ record.item_id }}"
+                                        data-au="{{ record.a_u }}"
+                                        data-unit-auth="{{ record.unit_authorized }}"
+                                        data-scale="{{ record.scale }}"
+                                        data-held="{{ record.held }}"
+                                        title="Edit">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button type="button" class="action-btn action-btn-delete" data-id="{{ record.id }}" title="Delete">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                                <td style="font-weight: 600;">{{ record.unit_name }}</td>
+                                <td>{{ record.item.item_name }}</td>
+                                <td><span class="badge-category">{{ record.item.category }}</span></td>
+                                <td style="text-align: center;">{{ record.a_u }}</td>
+                                <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.unit_authorized }}</td>
+                                <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.scale }}</td>
+                                <td style="text-align: center; font-variant-numeric: tabular-nums;">{{ record.held }}</td>
+                                <td style="text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--danger);">
+                                    {{ record.deficiency }}
+                                </td>
+                                <td style="font-size: 0.82rem; color: var(--text-secondary);">
+                                    {{ record.created_at.strftime('%d %b %Y, %H:%M') if record.created_at else '' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="noRecordsRow">
+                                <td colspan="10" class="empty-state">
+                                    <i class="fa-solid fa-receipt"></i>
+                                    No ledger items recorded yet. Fill out the form above to record SCME issued items.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════ ECC TAB PANEL ══════════════════════════ -->
+    <div class="tab-panel active" id="panelEcc" role="tabpanel">
+        
+        <!-- HORIZONTAL ROW: FORM ENTRY (LEFT - SHRUNK SLIGHTLY) + PREVIOUS MONTH DATA EXCEL TABLE (RIGHT - EXPANDED) -->
+        <div class="ecc-top-row-grid">
+            
+        <!-- FORM SUBMIT CARD -->
+        <div class="form-card" style="margin-bottom: 0;">
+            <div class="form-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="form-card-icon">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <h2 class="form-card-title">ECC — Monthly State Entry</h2>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#directIssueToUnitModal" style="border-radius: 9px; font-weight: 700; padding: 7px 18px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; box-shadow: 0 3px 8px rgba(2,132,199,0.35); color: #fff;">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Issue to Unit</span>
+                </button>
+            </div>
+            <div class="form-card-body" style="padding: 10px 14px;">
+                <form class="ecc-form" id="eccForm" method="POST" autocomplete="off" novalidate>
+
+                    <!-- ALL 3 SECTIONS SIDE BY SIDE -->
+                    <div class="ecc-top-sections-row">
+
+                        <!-- 1. DIVISION & ITEM DETAILS -->
+                        <div class="ecc-section">
+                            <div class="ecc-section-header">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                                <h3>Division &amp; Item</h3>
+                            </div>
+                            <div class="ecc-section-body" style="grid-template-columns: 1fr 1fr;">
+                                <div class="ecc-field">
+                                    <label for="ecc_bbf_division">Unit <span class="req">*</span></label>
+                                    <select name="bbf_division" id="ecc_bbf_division" class="ecc-input" required {% if is_div_admin %}disabled style="background:var(--bg-raised);cursor:not-allowed;"{% endif %}>
+                                        {% if is_div_admin %}
+                                            <option value="{{ user_div }}" selected>{{ user_div }}</option>
+                                        {% else %}
+                                            <option value="">— Select Division —</option>
+                                            {% for div in units %}
+                                                <option value="{{ div.name }}" data-fod="{{ 'true' if div.name == '2 FOD' else 'false' }}">{{ div.name }}</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                    {% if is_div_admin %}<input type="hidden" name="bbf_division" value="{{ user_div }}">{% endif %}
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_category">Category <span class="req">*</span></label>
+                                    <select id="ecc_category" class="ecc-input" required>
+                                        <option value="">— Category —</option>
+                                        {% for category in ecc_categories %}
+                                            <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_item_id">Item <span class="req">*</span></label>
+                                    <select name="item_id" id="ecc_item_id" class="ecc-input" required disabled>
+                                        <option value="">— Select Category First —</option>
+                                    </select>
+                                    <div id="eccAvailableStockContainer" style="display:none;margin-top:6px;">
+                                        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                                            <span id="eccAvailableStockBadge" style="background:rgba(56,189,248,0.15);color:#0ea5e9;border:1px solid #38bdf8;font-weight:700;font-size:0.65rem;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
+                                                <i class="fa-solid fa-boxes-stacked"></i> Avail: <strong id="eccAvailableStockVal">0</strong>
+                                            </span>
+                                            <span id="eccAvailableSerBadge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);font-weight:700;font-size:0.65rem;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
+                                                SER: <strong id="eccAvailableSerVal">0</strong>
+                                            </span>
+                                            <span id="eccAvailablePwsBadge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);font-weight:700;font-size:0.65rem;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;">
+                                                PWS: <strong id="eccAvailablePwsVal">0</strong>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_scale">Scale</label>
+                                    <input type="text" name="scale" id="ecc_scale" class="ecc-input" value="1 PER INDL" placeholder="1 PER INDL">
+                                </div>
+                                <div class="ecc-field" style="grid-column: 1 / -1;">
+                                    <label for="ecc_stock_type" style="font-weight:700;color:var(--text-primary);">
+                                        <i class="fa-solid fa-tag" style="color:#6366f1;margin-right:4px;"></i>
+                                        Stock Type <span class="req">*</span>
+                                    </label>
+                                    <select name="stock_type" id="ecc_stock_type" class="ecc-input" required style="font-weight:700;">
+                                        <option value="FREE STK">🟦 FREE STK (Serviceable)</option>
+                                        <option value="IHQ">🟡 IHQ (In Hand Qty – Comd Reserve)</option>
+                                        <option value="COMD">🟠 COMD (Commandant Reserve)</option>
+                                    </select>
+                                    <div id="eccTypeStockHint" style="margin-top:4px;display:none;">
+                                        <span id="eccTypeAvailBadge" style="font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(99,102,241,0.12);color:#6366f1;border:1px solid rgba(99,102,241,0.3);">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                            <span id="eccTypeAvailText">—</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. AUTH & STOCK -->
+                        <div class="ecc-section">
+                            <div class="ecc-section-header">
+                                <i class="fa-solid fa-stamp"></i>
+                                <h3>Auth &amp; Stock</h3>
+                            </div>
+                            <div class="ecc-section-body" style="grid-template-columns: repeat(3,1fr);">
+                                <div class="ecc-field">
+                                    <label for="ecc_unit_auth"><i class="fa-solid fa-calculator"></i> Auth <span class="req">*</span></label>
+                                    <input type="number" name="unit_auth" id="ecc_unit_auth" class="ecc-input ecc-num" min="0" step="1" value="0" placeholder="0" style="background:var(--bg-surface); font-weight:700; color:var(--accent);">
+                                    <span id="errEccAuthZero" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:3px;align-items:center;gap:4px;">
+                                        <i class="fa-solid fa-lock"></i> Auth is 0. Enter Auth above to enable fields.
+                                    </span>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_stock_ser">SER <span class="req">*</span></label>
+                                    <input type="number" name="stock_ser" id="ecc_stock_ser" class="ecc-input ecc-num" min="0" step="1" placeholder="0" value="0">
+                                    <span id="errEccSerExceeded" style="color:var(--danger);font-size:0.6rem;font-weight:700;display:none;margin-top:2px;align-items:center;gap:3px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds SER stock!</span>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_stock_pws">PWS <span class="req">*</span></label>
+                                    <input type="number" name="stock_pws" id="ecc_stock_pws" class="ecc-input ecc-num" min="0" step="1" placeholder="0" value="0">
+                                    <span id="errEccPwsExceeded" style="color:var(--danger);font-size:0.6rem;font-weight:700;display:none;margin-top:2px;align-items:center;gap:3px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds PWS stock!</span>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_issue_count"><i class="fa-solid fa-calculator"></i> Issue Count</label>
+                                    <input type="number" name="issue_count" id="ecc_issue_count" class="ecc-input ecc-num ecc-readonly" min="0" step="1" value="0" placeholder="0" readonly tabindex="-1" style="background:var(--bg-raised); cursor:not-allowed; font-weight:700; color:var(--accent);">
+                                    <span id="errEccStockExceeded" style="color:var(--danger);font-size:0.6rem;font-weight:700;display:none;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds!</span>
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_stock_total"><i class="fa-solid fa-calculator"></i> Held</label>
+                                    <input type="number" name="stock_total" id="ecc_stock_total" class="ecc-input ecc-num ecc-readonly" value="0" readonly tabindex="-1">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_deficiency"><i class="fa-solid fa-calculator"></i> Defi</label>
+                                    <input type="number" name="deficiency" id="ecc_deficiency" class="ecc-input ecc-num ecc-readonly" value="0" readonly tabindex="-1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. ADDITIONAL FIELDS -->
+                        <div class="ecc-section">
+                            <div class="ecc-section-header">
+                                <i class="fa-solid fa-list-ul"></i>
+                                <h3>Additional</h3>
+                            </div>
+                            <div class="ecc-section-body" style="grid-template-columns: 1fr 1fr;">
+                                <div class="ecc-field">
+                                    <label for="ecc_add_knd">KND</label>
+                                    <input type="number" name="add_knd" id="ecc_add_knd" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_add_tn_model">TN MODEL</label>
+                                    <input type="number" name="add_tn_model" id="ecc_add_tn_model" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_add_n_area_otg">N AREA OTG</label>
+                                    <input type="number" name="add_n_area_otg" id="ecc_add_n_area_otg" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                                <div class="ecc-field">
+                                    <label for="ecc_add_idt_ict">IDT/ICT</label>
+                                    <input type="number" name="add_idt_ict" id="ecc_add_idt_ict" class="ecc-input ecc-num" min="0" step="1" placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /ecc-top-sections-row -->
+
+                    <!-- Actions -->
+                    <div class="ecc-actions">
+                        <button type="reset" class="btn-clear-filter" style="margin-right:auto;padding:6px 14px;border-radius:7px;font-size:0.78rem;">
+                            <i class="fa-solid fa-rotate-left"></i> Reset
+                        </button>
+                        <button type="submit" class="ecc-btn ecc-btn-primary btn-submit" style="margin:0;padding:6px 16px;font-size:0.78rem;">
+                            <i class="fa-solid fa-boxes-packing"></i> Isuue Items
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+            <div class="form-card" id="previousMonthDataCard" style="margin-bottom: 0; border-left: 4px solid var(--accent, #3b82f6);">
+                <div class="form-card-header" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="form-card-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent, #3b82f6);">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                        <div>
+                            <h2 class="form-card-title" style="margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Previous Month Data</h2>
+                            <span style="font-size: 0.85rem; color: var(--text-muted, #94a3b8);" id="prevMonthSubtitle">Select a Division & Item to view previous month data</span>
+                        </div>
+                    </div>
+                    <div id="prevMonthBadge" style="display: none;">
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: var(--accent, #3b82f6); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                            <i class="fa-regular fa-clock"></i> <span id="prevMonthDate">—</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="form-card-body" id="prevMonthContent" style="padding: 20px;">
+                    <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="fa-solid fa-circle-info" style="font-size: 2.2rem; margin-bottom: 12px; opacity: 0.6; display: block;"></i>
+                        Select a <strong>Division / Unit Name</strong> and an <strong>Item</strong> above to display previous month data.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ══════════════════════════ VERTICAL SECTION 3: RECORDED ECC STATES TABLE ══════════════════════════ -->
+        <div class="items-table-card" style="margin-top: 30px;">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <h2 class="form-card-title">Recorded ECC Monthly States</h2>
+            </div>
+            
+            <div class="table-container">
+                <table class="table-custom" id="eccTable">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center; width: 80px;">Actions</th>
+                            <th>Division</th>
+                            <th>Item Name</th>
+                            <th>Scale</th>
+                            <th style="text-align: center;">Defi</th>
+                            <th style="text-align: center;">Authorization</th>
+                            <th style="text-align: center;">Auth Res</th>
+                            <th style="text-align: center; font-weight: bold; color: var(--accent);">Auth Total</th>
+                            <th style="text-align: center;">Unit Auth</th>
+                            <th style="text-align: center;">BBF SER</th>
+                            <th style="text-align: center;">BBF PWS</th>
+                            <th style="text-align: center; font-weight: bold; color: var(--accent);">BBF Total</th>
+                            <th style="text-align: center;">Received SER</th>
+                            <th style="text-align: center;">Received PWS</th>
+                            <th style="text-align: center; font-weight: bold; color: var(--accent);">Received Total</th>
+                            <th style="text-align: center;">Issued SER</th>
+                            <th style="text-align: center;">Issued PWS</th>
+                            <th style="text-align: center; font-weight: bold; color: var(--accent);">Issued Total</th>
+                            <th style="text-align: center;"> SER</th>
+                            <th style="text-align: center;"> PWS</th>
+                            <th style="text-align: center; font-weight: bold; color: var(--accent);">Stock Total</th>
+                            <th style="text-align: center;">TPS</th>
+                            <th style="text-align: center;">Remarks</th>
+                            <th>Recorded At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eccTableBody">
+                        {% if ecc_states %}
+                            {% for state in ecc_states %}
+                            <tr id="ecc-row-{{ state.id }}">
+                                <td style="text-align: center;">
+                                    <button type="button" class="action-btn action-btn-delete ecc-delete-btn" data-id="{{ state.id }}" title="Delete">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                                <td style="font-weight: 600;">{{ state.bbf_division }}</td>
+                                <td>{{ state.item.item_name }}</td>
+                                <td>{{ state.scale or '' }}</td>
+                                <td style="text-align: center; font-weight: bold; color: var(--danger);">{{ state.deficiency or 0 }}</td>
+                                <td style="text-align: center;">{{ state.auth_auth }}</td>
+                                <td style="text-align: center;">{{ state.auth_res }}</td>
+                                <td style="text-align: center; font-weight: bold; color: var(--accent);">{{ state.auth_total }}</td>
+                                <td style="text-align: center;">{{ state.unit_auth or 0 }}</td>
+                                <td style="text-align: center;">{{ state.bbf_ser }}</td>
+                                <td style="text-align: center;">{{ state.bbf_pws }}</td>
+                                <td style="text-align: center; font-weight: bold; color: var(--accent);">{{ state.bbf_total }}</td>
+                                <td style="text-align: center;">{{ state.recd_ser }}</td>
+                                <td style="text-align: center;">{{ state.recd_pws }}</td>
+                                <td style="text-align: center; font-weight: bold; color: var(--accent);">{{ state.recd_total }}</td>
+                                <td style="text-align: center;">{{ state.issd_ser }}</td>
+                                <td style="text-align: center;">{{ state.issd_pws }}</td>
+                                <td style="text-align: center; font-weight: bold; color: var(--accent);">{{ state.issd_total }}</td>
+                                <td style="text-align: center;">{{ state.stock_ser }}</td>
+                                <td style="text-align: center;">{{ state.stock_pws }}</td>
+                                <td style="text-align: center; font-weight: bold; color: var(--accent);">{{ state.stock_total }}</td>
+                                <td style="text-align: center;">{{ state.tps }}</td>
+                                <td style="text-align: center;">{{ state.add_remarks_ro_bal }}</td>
+                                <td style="font-size: 0.82rem; color: var(--text-secondary);">
+                                    {{ state.created_at.strftime('%d %b %Y, %H:%M') if state.created_at else '' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="noEccRecordsRow">
+                                <td colspan="22" class="empty-state" style="text-align: center; padding: 30px;">
+                                    <i class="fa-solid fa-receipt" style="font-size: 2rem; color: var(--text-muted); display: block; margin-bottom: 10px;"></i>
+                                    No ECC monthly states recorded yet. Use the form above to record.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════ EDIT MODAL ══════════════════════════ -->
+    <div class="modal-overlay" id="editModalOverlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-pen"></i> Edit SCME Ledger Entry</h3>
+                <button type="button" class="modal-close" id="editModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editItemForm" autocomplete="off">
+                    <input type="hidden" id="editRecordId">
+
+                    <div class="row">
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editUnitName">Select Div</label>
+                            <select id="editUnitName" class="form-select-custom" required>
+                                <option value="">-- Choose Unit --</option>
+                                {% for u in units %}
+                                <option value="{{ u.name }}">{{ u.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="field-error-msg" id="editErrUnitName">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select a valid unit.
+                            </span>
+                        </div>
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editCategorySelect">Select Category</label>
+                            <select id="editCategorySelect" class="form-select-custom" required>
+                                <option value="">-- Choose Category --</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="field-error-msg" id="editErrCategory">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select a category.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editItemId">Select Item</label>
+                            <select id="editItemId" class="form-select-custom" required>
+                                <option value="">-- Select Category First --</option>
+                            </select>
+                            <span class="field-error-msg" id="editErrItemId">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select a valid item.
+                            </span>
+                        </div>
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editAuField">A/U (Accounting Unit)</label>
+                            <select id="editAuField" class="form-select-custom" required>
+                                <option value="">-- Choose A/U --</option>
+                                <option value="Nos">Nos</option>
+                                <option value="Prs">Prs</option>
+                            </select>
+                            <span class="field-error-msg" id="editErrAu">
+                                <i class="fa-solid fa-circle-exclamation"></i> Please select A/U (Nos or Prs).
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editUnitAuthField">Unit Authorized</label>
+                            <input type="text" id="editUnitAuthField" class="form-input-custom" required>
+                            <span class="field-error-msg" id="editErrUnitAuth">
+                                <i class="fa-solid fa-circle-exclamation"></i> Must be a positive integer.
+                            </span>
+                        </div>
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editScaleField">Scale (%)</label>
+                            <input type="text" id="editScaleField" class="form-input-custom" required>
+                            <span class="field-error-msg" id="editErrScale">
+                                <i class="fa-solid fa-circle-exclamation"></i> 1% to 100%.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editTxType">Transaction Action</label>
+                            <select id="editTxType" class="form-select-custom">
+                                <option value="None">-- Select Action (Optional) --</option>
+                                <option value="Issue">Issue</option>
+                                <option value="Return">Return</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editTxQty">Transaction Quantity</label>
+                            <input type="text" id="editTxQty" class="form-input-custom" placeholder="e.g. 10">
+                            <span class="field-error-msg" id="editErrTxQty">
+                                <i class="fa-solid fa-circle-exclamation"></i> Must be a positive integer.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editHeldField">Held Quantity</label>
+                            <input type="text" id="editHeldField" class="form-input-custom" required>
+                            <span class="field-error-msg" id="editErrHeld">
+                                <i class="fa-solid fa-circle-exclamation"></i> Must be a positive integer.
+                            </span>
+                        </div>
+                        <div class="col-md-6 form-group-custom">
+                            <label class="form-label-custom" for="editDeafyField">Defi (Auto)</label>
+                            <input type="text" id="editDeafyField" class="form-input-custom" disabled>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btnEditSubmit">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // ── Tab switching with smooth loader progress bar ──
+    const tabs = document.querySelectorAll(".ledger-tab");
+    const panels = {
+        scme: document.getElementById("panelScme"),
+        ecc: document.getElementById("panelEcc")
+    };
+    const loaderBar = document.getElementById("tabLoaderBar");
+    let isTabSwitching = false;
+
+    tabs.forEach(tab => {
+        tab.addEventListener("click", function () {
+            const target = this.dataset.tab;
+
+            if (this.classList.contains("active") || isTabSwitching) return;
+            isTabSwitching = true;
+
+            if (loaderBar) {
+                loaderBar.style.transition = 'none';
+                loaderBar.style.width = '0%';
+                loaderBar.style.opacity = '1';
+                void loaderBar.offsetWidth;
+                loaderBar.style.transition = 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease';
+                loaderBar.style.width = '70%';
+            }
+
+            tabs.forEach(t => {
+                const on = t === this;
+                t.classList.toggle("active", on);
+                t.setAttribute("aria-selected", on ? "true" : "false");
+            });
+
+            const currentPanel = document.querySelector(".tab-panel.active");
+            if (currentPanel) {
+                currentPanel.style.opacity = '0';
+            }
+
+            setTimeout(() => {
+                Object.keys(panels).forEach(key => {
+                    if (panels[key]) {
+                        if (key === target) {
+                            panels[key].classList.add("active");
+                            panels[key].style.display = "block";
+                            void panels[key].offsetWidth;
+                            panels[key].style.opacity = "1";
+                        } else {
+                            panels[key].classList.remove("active");
+                            panels[key].style.display = "none";
+                            panels[key].style.opacity = "0";
+                        }
+                    }
+                });
+
+                if (loaderBar) {
+                    loaderBar.style.width = '100%';
+                }
+
+                setTimeout(() => {
+                    if (loaderBar) {
+                        loaderBar.style.opacity = '0';
+                        setTimeout(() => {
+                            loaderBar.style.width = '0%';
+                            isTabSwitching = false;
+                        }, 200);
+                    } else {
+                        isTabSwitching = false;
+                    }
+                }, 160);
+            }, 100);
+        });
+    });
+
+    // ── All items injected from Flask to dynamically filter on Category change ──
+    const scmeItems = [
+        {% for item in items %}
+        { id: {{ item.id }}, name: "{{ item.item_name }}", category: "{{ item.category }}", type: "{{ item.type or 'scme' }}" },
+        {% endfor %}
+    ];
+    window.scmeItems = scmeItems;
+
+    // ── ECC: only item IDs that exist in fod_stock_table with quantity > 0 ──
+    window.eccStockedItemIds = new Set([
+        {% for item_id in stocked_item_ids %}{{ item_id }},{% endfor %}
+    ]);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const issuedTableBody = document.getElementById("issuedTableBody");
+
+    // ══════════════════════════ CREATE FORM ══════════════════════════
+    const form = document.getElementById("issueItemForm");
+    const recordTypeInput = document.getElementById("recordType");
+    const unitNameSelect = document.getElementById("unitName");
+    const categorySelect = document.getElementById("categorySelect");
+    const itemIdSelect = document.getElementById("itemId");
+    const auSelect = document.getElementById("auField");
+    const unitAuthInput = document.getElementById("unitAuthField");
+    const scaleInput = document.getElementById("scaleField");
+    const heldInput = document.getElementById("heldField");
+    const deafyInput = document.getElementById("deafyField");
+
+    const errUnitName = document.getElementById("errUnitName");
+    const errCategory = document.getElementById("errCategory");
+    const errItemId = document.getElementById("errItemId");
+    const errAu = document.getElementById("errAu");
+    const errUnitAuth = document.getElementById("errUnitAuth");
+    const errScale = document.getElementById("errScale");
+    const errHeld = document.getElementById("errHeld");
+
+    function showError(inputEl, msgEl) {
+        inputEl.classList.add("input-error");
+        msgEl.classList.add("show");
+    }
+
+    function clearError(inputEl, msgEl) {
+        inputEl.classList.remove("input-error");
+        msgEl.classList.remove("show");
+    }
+
+    function isScaleValid(str) {
+        const digits = str.replace("%", "");
+        if (!/^\d{1,3}$/.test(digits)) return false;
+        const n = parseInt(digits, 10);
+        return n >= 1 && n <= 100;
+    }
+
+    function populateItemsForCategory(categorySelectEl, itemSelectEl, selectedCat) {
+        itemSelectEl.innerHTML = "";
+        if (!selectedCat) {
+            itemSelectEl.innerHTML = '<option value="">-- Select Category First --</option>';
+            itemSelectEl.disabled = true;
+            return;
+        }
+        const filtered = scmeItems.filter(item => {
+            const itemCat = (item.category || "").trim().toLowerCase();
+            const selCat = (selectedCat || "").trim().toLowerCase();
+            return itemCat === selCat && (item.type || "scme") === "scme";
+        });
+        itemSelectEl.innerHTML = '<option value="">-- Choose Item --</option>';
+        filtered.forEach(item => {
+            const opt = document.createElement("option");
+            opt.value = item.id;
+            opt.textContent = item.name;
+            itemSelectEl.appendChild(opt);
+        });
+        itemSelectEl.disabled = false;
+    }
+
+    categorySelect.addEventListener("change", function () {
+        clearError(categorySelect, errCategory);
+        populateItemsForCategory(categorySelect, itemIdSelect, this.value);
+        clearError(itemIdSelect, errItemId);
+    });
+
+    unitNameSelect.addEventListener("change", () => clearError(unitNameSelect, errUnitName));
+    itemIdSelect.addEventListener("change", () => clearError(itemIdSelect, errItemId));
+    auSelect.addEventListener("change", () => clearError(auSelect, errAu));
+
+    function validateAndCalculate() {
+        const scaleValStr = scaleInput.value.trim();
+        if (scaleValStr && !isScaleValid(scaleValStr)) {
+            showError(scaleInput, errScale);
+        } else {
+            clearError(scaleInput, errScale);
+        }
+
+        const uaValStr = unitAuthInput.value.trim();
+        const uaValid = uaValStr !== "" && /^\d+$/.test(uaValStr);
+        if (uaValStr && !uaValid) {
+            showError(unitAuthInput, errUnitAuth);
+        } else {
+            clearError(unitAuthInput, errUnitAuth);
+        }
+
+        const heldValStr = heldInput.value.trim();
+        const heldValid = heldValStr !== "" && /^\d+$/.test(heldValStr);
+        if (heldValStr && !heldValid) {
+            showError(heldInput, errHeld);
+        } else {
+            clearError(heldInput, errHeld);
+        }
+
+        if (uaValid && heldValid) {
+            deafyInput.value = parseInt(uaValStr, 10) - parseInt(heldValStr, 10);
+        } else {
+            deafyInput.value = "";
+        }
+    }
+
+    [unitAuthInput, heldInput].forEach(input => {
+        input.addEventListener("keypress", function (e) {
+            const char = String.fromCharCode(e.which || e.keyCode);
+            if (!/^\d$/.test(char)) {
+                e.preventDefault();
+            }
+        });
+        input.addEventListener("input", validateAndCalculate);
+        input.addEventListener("paste", function (e) {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData("text");
+            const clean = pasted.replace(/[^\d]/g, "");
+            document.execCommand("insertText", false, clean);
+            validateAndCalculate();
+        });
+    });
+
+    scaleInput.addEventListener("keypress", function (e) {
+        const char = String.fromCharCode(e.which || e.keyCode);
+        if (!/^[\d%]$/.test(char)) {
+            e.preventDefault();
+        }
+    });
+    scaleInput.addEventListener("input", validateAndCalculate);
+    scaleInput.addEventListener("paste", function (e) {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData("text");
+        const clean = pasted.replace(/[^\d%]/g, "");
+        document.execCommand("insertText", false, clean);
+        validateAndCalculate();
+    });
+
+    function buildRowHtml(it) {
+        return `
+            <td style="text-align: center;">
+                <button type="button" class="action-btn action-btn-edit"
+                    data-id="${it.id}"
+                    data-unit="${it.unit_name}"
+                    data-category="${it.category}"
+                    data-item-id="${it.item_id}"
+                    data-au="${it.a_u}"
+                    data-unit-auth="${it.unit_authorized}"
+                    data-scale="${it.scale}"
+                    data-held="${it.held}"
+                    title="Edit">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button type="button" class="action-btn action-btn-delete" data-id="${it.id}" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+            <td style="font-weight: 600;">${it.unit_name}</td>
+            <td>${it.item_name}</td>
+            <td><span class="badge-category">${it.category}</span></td>
+            <td style="text-align: center;">${it.a_u}</td>
+            <td style="text-align: center; font-variant-numeric: tabular-nums;">${it.unit_authorized}</td>
+            <td style="text-align: center; font-variant-numeric: tabular-nums;">${it.scale}</td>
+            <td style="text-align: center; font-variant-numeric: tabular-nums;">${it.held}</td>
+            <td style="text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--danger);">${it.deficiency}</td>
+            <td style="font-size: 0.82rem; color: var(--text-secondary);">${it.created_at}</td>
+        `;
+    }
+
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const recordType = recordTypeInput.value;
+        const unitName = unitNameSelect.value;
+        const category = categorySelect.value;
+        const itemId = itemIdSelect.value;
+        const aU = auSelect.value;
+        const unitAuthStr = unitAuthInput.value.trim();
+        const heldStr = heldInput.value.trim();
+
+        let scaleStr = scaleInput.value.trim().replace("%", "");
+
+        let isValid = true;
+
+        if (!unitName) { showError(unitNameSelect, errUnitName); isValid = false; }
+        if (!category) { showError(categorySelect, errCategory); isValid = false; }
+        if (!itemId) { showError(itemIdSelect, errItemId); isValid = false; }
+        if (!aU) { showError(auSelect, errAu); isValid = false; }
+        if (!unitAuthStr || !/^\d+$/.test(unitAuthStr)) { showError(unitAuthInput, errUnitAuth); isValid = false; }
+        if (!isScaleValid(scaleInput.value.trim())) { showError(scaleInput, errScale); isValid = false; }
+        if (!heldStr || !/^\d+$/.test(heldStr)) { showError(heldInput, errHeld); isValid = false; }
+
+        if (!isValid) {
+            Notify.warning("Please fix the highlighted fields before submitting.");
+            return;
+        }
+
+        scaleStr = scaleStr + "%";
+
+        fetch("/scme/api/issue-item", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify({
+                record_type: recordType,
+                unit_name: unitName,
+                item_id: itemId,
+                a_u: aU,
+                unit_authorized: unitAuthStr,
+                scale: scaleStr,
+                held: heldStr
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                Notify.success("SCME item recorded successfully.");
+                form.reset();
+                recordTypeInput.value = "SCME";
+                itemIdSelect.innerHTML = '<option value="">-- Select Category First --</option>';
+                itemIdSelect.disabled = true;
+                deafyInput.value = "";
+
+                const noRecordsRow = document.getElementById("noRecordsRow");
+                if (noRecordsRow) noRecordsRow.remove();
+
+                const it = data.issued_item;
+                it.item_id = itemId;
+                const newRow = document.createElement("tr");
+                newRow.id = `record-row-${it.id}`;
+                newRow.dataset.unit = it.unit_name;
+                newRow.dataset.item = it.item_name;
+                newRow.innerHTML = buildRowHtml(it);
+
+                issuedTableBody.insertBefore(newRow, issuedTableBody.firstChild);
+                attachRowActionListeners(newRow);
+
+                newRow.style.backgroundColor = "var(--accent-glow)";
+                setTimeout(() => {
+                    newRow.style.transition = "background-color 1s";
+                    newRow.style.backgroundColor = "";
+                }, 1000);
+
+                applyFilters();
+            } else {
+                Notify.error(data.message || "Failed to record entry.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Notify.error("An error occurred during submission.");
+        });
+    });
+
+    // ══════════════════════════ FILTERS ══════════════════════════
+    const filterUnit = document.getElementById("filterUnit");
+    const filterItem = document.getElementById("filterItem");
+    const btnClearFilter = document.getElementById("btnClearFilter");
+
+    function applyFilters() {
+        const unitVal = filterUnit.value;
+        const itemVal = filterItem.value;
+        const rows = issuedTableBody.querySelectorAll("tr[data-unit]");
+        rows.forEach(row => {
+            const matchUnit = !unitVal || row.dataset.unit === unitVal;
+            const matchItem = !itemVal || row.dataset.item === itemVal;
+            row.style.display = (matchUnit && matchItem) ? "" : "none";
+        });
+    }
+
+    filterUnit.addEventListener("change", applyFilters);
+    filterItem.addEventListener("change", applyFilters);
+    btnClearFilter.addEventListener("click", function () {
+        filterUnit.value = "";
+        filterItem.value = "";
+        applyFilters();
+    });
+
+    // ══════════════════════════ EDIT MODAL ══════════════════════════
+    const editModalOverlay = document.getElementById("editModalOverlay");
+    const editModalClose = document.getElementById("editModalClose");
+    const editItemForm = document.getElementById("editItemForm");
+    const editRecordId = document.getElementById("editRecordId");
+    const editUnitName = document.getElementById("editUnitName");
+    const editCategorySelect = document.getElementById("editCategorySelect");
+    const editItemId = document.getElementById("editItemId");
+    const editAuField = document.getElementById("editAuField");
+    const editUnitAuthField = document.getElementById("editUnitAuthField");
+    const editScaleField = document.getElementById("editScaleField");
+    const editHeldField = document.getElementById("editHeldField");
+    const editDeafyField = document.getElementById("editDeafyField");
+
+    const editTxType = document.getElementById("editTxType");
+    const editTxQty = document.getElementById("editTxQty");
+
+    const editErrUnitName = document.getElementById("editErrUnitName");
+    const editErrCategory = document.getElementById("editErrCategory");
+    const editErrItemId = document.getElementById("editErrItemId");
+    const editErrAu = document.getElementById("editErrAu");
+    const editErrUnitAuth = document.getElementById("editErrUnitAuth");
+    const editErrScale = document.getElementById("editErrScale");
+    const editErrHeld = document.getElementById("editErrHeld");
+    const editErrTxQty = document.getElementById("editErrTxQty");
+
+    function openEditModal(btn) {
+        editItemForm.reset();
+        [editUnitName, editCategorySelect, editItemId, editAuField, editUnitAuthField, editScaleField, editHeldField, editTxQty].forEach(el => el.classList.remove("input-error"));
+        [editErrUnitName, editErrCategory, editErrItemId, editErrAu, editErrUnitAuth, editErrScale, editErrHeld, editErrTxQty].forEach(el => el.classList.remove("show"));
+
+        editRecordId.value = btn.dataset.id;
+        editUnitName.value = btn.dataset.unit;
+        editCategorySelect.value = btn.dataset.category;
+        populateItemsForCategory(editCategorySelect, editItemId, btn.dataset.category);
+        editItemId.value = btn.dataset.itemId;
+        editAuField.value = btn.dataset.au;
+        editUnitAuthField.value = btn.dataset.unitAuth;
+        editScaleField.value = btn.dataset.scale.replace("%", "");
+        editHeldField.value = btn.dataset.held;
+        editHeldField.dataset.original = btn.dataset.held;
+        editDeafyField.value = parseInt(btn.dataset.unitAuth, 10) - parseInt(btn.dataset.held, 10);
+
+        editTxType.value = "None";
+        editTxQty.value = "";
+
+        editModalOverlay.classList.add("show");
+    }
+
+    function closeEditModal() {
+        editModalOverlay.classList.remove("show");
+    }
+
+    editModalClose.addEventListener("click", closeEditModal);
+    editModalOverlay.addEventListener("click", function (e) {
+        if (e.target === editModalOverlay) closeEditModal();
+    });
+
+    editCategorySelect.addEventListener("change", function () {
+        clearError(editCategorySelect, editErrCategory);
+        populateItemsForCategory(editCategorySelect, editItemId, this.value);
+        clearError(editItemId, editErrItemId);
+    });
+
+    function calculateTransaction() {
+        const originalHeld = parseInt(editHeldField.dataset.original, 10) || 0;
+        const txType = editTxType.value;
+        const txQtyStr = editTxQty.value.trim();
+        const txQty = parseInt(txQtyStr, 10) || 0;
+        
+        let newHeld = originalHeld;
+        if (txType === "Issue") {
+            newHeld = originalHeld + txQty;
+        } else if (txType === "Return") {
+            newHeld = originalHeld - txQty;
+        }
+
+        editHeldField.value = newHeld;
+
+        const ua = parseInt(editUnitAuthField.value.trim(), 10) || 0;
+        editDeafyField.value = ua - newHeld;
+    }
+
+    [editTxQty].forEach(input => {
+        input.addEventListener("keypress", function (e) {
+            const char = String.fromCharCode(e.which || e.keyCode);
+            if (!/^\d$/.test(char)) e.preventDefault();
+        });
+        input.addEventListener("input", function() {
+            clearError(editTxQty, editErrTxQty);
+            calculateTransaction();
+        });
+    });
+
+    editTxType.addEventListener("change", function() {
+        calculateTransaction();
+    });
+
+    [editUnitAuthField, editHeldField].forEach(input => {
+        input.addEventListener("keypress", function (e) {
+            const char = String.fromCharCode(e.which || e.keyCode);
+            if (!/^\d$/.test(char)) e.preventDefault();
+        });
+        input.addEventListener("input", function () {
+            if (this === editHeldField) {
+                editHeldField.dataset.original = editHeldField.value;
+                editTxType.value = "None";
+                editTxQty.value = "";
+            }
+            const ua = editUnitAuthField.value.trim();
+            const held = editHeldField.value.trim();
+            if (/^\d+$/.test(ua) && /^\d+$/.test(held)) {
+                editDeafyField.value = parseInt(ua, 10) - parseInt(held, 10);
+            } else {
+                editDeafyField.value = "";
+            }
+        });
+    });
+
+    editScaleField.addEventListener("keypress", function (e) {
+        const char = String.fromCharCode(e.which || e.keyCode);
+        if (!/^[\d%]$/.test(char)) e.preventDefault();
+    });
+
+    editItemForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const id = editRecordId.value;
+        const unitName = editUnitName.value;
+        const category = editCategorySelect.value;
+        const itemId = editItemId.value;
+        const aU = editAuField.value;
+        const unitAuthStr = editUnitAuthField.value.trim();
+        const heldStr = editHeldField.value.trim();
+        let scaleStr = editScaleField.value.trim().replace("%", "");
+
+        const txType = editTxType.value;
+        const txQtyStr = editTxQty.value.trim();
+
+        let isValid = true;
+        if (!unitName) { showError(editUnitName, editErrUnitName); isValid = false; }
+        if (!category) { showError(editCategorySelect, editErrCategory); isValid = false; }
+        if (!itemId) { showError(editItemId, editErrItemId); isValid = false; }
+        if (!aU) { showError(editAuField, editErrAu); isValid = false; }
+        if (!unitAuthStr || !/^\d+$/.test(unitAuthStr)) { showError(editUnitAuthField, editErrUnitAuth); isValid = false; }
+        if (!isScaleValid(editScaleField.value.trim())) { showError(editScaleField, editErrScale); isValid = false; }
+        if (!heldStr || !/^\d+$/.test(heldStr)) { showError(editHeldField, editErrHeld); isValid = false; }
+
+        if (txType !== "None") {
+            if (!txQtyStr || !/^\d+$/.test(txQtyStr) || parseInt(txQtyStr, 10) <= 0) {
+                showError(editTxQty, editErrTxQty);
+                isValid = false;
+            }
+        }
+
+        if (!isValid) {
+            Notify.warning("Please fix the highlighted fields before submitting.");
+            return;
+        }
+
+        scaleStr = scaleStr + "%";
+
+        const requestBody = {
+            unit_name: unitName,
+            item_id: itemId,
+            a_u: aU,
+            unit_authorized: unitAuthStr,
+            scale: scaleStr,
+            held: heldStr
+        };
+
+        if (txType !== "None") {
+            requestBody.transaction_type = txType;
+            requestBody.transaction_qty = parseInt(txQtyStr, 10);
+        }
+
+        fetch(`/scme/api/issue-item/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify(requestBody)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                Notify.success("SCME item Updated successfully.");
+                const it = data.issued_item;
+                it.item_id = itemId;
+                const row = document.getElementById(`record-row-${it.id}`);
+                if (row) {
+                    row.dataset.unit = it.unit_name;
+                    row.dataset.item = it.item_name;
+                    row.innerHTML = buildRowHtml(it);
+                    attachRowActionListeners(row);
+                    row.style.backgroundColor = "var(--accent-glow)";
+                    setTimeout(() => {
+                        row.style.transition = "background-color 1s";
+                        row.style.backgroundColor = "";
+                    }, 1000);
+                }
+                closeEditModal();
+                applyFilters();
+            } else {
+                Notify.error(data.message || "Failed to update entry.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Notify.error("An error occurred while updating.");
+        });
+    });
+
+    // ══════════════════════════ DELETE ══════════════════════════
+    function deleteRecord(id, row) {
+        if (!confirm("Delete this ledger entry? This cannot be undone.")) return;
+
+        fetch(`/scme/api/issue-item/${id}`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRFToken": csrfToken
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                row.remove();
+                if (!issuedTableBody.querySelector("tr[data-unit]")) {
+                    issuedTableBody.innerHTML = `
+                        <tr id="noRecordsRow">
+                            <td colspan="10" class="empty-state">
+                                <i class="fa-solid fa-receipt"></i>
+                                No ledger items recorded yet. Fill out the form above to record SCME issued items.
+                            </td>
+                        </tr>
+                    `;
+                }
+                Notify.success("Entry deleted successfully.");
+            } else {
+                Notify.error(data.message || "Failed to delete entry.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Notify.error("An error occurred while deleting.");
+        });
+    }
+
+    // ══════════════════════════ Row action listeners (edit/delete) ══════════════════════════
+    function attachRowActionListeners(row) {
+        const editBtn = row.querySelector(".action-btn-edit");
+        const deleteBtn = row.querySelector(".action-btn-delete");
+        if (editBtn) {
+            editBtn.addEventListener("click", function () { openEditModal(this); });
+        }
+        if (deleteBtn) {
+            deleteBtn.addEventListener("click", function () { deleteRecord(this.dataset.id, row); });
+        }
+    }
+
+    issuedTableBody.querySelectorAll("tr[data-unit]").forEach(row => attachRowActionListeners(row));
+});
+</script>
+
+<script>
+// ══════════════════════════ ECC MONTHLY STATE FORM JS ══════════════════════════
+document.addEventListener("DOMContentLoaded", function () {
+    const eccForm = document.getElementById("eccForm");
+    if (!eccForm) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+
+    // ── 1. Category -> Item Cascading Dropdown ──
+    const eccCategorySel = document.getElementById("ecc_category");
+    const eccItemIdSel = document.getElementById("ecc_item_id");
+    const divisionSel = document.getElementById("ecc_bbf_division");
+
+    eccCategorySel.addEventListener("change", function () {
+        eccItemIdSel.innerHTML = "";
+        const selectedCat = this.value;
+        if (!selectedCat) {
+            eccItemIdSel.innerHTML = '<option value="">— Select Category First —</option>';
+            eccItemIdSel.disabled = true;
+            return;
+        }
+        const itemsList = window.scmeItems || [];
+        const stocked = window.eccStockedItemIds || new Set();
+        const filtered = itemsList.filter(item => {
+            const itemCat = (item.category || "").trim().toLowerCase();
+            const selCat = (selectedCat || "").trim().toLowerCase();
+            return itemCat === selCat && stocked.has(item.id);
+        });
+        eccItemIdSel.innerHTML = '<option value="">— Select Item —</option>';
+        filtered.forEach(item => {
+            const opt = document.createElement("option");
+            opt.value = item.id;
+            opt.textContent = item.name;
+            eccItemIdSel.appendChild(opt);
+        });
+        if (filtered.length === 0) {
+            eccItemIdSel.innerHTML = '<option value="">— No stocked items in this category —</option>';
+            eccItemIdSel.disabled = true;
+        } else {
+            eccItemIdSel.disabled = false;
+        }
+    });
+
+    // ── 2. Auto-fetch Auth & DB Held baseline for selected Unit & Item ──
+    window.currentDbHeld = 0;
+
+    function fetchExistingItemAuth() {
+        const unitName = divisionSel ? divisionSel.value : "";
+        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
+        const unitAuthInput = document.getElementById("ecc_unit_auth");
+        const issueCountInput = document.getElementById("ecc_issue_count");
+        const stockSerInput = document.getElementById("ecc_stock_ser");
+        const stockPwsInput = document.getElementById("ecc_stock_pws");
+        const addKndInput = document.getElementById("ecc_add_knd");
+        const addTnInput = document.getElementById("ecc_add_tn_model");
+        const addNAreaInput = document.getElementById("ecc_add_n_area_otg");
+        const addIdtInput = document.getElementById("ecc_add_idt_ict");
+
+        if (!unitName || !itemId) {
+            window.currentDbSer = 0;
+            window.currentDbPws = 0;
+            window.currentDbAvailSer = 0;
+            window.currentDbAvailPws = 0;
+            window.currentDbHeld = 0;
+            if (unitAuthInput) unitAuthInput.value = 0;
+            if (issueCountInput) issueCountInput.value = "";
+            if (stockSerInput) stockSerInput.value = "";
+            if (stockPwsInput) stockPwsInput.value = "";
+            if (addKndInput) addKndInput.value = "";
+            if (addTnInput) addTnInput.value = "";
+            if (addNAreaInput) addNAreaInput.value = "";
+            if (addIdtInput) addIdtInput.value = "";
+            recalcDeficiency();
+            return;
+        }
+
+        fetch(`/scme/api/get-unit-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.exists) {
+                    window.currentDbSer = data.ser || 0;
+                    window.currentDbPws = data.pws || 0;
+                    window.currentDbAvailSer = data.available_ser || 0;
+                    window.currentDbAvailPws = data.available_pws || 0;
+                    window.currentDbHeld = (data.held !== undefined && data.held !== null) ? data.held : (window.currentDbSer + window.currentDbPws + window.currentDbAvailSer + window.currentDbAvailPws);
+                } else {
+                    window.currentDbSer = 0;
+                    window.currentDbPws = 0;
+                    window.currentDbAvailSer = 0;
+                    window.currentDbAvailPws = 0;
+                    window.currentDbHeld = 0;
+                }
+
+                if (unitAuthInput) {
+                    unitAuthInput.value = data.auth || 0;
+                }
+                const scaleInput = document.getElementById("ecc_scale");
+                if (scaleInput) {
+                    scaleInput.value = data.scale || "1 PER INDL";
+                }
+
+                checkAndToggleAuthLock();
+
+                // Inputs stay clean for entering new issue quantities now
+                if (issueCountInput) issueCountInput.value = "";
+                if (stockSerInput) stockSerInput.value = "";
+                if (stockPwsInput) stockPwsInput.value = "";
+                if (addKndInput) addKndInput.value = "";
+                if (addTnInput) addTnInput.value = "";
+                if (addNAreaInput) addNAreaInput.value = "";
+                if (addIdtInput) addIdtInput.value = "";
+                
+                recalcDeficiency();
+            })
+            .catch(err => console.error("Error fetching unit item auth:", err));
+    }
+
+    // ── 2b. Fetch Item Status & Previous Month Data for Right Card (Excel format) ──
+    function fetchPreviousMonthData() {
+        const unitName = divisionSel ? divisionSel.value : "";
+        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
+        const prevContent = document.getElementById("prevMonthContent");
+        const prevSubtitle = document.getElementById("prevMonthSubtitle");
+        const prevBadge = document.getElementById("prevMonthBadge");
+
+        if (prevContent) {
+            prevContent.innerHTML = `
+                <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.6rem;"></i> Loading previous month data...
+                </div>
+            `;
+        }
+
+        let url = `/scme/api/get-previous-month-data`;
+        const params = [];
+        if (unitName) params.push(`unit_name=${encodeURIComponent(unitName)}`);
+        if (itemId) params.push(`item_id=${encodeURIComponent(itemId)}`);
+        if (params.length > 0) url += `?${params.join("&")}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data && data.data.length > 0) {
+                    if (prevSubtitle) {
+                        prevSubtitle.textContent = unitName 
+                            ? `Previous month records for unit "${unitName}" (${data.count} items)`
+                            : `All units previous month records (${data.count} items)`;
+                    }
+                    if (prevBadge) prevBadge.style.display = "none";
+
+                    let rowsHtml = data.data.map((r, idx) => {
+                        const isSelectedRow = (itemId && String(r.item_id) === String(itemId));
+                        const rowBg = isSelectedRow ? "rgba(59, 130, 246, 0.25)" : (idx % 2 === 0 ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.01)");
+                        const cb = "border: 1px solid rgba(255, 255, 255, 0.14);";
+
+                        return `
+                            <tr style="background: ${rowBg}; transition: background 0.15s ease;">
+                                <td style="padding: 10px 12px; text-align: left; font-weight: 700; white-space: nowrap; color: var(--text-primary, #ffffff); ${cb}">${r.unit_name}</td>
+                                <td style="padding: 10px 12px; text-align: left; color: var(--text-secondary, #cbd5e1); line-height: 1.2; ${cb}">${r.item_name}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.auth}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #10b981; font-weight: 600; ${cb}">${r.ser}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #f59e0b; font-weight: 600; ${cb}">${r.pws}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #10b981; font-weight: 700; ${cb}">${r.held}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: #ef4444; font-weight: 600; ${cb}">${r.deficiency}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_knd}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_tn_model}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_n_area_otg}</td>
+                                <td style="padding: 10px 8px; text-align: center; color: var(--text-secondary, #cbd5e1); ${cb}">${r.add_idt_ict}</td>
+                            </tr>
+                        `;
+                    }).join("");
+
+                    prevContent.innerHTML = `
+                        <div class="excel-table-wrapper" style="overflow-x: auto; max-height: 520px; overflow-y: auto; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.18);">
+                            <table class="excel-data-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+                                <thead>
+                                    <tr style="background: rgba(255, 255, 255, 0.12); color: var(--text-primary, #ffffff); position: sticky; top: 0; z-index: 2;">
+                                        <th style="padding: 10px 12px; text-align: left; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">Unit / DOU</th>
+                                        <th style="padding: 10px 12px; text-align: left; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">Item Name</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">Auth</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">SER</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">PWS</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">Held</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">Defi</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2);">KND</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">TN Model</th>
+                                        <th style="padding: 10px 8px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">N Area</th>
+                                        <th style="padding: 10px 12px; text-align: center; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.2); white-space: nowrap;">IDT/ICT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    if (prevSubtitle) prevSubtitle.textContent = unitName ? `No previous month records for "${unitName}"` : `No previous month records found`;
+                    if (prevBadge) prevBadge.style.display = "none";
+                    prevContent.innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <i class="fa-solid fa-folder-open" style="font-size: 2.2rem; margin-bottom: 12px; opacity: 0.6; display: block;"></i>
+                            No previous month record found ${unitName ? `for "${unitName}"` : 'across all units'}.
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching previous month data:", err);
+                if (prevContent) {
+                    prevContent.innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 20px; color: var(--danger);">
+                            <i class="fa-solid fa-exclamation-triangle" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
+                            Failed to load previous month data.
+                        </div>
+                    `;
+                }
+            });
+    }
+
+    // Cache the full stock data keyed by item_id
+    window._eccStockCache = {};
+    window.currentAvailableFodStock = null;
+
+    function updateBadgesForType() {
+        const stockTypeSel = document.getElementById("ecc_stock_type");
+        const stockContainer = document.getElementById("eccAvailableStockContainer");
+        const stockVal = document.getElementById("eccAvailableStockVal");
+        const serVal = document.getElementById("eccAvailableSerVal");
+        const pwsVal = document.getElementById("eccAvailablePwsVal");
+        const typeHint = document.getElementById("eccTypeStockHint");
+        const typeText = document.getElementById("eccTypeAvailText");
+
+        const data = window._eccStockCache[eccItemIdSel ? eccItemIdSel.value : ""];
+        if (!data || !stockTypeSel) return;
+
+        const selType = (stockTypeSel.value || 'FREE STK').toUpperCase();
+
+        if (selType === 'FREE STK' || selType === 'FREE') {
+            const s = data.free_ser || 0, p = data.free_pws || 0;
+            window.currentAvailableFodStock = s + p;
+            window.currentAvailableSerStock = s;
+            window.currentAvailablePwsStock = p;
+            if (stockVal) stockVal.textContent = s + p;
+            if (serVal) serVal.textContent = s;
+            if (pwsVal) pwsVal.textContent = p;
+            if (stockContainer) stockContainer.style.display = (s + p > 0) ? "block" : "none";
+            if (typeHint && typeText) {
+                typeText.textContent = `FREE STK available — SER: ${s}, PWS: ${p}`;
+                typeHint.style.display = "block";
+            }
+        } else if (selType === 'IHQ') {
+            const s = data.ihq_ser || 0, p = data.ihq_pws || 0, total = s + p;
+            window.currentAvailableFodStock = total;
+            window.currentAvailableSerStock = s;
+            window.currentAvailablePwsStock = p;
+            if (stockVal) stockVal.textContent = total;
+            if (serVal) serVal.textContent = s;
+            if (pwsVal) pwsVal.textContent = p;
+            if (stockContainer) stockContainer.style.display = total > 0 ? "block" : "none";
+            if (typeHint && typeText) {
+                typeText.textContent = `IHQ available — SER: ${s}, PWS: ${p}`;
+                typeHint.style.display = "block";
+            }
+        } else if (selType === 'COMD' || selType === 'CMD') {
+            const s = data.comd_ser || 0, p = data.comd_pws || 0, total = s + p;
+            window.currentAvailableFodStock = total;
+            window.currentAvailableSerStock = s;
+            window.currentAvailablePwsStock = p;
+            if (stockVal) stockVal.textContent = total;
+            if (serVal) serVal.textContent = s;
+            if (pwsVal) pwsVal.textContent = p;
+            if (stockContainer) stockContainer.style.display = total > 0 ? "block" : "none";
+            if (typeHint && typeText) {
+                typeText.textContent = `COMD available — SER: ${s}, PWS: ${p}`;
+                typeHint.style.display = "block";
+            }
+        }
+        validateFodStockLimit();
+    }
+
+    // Wire type dropdown change → update badges
+    (function() {
+        const typeSel = document.getElementById("ecc_stock_type");
+        if (typeSel) typeSel.addEventListener("change", updateBadgesForType);
+    })();
+
+    function fetchAvailableFodStock() {
+        const itemId = eccItemIdSel ? eccItemIdSel.value : "";
+        const stockContainer = document.getElementById("eccAvailableStockContainer");
+        const typeHint = document.getElementById("eccTypeStockHint");
+        const errStockExceeded = document.getElementById("errEccStockExceeded");
+        const submitBtn = document.querySelector("#eccForm button[type='submit']");
+
+        if (!itemId) {
+            window.currentAvailableFodStock = null;
+            window.currentAvailableSerStock = null;
+            window.currentAvailablePwsStock = null;
+            if (stockContainer) stockContainer.style.display = "none";
+            if (typeHint) typeHint.style.display = "none";
+            if (errStockExceeded) errStockExceeded.style.display = "none";
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
+        fetch(`/scme/api/available-stock/${itemId}`)
+            .then(res => res.json())
+            .then(data => {
+                window._eccStockCache[itemId] = data;
+                updateBadgesForType();
+            })
+            .catch(err => console.error("Error fetching available stock:", err));
+    }
+
+    function validateFodStockLimit() {
+        const issueCountInput = document.getElementById("ecc_issue_count");
+        const stockSerInput = document.getElementById("ecc_stock_ser");
+        const stockPwsInput = document.getElementById("ecc_stock_pws");
+        const errStockExceeded = document.getElementById("errEccStockExceeded");
+        const errSerExceeded = document.getElementById("errEccSerExceeded");
+        const errPwsExceeded = document.getElementById("errEccPwsExceeded");
+        const submitBtn = document.querySelector("#eccForm button[type='submit']");
+
+        if (window.currentAvailableFodStock === null) {
+            if (errStockExceeded) errStockExceeded.style.display = "none";
+            if (errSerExceeded) errSerExceeded.style.display = "none";
+            if (errPwsExceeded) errPwsExceeded.style.display = "none";
+            if (stockSerInput) stockSerInput.classList.remove("input-error");
+            if (stockPwsInput) stockPwsInput.classList.remove("input-error");
+            if (issueCountInput) issueCountInput.classList.remove("input-error");
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
+        const issueVal = parseInt(issueCountInput ? issueCountInput.value : 0, 10) || 0;
+        const serVal = parseInt(stockSerInput ? stockSerInput.value : 0, 10) || 0;
+        const pwsVal = parseInt(stockPwsInput ? stockPwsInput.value : 0, 10) || 0;
+        const enteredQty = issueVal > 0 ? issueVal : (serVal + pwsVal);
+
+        let hasError = false;
+
+        // 1. Check SER limit
+        if (window.currentAvailableSerStock !== null && serVal > window.currentAvailableSerStock) {
+            if (errSerExceeded) {
+                errSerExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> SER (${serVal}) exceeds Available SER (${window.currentAvailableSerStock})!`;
+                errSerExceeded.style.display = "flex";
+            }
+            if (stockSerInput) stockSerInput.classList.add("input-error");
+            hasError = true;
+        } else {
+            if (errSerExceeded) errSerExceeded.style.display = "none";
+            if (stockSerInput) stockSerInput.classList.remove("input-error");
+        }
+
+        // 2. Check PWS limit
+        if (window.currentAvailablePwsStock !== null && pwsVal > window.currentAvailablePwsStock) {
+            if (errPwsExceeded) {
+                errPwsExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> PWS (${pwsVal}) exceeds Available PWS (${window.currentAvailablePwsStock})!`;
+                errPwsExceeded.style.display = "flex";
+            }
+            if (stockPwsInput) stockPwsInput.classList.add("input-error");
+            hasError = true;
+        } else {
+            if (errPwsExceeded) errPwsExceeded.style.display = "none";
+            if (stockPwsInput) stockPwsInput.classList.remove("input-error");
+        }
+
+        // 3. Check Total Stock limit
+        if (enteredQty > window.currentAvailableFodStock) {
+            if (errStockExceeded) {
+                errStockExceeded.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Issue quantity (${enteredQty}) exceeds Total Available (${window.currentAvailableFodStock})!`;
+                errStockExceeded.style.display = "flex";
+            }
+            if (issueCountInput) issueCountInput.classList.add("input-error");
+            hasError = true;
+        } else {
+            if (errStockExceeded) errStockExceeded.style.display = "none";
+            if (issueCountInput) issueCountInput.classList.remove("input-error");
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = hasError;
+        }
+    }
+
+
+    function onUnitOrItemSelectionChange() {
+        fetchExistingItemAuth();
+        fetchPreviousMonthData();
+        fetchAvailableFodStock();
+    }
+
+    if (divisionSel) divisionSel.addEventListener("change", onUnitOrItemSelectionChange);
+    if (eccItemIdSel) eccItemIdSel.addEventListener("change", onUnitOrItemSelectionChange);
+
+    // Initial load: fetch all units previous month data
+    fetchPreviousMonthData();
+
+    // ── 3. Auto-calculate Held (DB Held + Issue Count) and Deficiency (Auth - Held) with SER/PWS split ──
+    const unitAuthInput = document.getElementById("ecc_unit_auth");
+    const issueCountInput = document.getElementById("ecc_issue_count");
+    const stockSerInput = document.getElementById("ecc_stock_ser");
+    const stockPwsInput = document.getElementById("ecc_stock_pws");
+    const stockTotalInput = document.getElementById("ecc_stock_total");
+    const deficiencyInput = document.getElementById("ecc_deficiency");
+
+    function handleIssueCountInput() {
+        const issueCount = parseFloat(issueCountInput.value) || 0;
+        const ser = parseFloat(stockSerInput.value) || 0;
+        if (ser > issueCount) {
+            stockSerInput.value = issueCount;
+            stockPwsInput.value = 0;
+        } else {
+            stockPwsInput.value = Math.max(0, issueCount - ser);
+        }
+        recalcDeficiency();
+        validateFodStockLimit();
+    }
+
+    function handleSerInput() {
+        const ser = parseFloat(stockSerInput.value) || 0;
+        const pws = parseFloat(stockPwsInput.value) || 0;
+        const sum = ser + pws;
+        if (issueCountInput) issueCountInput.value = sum;
+        recalcDeficiency();
+        validateFodStockLimit();
+    }
+
+    function handlePwsInput() {
+        const ser = parseFloat(stockSerInput.value) || 0;
+        const pws = parseFloat(stockPwsInput.value) || 0;
+        const sum = ser + pws;
+        if (issueCountInput) issueCountInput.value = sum;
+        recalcDeficiency();
+    }
+
+    function recalcDeficiency() {
+        const auth = parseFloat(unitAuthInput ? unitAuthInput.value : 0) || 0;
+        const dbHeld = (window.currentDbHeld !== undefined && window.currentDbHeld !== null) 
+            ? window.currentDbHeld 
+            : ((window.currentDbSer || 0) + (window.currentDbPws || 0) + (window.currentDbAvailSer || 0) + (window.currentDbAvailPws || 0));
+        const ser = parseFloat(stockSerInput ? stockSerInput.value : 0) || 0;
+        const pws = parseFloat(stockPwsInput ? stockPwsInput.value : 0) || 0;
+        
+        const issueCount = (stockSerInput && stockSerInput.value !== "" || stockPwsInput && stockPwsInput.value !== "") 
+            ? (ser + pws) 
+            : (parseFloat(issueCountInput ? issueCountInput.value : 0) || 0);
+
+        if (issueCountInput && (stockSerInput && stockSerInput.value !== "" || stockPwsInput && stockPwsInput.value !== "")) {
+            issueCountInput.value = issueCount;
+        }
+
+        const newTotalHeld = dbHeld + issueCount;
+        if (stockTotalInput) stockTotalInput.value = newTotalHeld;
+        
+        const defi = auth - newTotalHeld;
+        if (deficiencyInput) deficiencyInput.value = defi;
+    }
+
+    function checkAndToggleAuthLock() {
+        const uAuthEl = document.getElementById("ecc_unit_auth");
+        const authVal = parseFloat(uAuthEl ? uAuthEl.value : 0) || 0;
+        const errAuthZero = document.getElementById("errEccAuthZero");
+        const eccForm = document.getElementById("eccForm");
+        const submitBtn = eccForm ? eccForm.querySelector("button[type='submit']") : null;
+        const formInputs = eccForm ? eccForm.querySelectorAll("input:not([name='bbf_division']):not(#ecc_unit_auth):not([readonly])") : [];
+
+        if (authVal <= 0) {
+            formInputs.forEach(inp => {
+                inp.disabled = true;
+                inp.style.opacity = "0.5";
+                inp.style.cursor = "not-allowed";
+            });
+            if (submitBtn) submitBtn.disabled = true;
+            if (errAuthZero) errAuthZero.style.display = "flex";
+        } else {
+            formInputs.forEach(inp => {
+                inp.disabled = false;
+                inp.style.opacity = "1";
+                inp.style.cursor = "initial";
+            });
+            if (submitBtn) submitBtn.disabled = false;
+            if (errAuthZero) errAuthZero.style.display = "none";
+        }
+    }
+
+    if (unitAuthInput) {
+        unitAuthInput.addEventListener("input", () => {
+            checkAndToggleAuthLock();
+            recalcDeficiency();
+        });
+        unitAuthInput.addEventListener("change", () => {
+            checkAndToggleAuthLock();
+            recalcDeficiency();
+        });
+    }
+    if (issueCountInput) issueCountInput.addEventListener("input", handleIssueCountInput);
+    if (stockSerInput) stockSerInput.addEventListener("input", handleSerInput);
+    if (stockPwsInput) stockPwsInput.addEventListener("input", handlePwsInput);
+    
+    checkAndToggleAuthLock();
+    recalcDeficiency();
+
+    // ── 4. Numeric-only guard ──
+    eccForm.querySelectorAll('input[type="number"]').forEach(inp => {
+        if (inp.hasAttribute("readonly")) return;
+        inp.addEventListener("keydown", e => {
+            const allow = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","Home","End"];
+            if (allow.includes(e.key) || e.ctrlKey || e.metaKey) return;
+            if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+        });
+    });
+
+    // ── 5. Form submit → POST to /scme/api/add-ecc-state ──
+    eccForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const itemId = document.getElementById("ecc_item_id").value;
+        const bbfDivision = divisionSel.value;
+
+        if (!bbfDivision) {
+            Notify.warning("Please select a Division / Unit before saving.");
+            divisionSel.focus();
+            return;
+        }
+        if (!itemId) {
+            Notify.warning("Please select an Item before saving.");
+            document.getElementById("ecc_item_id").focus();
+            return;
+        }
+
+        const g = id => { const el = document.getElementById(id); return el ? el.value : ""; };
+
+        const payload = {
+            item_id:            g("ecc_item_id"),
+            scale:              g("ecc_scale"),
+            bbf_division:       g("ecc_bbf_division"),
+            stock_type:         g("ecc_stock_type") || "FREE STK",
+            unit_auth:          g("ecc_unit_auth") || 0,
+            issue_count:        g("ecc_issue_count") || 0,
+            stock_ser:          g("ecc_stock_ser") || 0,
+            stock_pws:          g("ecc_stock_pws") || 0,
+            deficiency:         g("ecc_deficiency") || 0,
+            add_knd:            g("ecc_add_knd") || 0,
+            add_tn_model:       g("ecc_add_tn_model") || 0,
+            add_n_area_otg:     g("ecc_add_n_area_otg") || 0,
+            add_idt_ict:        g("ecc_add_idt_ict") || 0
+        };
+
+        const submitBtn = eccForm.querySelector("[type=submit]");
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+
+        fetch("/scme/api/add-ecc-state", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                Notify.success("ECC item entry recorded & updated in TrackUnitItems.");
+                eccForm.reset();
+                eccItemIdSel.innerHTML = '<option value="">— Select Category First —</option>';
+                eccItemIdSel.disabled = true;
+                recalcDeficiency();
+                fetchPreviousMonthData();
+
+                // Add row to the table
+                const eccTableBody = document.getElementById("eccTableBody");
+                const noEccRow = document.getElementById("noEccRecordsRow");
+                if (noEccRow) noEccRow.remove();
+
+                const st = data.state;
+                const newRow = document.createElement("tr");
+                newRow.id = `ecc-row-${st.id}`;
+                newRow.innerHTML = `
+                    <td style="text-align: center;">
+                        <button type="button" class="action-btn action-btn-delete ecc-delete-btn" data-id="${st.id}" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                    <td style="font-weight: 600;">${st.bbf_division}</td>
+                    <td>${st.item_name}</td>
+                    <td>${st.scale || ""}</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--danger);">${st.deficiency || 0}</td>
+                    <td style="text-align: center;">${payload.unit_auth || 0}</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.auth_total}</td>
+                    <td style="text-align: center;">${payload.unit_auth || 0}</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">0</td>
+                    <td style="text-align: center;">${payload.stock_ser || 0}</td>
+                    <td style="text-align: center;">${payload.stock_pws || 0}</td>
+                    <td style="text-align: center; font-weight: bold; color: var(--accent);">${st.stock_total || 0}</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="text-align: center;">0</td>
+                    <td style="font-size: 0.82rem; color: var(--text-secondary);">${st.created_at}</td>
+                `;
+                eccTableBody.insertBefore(newRow, eccTableBody.firstChild);
+                attachEccDeleteListeners(newRow);
+
+                newRow.style.backgroundColor = "var(--accent-glow)";
+                setTimeout(() => {
+                    newRow.style.transition = "background-color 1s";
+                    newRow.style.backgroundColor = "";
+                }, 1000);
+            } else {
+                Notify.error(data.message || "Failed to save entry.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Notify.error("An error occurred during submission.");
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-boxes-packing"></i> Update Stock';
+        });
+    });
+
+    // ── 7. ECC Delete handler ──
+    function deleteEccRecord(id, row) {
+        if (!confirm("Delete this ECC monthly state? This cannot be undone.")) return;
+
+        fetch(`/scme/api/ecc-state/${id}`, {
+            method: "DELETE",
+            headers: { "X-CSRFToken": csrfToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                row.remove();
+                const eccTableBody = document.getElementById("eccTableBody");
+                if (!eccTableBody.querySelector("tr[id^='ecc-row-']")) {
+                    eccTableBody.innerHTML = `
+                        <tr id="noEccRecordsRow">
+                            <td colspan="22" class="empty-state" style="text-align: center; padding: 30px;">
+                                <i class="fa-solid fa-receipt" style="font-size: 2rem; color: var(--text-muted); display: block; margin-bottom: 10px;"></i>
+                                No ECC monthly states recorded yet. Use the form above to record.
+                            </td>
+                        </tr>
+                    `;
+                }
+                Notify.success("ECC record deleted.");
+            } else {
+                Notify.error(data.message || "Failed to delete record.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Notify.error("An error occurred while deleting.");
+        });
+    }
+
+    function attachEccDeleteListeners(row) {
+        row.querySelectorAll(".ecc-delete-btn").forEach(btn => {
+            btn.addEventListener("click", function () {
+                deleteEccRecord(this.dataset.id, row);
+            });
+        });
+    }
+
+    // Attach to existing rows on page load
+    document.querySelectorAll("#eccTableBody tr[id^='ecc-row-']").forEach(row => {
+        attachEccDeleteListeners(row);
+    });
+});
+</script>
+{% include 'modals/direct_issue_modal.html' %}
+{% endblock %}

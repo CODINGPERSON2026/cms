@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS — Clothing Management System</title>
+
+    <!-- Local Web Fonts & Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    <script src="{{ url_for('static', filename='js/notify.js') }}"></script>
+
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --border-focus: #2563eb;
+            --accent-primary: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-glow: rgba(37, 99, 235, 0.18);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --danger-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(37, 99, 235, 0.04) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 20px;
+            position: relative;
+        }
+
+        /* Main Split Card Container */
+        .split-card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 960px;
+            min-height: 560px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.08),
+                        0 2px 4px rgba(0, 0, 0, 0.02);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+            animation: cardAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+        }
+
+        .split-card:hover {
+            box-shadow: 0 30px 60px -12px rgba(37, 99, 235, 0.12),
+                        0 4px 12px rgba(0, 0, 0, 0.03);
+            border-color: rgba(37, 99, 235, 0.2);
+        }
+
+        @keyframes cardAppear {
+            0% {
+                opacity: 0;
+                transform: translateY(24px) scale(0.98);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Left Branding Panel */
+        .brand-panel {
+            background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 50%, #f0fdf4 100%);
+            border-right: 1px solid var(--border-color);
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .brand-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+        }
+        .brand-top-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            animation: pulseDot 2s infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { transform: scale(1.2); opacity: 0.8; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        .brand-center {
+            margin: auto 0;
+            padding: 20px 0;
+        }
+
+        .brand-logo-frame {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.12);
+            margin-bottom: 24px;
+            animation: floatLogo 4s ease-in-out infinite;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .brand-logo-frame:hover {
+            transform: scale(1.08) rotate(-3deg);
+            box-shadow: 0 15px 30px rgba(37, 99, 235, 0.22);
+        }
+
+        @keyframes floatLogo {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .brand-logo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .brand-logo-fallback {
+            font-size: 36px;
+            color: var(--accent-primary);
+        }
+
+        .brand-title {
+            font-size: 2.1rem;
+            font-weight: 800;
+            line-height: 1.25;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+        }
+
+        .brand-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            margin-bottom: 28px;
+        }
+
+        /* Feature Pills */
+        .feature-pills {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pill-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            opacity: 0;
+            animation: pillSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .pill-item:nth-child(1) { animation-delay: 0.2s; }
+        .pill-item:nth-child(2) { animation-delay: 0.35s; }
+        .pill-item:nth-child(3) { animation-delay: 0.5s; }
+
+        @keyframes pillSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pill-item:hover {
+            transform: translateX(8px);
+            background: #ffffff;
+            border-color: rgba(37, 99, 235, 0.35);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
+            color: var(--text-primary);
+        }
+
+        .pill-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease;
+        }
+
+        .pill-item:hover .pill-icon {
+            transform: scale(1.12) rotate(8deg);
+            background: var(--accent-primary);
+            color: #ffffff;
+        }
+
+        .brand-footer {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Right Form Panel */
+        .form-panel {
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #ffffff;
+        }
+
+        .form-header {
+            margin-bottom: 32px;
+        }
+
+        .form-header h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .form-header p {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Form Group & Controls */
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            pointer-events: none;
+            transition: color 0.25s ease, transform 0.25s ease;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            height: 48px;
+            padding: 10px 14px 10px 42px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.92rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .input-wrapper input:focus ~ .input-icon {
+            color: var(--accent-primary);
+            transform: scale(1.05);
+        }
+
+        /* Password Eye Toggle */
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+        .password-toggle:hover {
+            color: var(--text-primary);
+            transform: scale(1.1);
+        }
+
+        /* Preserved Error ID Styling */
+        .error {
+            color: var(--danger-color);
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-top: 6px;
+        }
+        .error:empty {
+            display: none;
+        }
+
+        /* Submit Button */
+        button#login_btn {
+            width: 100%;
+            height: 48px;
+            margin-top: 10px;
+            background: var(--accent-primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px var(--accent-glow);
+            transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        button#login_btn #btnIcon {
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        button#login_btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+        }
+
+        button#login_btn:hover #btnIcon {
+            transform: translateX(4px);
+        }
+
+        button#login_btn:active {
+            transform: translateY(0);
+        }
+
+        button#login_btn:active {
+            transform: translateY(0);
+        }
+
+        button#login_btn.loading {
+            opacity: 0.75;
+            pointer-events: none;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-footer-note {
+            margin-top: 28px;
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* Responsive Breakpoint */
+        @media (max-width: 820px) {
+            .split-card {
+                grid-template-columns: 1fr;
+                max-width: 440px;
+            }
+            .brand-panel {
+                padding: 36px 28px;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .brand-title {
+                font-size: 1.75rem;
+            }
+            .form-panel {
+                padding: 36px 28px;
+            }
+            .feature-pills {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Split Screen Card Container -->
+    <div class="split-card">
+
+        <!-- Left Side: Logo & Branding Section -->
+        <div class="brand-panel">
+            <div class="brand-top">
+                <span class="brand-top-dot"></span>
+                CLOTHING MANAGEMENT SYSTEM
+            </div>
+
+            <div class="brand-center">
+                <div class="brand-logo-frame">
+                    <img src="{{ url_for('static', filename='logo/chinar.jpg') }}" alt="CMS Logo" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';">
+                    <div id="logoFallback" class="brand-logo-fallback" style="display:none;">
+                        <i class="fas fa-tshirt"></i>
+                    </div>
+                </div>
+
+                <h1 class="brand-title">CMS  Portal</h1>
+                <p class="brand-subtitle">
+                    Streamlined inventory tracking, issue management, and clothing readiness across all units.
+                </p>
+
+                <div class="feature-pills">
+                    <div class="pill-item">
+                        <div class="pill-icon"><i class="fas fa-clipboard-check"></i></div>
+                        <span>Real-Time Issue & Return Ledger</span>
+                    </div>
+                    <div class="pill-item">
+                        <div class="pill-icon"><i class="fas fa-user-shield"></i></div>
+                        <span>Multi-Level Role Authentication</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                <i class="fas fa-shield-alt"></i> Official Command & Clothing System
+            </div>
+        </div>
+
+        <!-- Right Side: Login Section -->
+        <div class="form-panel">
+            <div class="form-header">
+                <h2>Welcome back</h2>
+                <p>Please enter your personnel credentials to sign in.</p>
+            </div>
+
+            <!-- Hidden CSRF Token (Preserved ID) -->
+            <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Username Input (Preserved ID) -->
+            <div class="form-group">
+                <label for="username">Username</label>
+                <div class="input-wrapper">
+                    <input type="text" id="username" placeholder="Enter your username" autocomplete="username" required>
+                    <i class="fas fa-user input-icon"></i>
+                </div>
+                <div class="error" id="user_error"></div>
+            </div>
+
+            <!-- Password Input (Preserved ID) -->
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+                    <i class="fas fa-lock input-icon"></i>
+                    <button type="button" class="password-toggle" id="togglePasswordBtn" title="Toggle password visibility">
+                        <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submit Button (Preserved ID) -->
+            <button id="login_btn" type="button">
+                <span id="btnText">Sign In</span>
+                <i class="fas fa-arrow-right" id="btnIcon"></i>
+                <div class="spinner" id="btnSpinner"></div>
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Preserved Auth Logic & Interactive Script -->
+    <script>
+        // Password Visibility Toggle
+        const passwordInput = document.getElementById("password");
+        const usernameInput = document.getElementById("username");
+        const toggleBtn = document.getElementById("togglePasswordBtn");
+        const toggleIcon = document.getElementById("togglePasswordIcon");
+
+        toggleBtn.addEventListener("click", function() {
+            const isPassword = passwordInput.type === "password";
+            passwordInput.type = isPassword ? "text" : "password";
+            toggleIcon.className = isPassword ? "fas fa-eye-slash" : "fas fa-eye";
+        });
+
+        // Press Enter to Login
+        [usernameInput, passwordInput].forEach(input => {
+            input.addEventListener("keypress", function(e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    document.getElementById("login_btn").click();
+                }
+            });
+        });
+
+        // Main Login Logic (Exact original endpoints & IDs preserved)
+        document.getElementById("login_btn").addEventListener("click", function () {
+
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+            const csrf_token = document.getElementById("csrf_token").value;
+
+            const userError = document.getElementById("user_error");
+
+            const loginBtn = document.getElementById("login_btn");
+            const btnText = document.getElementById("btnText");
+            const btnIcon = document.getElementById("btnIcon");
+            const btnSpinner = document.getElementById("btnSpinner");
+
+            // Username validation: only letters, numbers, underscore
+            const usernameRegex = /^[a-zA-Z0-9_]+$/;
+
+            userError.innerText = "";
+
+            if (!username) {
+                userError.innerText = "Username is required";
+                usernameInput.focus();
+                return;
+            }
+
+            if (!usernameRegex.test(username)) {
+                userError.innerText = "Only letters, numbers, and '_' allowed";
+                usernameInput.focus();
+                return;
+            }
+
+            if (!password) {
+                Notify.error("Password is required to sign in.", { title: "Password Required" });
+                passwordInput.focus();
+                return;
+            }
+
+            // Set Loading UI
+            loginBtn.classList.add("loading");
+            btnText.innerText = "Signing in...";
+            if (btnIcon) btnIcon.style.display = "none";
+            btnSpinner.style.display = "block";
+
+            fetch("/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrf_token
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+
+                if (data.success) {
+                    btnText.innerText = "Redirecting...";
+                    window.location.href = data.redirect;
+                } else {
+                    // Reset Button UI
+                    loginBtn.classList.remove("loading");
+                    btnText.innerText = "Sign In";
+                    if (btnIcon) btnIcon.style.display = "inline-block";
+                    btnSpinner.style.display = "none";
+
+                    Notify.error(data.message || "Invalid username or password.", { title: "Authentication Failed" });
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                // Reset Button UI
+                loginBtn.classList.remove("loading");
+                btnText.innerText = "Sign In";
+                if (btnIcon) btnIcon.style.display = "inline-block";
+                btnSpinner.style.display = "none";
+
+                Notify.error("Unable to connect to authentication server. Please check your network connection.", { title: "Connection Error" });
+            });
+
+        });
+    </script>
+
+</body>
+</html>
+
+
+

@@ -1,0 +1,787 @@
+{% extends '/base.html' %}
+
+{% block page_title %}Add Stock Entry{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/scme/" class="nav-item">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/scme/add-stock" class="nav-item active">
+    <i class="fa-solid fa-boxes-packing"></i>
+    <span class="nav-tooltip">Add Stock</span>
+</a>
+<a href="/scme/current-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-tooltip">Available Stock</span>
+</a>
+<a href="/scme/monthly-reports" class="nav-item">
+    <i class="fa-solid fa-calendar-days"></i>
+    <span class="nav-tooltip">Monthly Reports</span>
+</a>
+<!-- <a href="/logs/" class="nav-item">
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <span class="nav-tooltip">Activity Logs</span>
+</a> -->
+{% endblock %}
+
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .add-stock-container {
+        padding: 28px;
+       
+        margin: 0 auto;
+    }
+
+    .glass-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        padding: 28px;
+        margin-bottom: 28px;
+    }
+
+    .card-header-title {
+        font-weight: 800;
+        font-size: 1.15rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-current-stock {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        font-weight: 700;
+        padding: 9px 20px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-current-stock:hover {
+        background: #3b82f6;
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+        transform: translateY(-1px);
+    }
+
+    .live-stock-badge {
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.12);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .form-label-custom {
+        font-weight: 700;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .form-control-custom, .form-select-custom {
+        background: var(--bg-raised);
+        border: 1px solid var(--border-dim);
+        color: var(--text-primary);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control-custom:focus, .form-select-custom:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-muted);
+        outline: none;
+        background: var(--bg-surface);
+    }
+
+    .btn-submit-stock {
+        background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+        color: #ffffff;
+        font-weight: 700;
+        padding: 12px 28px;
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 14px var(--accent-glow);
+        transition: all 0.2s ease;
+    }
+
+    .btn-submit-stock:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px var(--accent-glow);
+        color: #ffffff;
+    }
+
+    .stock-table-custom {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .stock-table-custom th {
+        background: var(--bg-raised);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 12px 14px;
+        border: 1px solid var(--border-dim);
+        white-space: nowrap;
+    }
+
+    .stock-table-custom td {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        border: 1px solid var(--border-dim);
+        white-space: nowrap;
+    }
+
+    /* ── Theme-Synced Modal Styles ── */
+    .modal-content-custom {
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-dim) !important;
+        color: var(--text-primary) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    .modal-header-custom {
+        border-bottom: 1px solid var(--border-dim) !important;
+        padding: 20px 24px !important;
+        background: var(--bg-surface) !important;
+        border-top-left-radius: 18px !important;
+        border-top-right-radius: 18px !important;
+    }
+
+    .modal-title-custom {
+        font-weight: 800 !important;
+        font-size: 1.15rem !important;
+        color: var(--text-primary) !important;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-footer-custom {
+        border-top: 1px solid var(--border-dim) !important;
+        padding: 16px 24px !important;
+        background: var(--bg-surface) !important;
+        border-bottom-left-radius: 18px !important;
+        border-bottom-right-radius: 18px !important;
+    }
+
+    .btn-modal-cancel {
+        background: var(--bg-raised) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-dim) !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        padding: 9px 20px !important;
+        transition: all 0.2s ease !important;
+    }
+    .btn-modal-cancel:hover {
+        background: var(--border-dim) !important;
+        color: var(--text-primary) !important;
+    }
+
+    .btn-modal-submit {
+        background: linear-gradient(135deg, var(--accent), var(--accent-dim)) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        padding: 9px 24px !important;
+        border: none !important;
+        box-shadow: 0 4px 14px var(--accent-glow) !important;
+        transition: all 0.2s ease !important;
+    }
+    .btn-modal-submit:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px var(--accent-glow) !important;
+        color: #ffffff !important;
+    }
+
+    .btn-close-theme {
+        background: transparent !important;
+        border: none !important;
+        color: var(--text-secondary) !important;
+        font-size: 1.25rem !important;
+        cursor: pointer !important;
+        transition: color 0.2s ease !important;
+        padding: 4px 8px !important;
+    }
+    .btn-close-theme:hover {
+        color: var(--text-primary) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="add-stock-container animate-fade-in">
+    
+    <!-- Flash Messages (Centered Success Popup Modal) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            {% for category, message in messages %}
+              {% if category == 'success' %}
+                Notify.success({{ message | tojson }}, { title: "Stock Saved" });
+              {% else %}
+                Notify.error({{ message | tojson }}, { title: "Stock Notice" });
+              {% endif %}
+            {% endfor %}
+          });
+        </script>
+      {% endif %}
+    {% endwith %}
+
+    <!-- ── FORM CARD ── -->
+    <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom: 1px solid var(--border-dim);">
+            <h3 class="card-header-title mb-0">
+                <i class="fa-solid fa-boxes-packing" style="color: var(--accent);"></i>
+                Add FOD Stock Entry
+            </h3>
+            <div class="d-flex align-items-center gap-2">
+                <a href="/scme/current-stock" class="btn btn-current-stock d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>View Current Stock</span>
+                    <span class="badge rounded-pill bg-primary ms-1" style="font-size: 0.78rem;">{{ total_fod_qty if total_fod_qty is defined else 0 }}</span>
+                </a>
+            </div>
+        </div>
+
+        <form action="/scme/add-stock" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="row g-4">
+                <!-- 1. Voucher No. -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">Voucher No. <span class="text-danger">*</span></label>
+                    <input type="text" name="voucher_no" id="voucherNoInput" class="form-control form-control-custom" placeholder="e.g. VCH-2026-001" required autocomplete="off">
+                    <div id="voucherError" class="text-danger mt-1 fw-bold" style="display: none; font-size: 0.85rem;">This voucher number already exists</div>
+                </div>
+
+                <!-- 2. CAT (Category Dropdown) -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">CAT (Category) <span class="text-danger">*</span></label>
+                    <select name="category" id="stockCategorySelect" class="form-select form-select-custom" required>
+                        <option value="">-- Select Category --</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 3. Item Name (Dropdown) -->
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label-custom mb-0">Item Name <span class="text-danger">*</span></label>
+                        <span id="itemStockIndicator" class="live-stock-badge" style="display: none;">
+                            <i class="fa-solid fa-cubes"></i> Current Available Stock: <span id="itemStockVal" style="font-weight:900;">0</span> (SER: <span id="itemSerVal">0</span>, PWS: <span id="itemPwsVal">0</span>)
+                        </span>
+                    </div>
+                    {% set param_item_id = request.args.get('item_id', type=int) %}
+                    <select name="item_id" id="stockItemSelect" class="form-select form-select-custom" required>
+                        <option value="">-- Select Item --</option>
+                        {% for item in items %}
+                            {% set st_data = current_stock_summary.get(item.id, {}) if current_stock_summary is defined else {} %}
+                            <option value="{{ item.id }}" 
+                                    data-category="{{ item.category }}" 
+                                    data-type="{{ item.type }}"
+                                    data-total="{{ st_data.get('total_qty', 0) }}" 
+                                    data-ser="{{ st_data.get('total_ser', 0) }}" 
+                                    data-pws="{{ st_data.get('total_pws', 0) }}"
+                                    data-has-auth="{{ 'true' if valid_auth_item_ids is defined and item.id in valid_auth_item_ids else 'false' }}"
+                                    {% if param_item_id and param_item_id == item.id %}selected{% endif %}>
+                                {{ item.item_name }} ({{ item.category }}) — Available Stock: {{ st_data.get('total_qty', 0) }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 4. Source (Depo / LP) -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">Source <span class="text-danger">*</span></label>
+                    <select name="source" class="form-select form-select-custom" required>
+                        <option value="Depo">Depo</option>
+                        <option value="LP">LP</option>
+                    </select>
+                </div>
+
+                <!-- 5. SER Quantity -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">SER Quantity <span class="text-danger">*</span></label>
+                    <input type="number" name="ser" id="stockSerInput" class="form-control form-control-custom" placeholder="Serviceable Qty" min="0" value="0" required>
+                </div>
+
+                <!-- 6. PWS Quantity -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">PWS Quantity <span class="text-danger">*</span></label>
+                    <input type="number" name="pws" id="stockPwsInput" class="form-control form-control-custom" placeholder="Pre-reparable Qty" min="0" value="0" required>
+                </div>
+
+                <!-- 7. Quantity (Auto Calculated: SER + PWS) -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">Quantity <span class="text-danger">*</span></label>
+                    <input type="number" name="quantity" id="stockQtyInput" class="form-control form-control-custom" placeholder="Total Qty (SER + PWS)" min="0" readonly style="background: var(--bg-raised); cursor: not-allowed; font-weight: 700; color: var(--accent);">
+                </div>
+
+                <!-- 8. Type (RES / IHQ / CMD) -->
+                <div class="col-md-3">
+                    <label class="form-label-custom">Type <span class="text-danger">*</span></label>
+                    <select name="type" id="stockTypeSelect" class="form-select form-select-custom" required>
+                        <option value="FREE STK">FREE STK</option>
+                        <option value="CMD">CMD</option>
+                        <option value="IHQ">IHQ</option>
+                    </select>
+                </div>
+
+                <!-- Auth Warning Alert -->
+                <div class="col-12">
+                    <div id="authRequiredAlert" class="alert alert-warning align-items-center gap-2 mb-0" style="display: none; border-radius: 12px; font-weight: 700; border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.12); color: #b45309;">
+                        <i class="fa-solid fa-triangle-exclamation text-warning fs-5 me-2"></i>
+                        <div>
+                            <strong>AUTH Required:</strong> Whole AUTH &amp; Whole RES for this item must be entered in <code>item_auth</code> before updating stock.
+                            <button type="button" class="btn btn-sm btn-warning fw-bold ms-2" id="triggerInsertAuthModalBtn" style="border-radius: 8px;">
+                                <i class="fa-solid fa-shield-halved me-1"></i> INSERT AUTH NOW
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="col-12 d-flex justify-content-end mt-4">
+                    <button type="submit" id="submitStockBtn" class="btn btn-submit-stock d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-boxes-packing"></i>
+                        Update Stock
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ── RECENT STOCK ENTRIES TABLE CARD ── -->
+    <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 flex-wrap gap-3" style="border-bottom: 1px solid var(--border-dim);">
+            <h3 class="card-header-title mb-0">
+                <i class="fa-solid fa-list-check" style="color: var(--accent);"></i>
+                FOD Stock Entries Log (`fod_stock_table`)
+            </h3>
+            <div class="position-relative" style="min-width: 280px;">
+                <i class="fa-solid fa-magnifying-glass position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); opacity: 0.7;"></i>
+                <input type="text" id="voucherLogSearchInput" class="form-control form-control-custom ps-5" placeholder="Search by Voucher No..." style="height: 38px; font-size: 0.88rem; border-radius: 10px;">
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="stock-table-custom" id="fodStockLogTable">
+                <thead>
+                    <tr>
+                        <th style="text-align: center; width: 50px;">S.No.</th>
+                        <th>Voucher No.</th>
+                        <th style="text-align: center;">CAT</th>
+                        <th>Item Name</th>
+                        <th style="text-align: center;">Qty</th>
+                        <th style="text-align: center;">Source</th>
+                        <th style="text-align: center; color: #10b981;">SER</th>
+                        <th style="text-align: center; color: #f59e0b;">PWS</th>
+                        <th style="text-align: center; color: var(--accent);">Type</th>
+                        <th style="text-align: center;">Date Added</th>
+                    </tr>
+                </thead>
+                <tbody id="fodStockLogTbody">
+                    {% if recent_stocks %}
+                        {% for stock in recent_stocks %}
+                        <tr class="stock-log-row" data-voucher="{{ stock.voucher_no | lower if stock.voucher_no else '' }}">
+                            <td class="sno-cell" style="text-align: center; font-weight: 600;">{{ loop.index }}</td>
+                            <td style="font-weight: 700; color: var(--accent);">{{ stock.voucher_no }}</td>
+                            <td style="text-align: center;">
+                                <span class="badge" style="background: rgba(59, 130, 246, 0.12); color: #2563eb; font-weight: 700;">{{ stock.category }}</span>
+                            </td>
+                            <td style="font-weight: 600;">{{ stock.item.item_name if stock.item else 'Unknown Item' }}</td>
+                            <td style="text-align: center; font-weight: 800;">{{ stock.quantity }}</td>
+                            <td style="text-align: center;">
+                                <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-weight: 700;">{{ stock.source }}</span>
+                            </td>
+                            <td style="text-align: center; font-weight: 700; color: #10b981;">{{ stock.ser }}</td>
+                            <td style="text-align: center; font-weight: 700; color: #f59e0b;">{{ stock.pws }}</td>
+                            <td style="text-align: center;">
+                                <span class="badge" style="background: rgba(168, 85, 247, 0.12); color: #7e22ce; font-weight: 800;">{{ stock.type }}</span>
+                            </td>
+                            <td style="text-align: center; font-size: 0.8rem; color: var(--text-secondary);">
+                                {{ stock.created_at.strftime('%d %b %Y, %H:%M') if stock.created_at else '' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        <tr id="noVoucherMatchRow" style="display: none;">
+                            <td colspan="10" style="text-align: center; padding: 30px; color: var(--text-secondary); font-weight: 600;">
+                                <i class="fa-solid fa-magnifying-glass d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                                No stock entries found matching the voucher number.
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                                No FOD Stock entries found in database. Add a new stock entry above!
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+</div>
+
+<!-- ── INSERT AUTH MODAL ── -->
+<div class="modal fade" id="insertAuthModal" tabindex="-1" aria-labelledby="insertAuthModalLabel" aria-hidden="true" data-bs-backdrop="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-content-custom">
+            <div class="modal-header modal-header-custom justify-content-between align-items-center">
+                <h5 class="modal-title modal-title-custom" id="insertAuthModalLabel">
+                    <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i>
+                    <span>INSERT AUTH</span>
+                </h5>
+                <button type="button" class="btn-close-theme" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form action="/scme/insert-auth" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body p-4">
+                    <!-- Option Select Category -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">SELECT CATEGORY</label>
+                        <select id="authCategorySelect" class="form-select form-select-custom">
+                            <option value="">-- Select Category --</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Select Item -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">SELECT ITEM <span class="text-danger">*</span></label>
+                        <select name="item_id" id="authItemSelect" class="form-select form-select-custom" required>
+                            <option value="">-- Select Item --</option>
+                            {% for item in items %}
+                                <option value="{{ item.id }}" data-category="{{ item.category }}" data-type="{{ item.type }}">
+                                    {{ item.item_name }} ({{ item.category }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Option Input Field AUTH -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">AUTH</label>
+                        <input type="number" name="whole_auth" class="form-control form-control-custom" placeholder="Enter AUTH value" min="0">
+                    </div>
+
+                    <!-- Option Input Field RES -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">RES</label>
+                        <input type="number" name="whole_res" class="form-control form-control-custom" placeholder="Enter RES value" min="0">
+                    </div>
+
+                    <!-- Option Input Field SCALE -->
+                    <div class="mb-3">
+                        <label class="form-label-custom">SCALE</label>
+                        <input type="text" name="scale" class="form-control form-control-custom" placeholder="e.g. 1 per indl or N/A">
+                    </div>
+                </div>
+                <div class="modal-footer modal-footer-custom justify-content-end gap-2">
+                    <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-modal-submit d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Submit Auth
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Move modal to body to prevent z-index backdrop stacking issues (screen freeze)
+        const authModalEl = document.getElementById('insertAuthModal');
+        if (authModalEl && authModalEl.parentElement !== document.body) {
+            document.body.appendChild(authModalEl);
+        }
+        // Insert Auth Modal category filter
+        const authCatSelect = document.getElementById('authCategorySelect');
+        const authItemSelect = document.getElementById('authItemSelect');
+        if (authCatSelect && authItemSelect) {
+            const allAuthItemOptions = Array.from(authItemSelect.querySelectorAll('option')).slice(1);
+            authCatSelect.addEventListener('change', function() {
+                const selectedCat = this.value;
+                authItemSelect.innerHTML = '<option value="">-- Select Item --</option>';
+                allAuthItemOptions.forEach(opt => {
+                    const isCatMatch = !selectedCat || opt.dataset.category === selectedCat;
+                    const isEccType = !opt.dataset.type || opt.dataset.type.toLowerCase() === 'ecc';
+                    if (isCatMatch && isEccType) {
+                        authItemSelect.appendChild(opt.cloneNode(true));
+                    }
+                });
+            });
+        }
+        const catSelect = document.getElementById('stockCategorySelect');
+        const itemSelect = document.getElementById('stockItemSelect');
+        const itemStockIndicator = document.getElementById('itemStockIndicator');
+        const itemStockVal = document.getElementById('itemStockVal');
+        const itemSerVal = document.getElementById('itemSerVal');
+        const itemPwsVal = document.getElementById('itemPwsVal');
+        const allItemOptions = Array.from(itemSelect.querySelectorAll('option')).slice(1);
+
+        const typeSelect = document.getElementById('stockTypeSelect');
+        window._stockCache = {};
+
+        // Update live stock indicator when item or type selected
+        function updateStockBadge() {
+            const selectedOpt = itemSelect.options[itemSelect.selectedIndex];
+            if (!selectedOpt || !selectedOpt.value) {
+                itemStockIndicator.style.display = 'none';
+                return;
+            }
+
+            const itemId = selectedOpt.value;
+            const selType = (typeSelect ? typeSelect.value : 'FREE STK').toUpperCase();
+
+            // Auto-sync category dropdown if empty
+            if (catSelect && !catSelect.value && selectedOpt.dataset.category) {
+                catSelect.value = selectedOpt.dataset.category;
+            }
+
+            function renderBadge(data) {
+                if (selType === 'CMD' || selType === 'COMD') {
+                    const s = data.comd_ser ?? 0, p = data.comd_pws ?? 0;
+                    itemStockIndicator.innerHTML = `<i class="fa-solid fa-cubes"></i> Current Available CMD Reserve Stock: <span style="font-weight:900; color:#f59e0b;">${s + p}</span> (SER: <span style="color:#10b981; font-weight:700;">${s}</span>, PWS: <span style="color:#f59e0b; font-weight:700;">${p}</span>)`;
+                } else if (selType === 'IHQ') {
+                    const s = data.ihq_ser ?? 0, p = data.ihq_pws ?? 0;
+                    itemStockIndicator.innerHTML = `<i class="fa-solid fa-cubes"></i> Current Available IHQ Reserve Stock: <span style="font-weight:900; color:#3b82f6;">${s + p}</span> (SER: <span style="color:#10b981; font-weight:700;">${s}</span>, PWS: <span style="color:#f59e0b; font-weight:700;">${p}</span>)`;
+                } else {
+                    const s = data.free_ser ?? 0, p = data.free_pws ?? 0;
+                    itemStockIndicator.innerHTML = `<i class="fa-solid fa-cubes"></i> Current Available FREE STK: <span style="font-weight:900;">${s + p}</span> (SER: <span style="color:#10b981; font-weight:700;">${s}</span>, PWS: <span style="color:#f59e0b; font-weight:700;">${p}</span>)`;
+                }
+                itemStockIndicator.style.display = 'inline-flex';
+            }
+
+            if (window._stockCache[itemId]) {
+                renderBadge(window._stockCache[itemId]);
+            } else {
+                fetch(`/scme/api/available-stock/${itemId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        window._stockCache[itemId] = data;
+                        renderBadge(data);
+                    })
+                    .catch(() => {
+                        const total = selectedOpt.dataset.total || '0';
+                        const ser = selectedOpt.dataset.ser || '0';
+                        const pws = selectedOpt.dataset.pws || '0';
+                        itemStockIndicator.innerHTML = `<i class="fa-solid fa-cubes"></i> Current Available Stock: <span style="font-weight:900;">${total}</span> (SER: ${ser}, PWS: ${pws})`;
+                        itemStockIndicator.style.display = 'inline-flex';
+                    });
+            }
+        }
+
+        if (typeSelect) {
+            typeSelect.addEventListener('change', updateStockBadge);
+        }
+
+        let isVoucherValid = true;
+        let isAuthValid = true;
+
+        function updateSubmitButtonState() {
+            const submitStockBtn = document.getElementById('submitStockBtn');
+            if (!submitStockBtn) return;
+
+            if (!isVoucherValid || !isAuthValid) {
+                submitStockBtn.disabled = true;
+                submitStockBtn.style.opacity = '0.5';
+                submitStockBtn.style.cursor = 'not-allowed';
+            } else {
+                submitStockBtn.disabled = false;
+                submitStockBtn.style.opacity = '1';
+                submitStockBtn.style.cursor = 'pointer';
+            }
+        }
+
+        // Validate item auth requirement
+        function validateItemAuth() {
+            const selectedOpt = itemSelect.options[itemSelect.selectedIndex];
+            const authRequiredAlert = document.getElementById('authRequiredAlert');
+
+            if (selectedOpt && selectedOpt.value) {
+                const hasAuth = selectedOpt.dataset.hasAuth === 'true';
+                if (!hasAuth) {
+                    if (authRequiredAlert) authRequiredAlert.style.display = 'flex';
+                    isAuthValid = false;
+                } else {
+                    if (authRequiredAlert) authRequiredAlert.style.display = 'none';
+                    isAuthValid = true;
+                }
+            } else {
+                if (authRequiredAlert) authRequiredAlert.style.display = 'none';
+                isAuthValid = true;
+            }
+            updateSubmitButtonState();
+        }
+
+        // Voucher number uniqueness real-time check
+        const voucherInput = document.getElementById('voucherNoInput');
+        const voucherError = document.getElementById('voucherError');
+        let voucherCheckTimeout = null;
+
+        function checkVoucherNo() {
+            if (!voucherInput) return;
+            const val = voucherInput.value.trim();
+            if (!val) {
+                if (voucherError) voucherError.style.display = 'none';
+                voucherInput.classList.remove('is-invalid');
+                isVoucherValid = true;
+                updateSubmitButtonState();
+                return;
+            }
+
+            fetch(`/scme/api/check-voucher?voucher_no=${encodeURIComponent(val)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        if (voucherError) voucherError.style.display = 'block';
+                        voucherInput.classList.add('is-invalid');
+                        isVoucherValid = false;
+                    } else {
+                        if (voucherError) voucherError.style.display = 'none';
+                        voucherInput.classList.remove('is-invalid');
+                        isVoucherValid = true;
+                    }
+                    updateSubmitButtonState();
+                })
+                .catch(err => {
+                    console.error("Error checking voucher number:", err);
+                });
+        }
+
+        if (voucherInput) {
+            voucherInput.addEventListener('input', function() {
+                clearTimeout(voucherCheckTimeout);
+                voucherCheckTimeout = setTimeout(checkVoucherNo, 300);
+            });
+            voucherInput.addEventListener('change', checkVoucherNo);
+        }
+
+        // Trigger INSERT AUTH modal from alert button
+        const triggerInsertAuthModalBtn = document.getElementById('triggerInsertAuthModalBtn');
+        if (triggerInsertAuthModalBtn) {
+            triggerInsertAuthModalBtn.addEventListener('click', function() {
+                const selectedCat = catSelect.value;
+                const selectedItemId = itemSelect.value;
+                if (authCatSelect && selectedCat) {
+                    authCatSelect.value = selectedCat;
+                    authCatSelect.dispatchEvent(new Event('change'));
+                }
+                if (authItemSelect && selectedItemId) {
+                    authItemSelect.value = selectedItemId;
+                }
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('insertAuthModal'));
+                modalInstance.show();
+            });
+        }
+
+        catSelect.addEventListener('change', function() {
+            const selectedCat = this.value;
+            
+            // Reset items dropdown
+            itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
+            
+            allItemOptions.forEach(opt => {
+                const isCatMatch = !selectedCat || opt.dataset.category === selectedCat;
+                const isEccType = !opt.dataset.type || opt.dataset.type.toLowerCase() === 'ecc';
+                if (isCatMatch && isEccType) {
+                    itemSelect.appendChild(opt.cloneNode(true));
+                }
+            });
+
+            updateStockBadge();
+            validateItemAuth();
+        });
+
+        itemSelect.addEventListener('change', function() {
+            updateStockBadge();
+            validateItemAuth();
+        });
+        
+        // Trigger initial checks
+        updateStockBadge();
+        validateItemAuth();
+
+        // Auto-calculate Quantity = SER + PWS
+        const qtyInput = document.getElementById('stockQtyInput');
+        const serInput = document.getElementById('stockSerInput');
+        const pwsInput = document.getElementById('stockPwsInput');
+
+        function updateCalculatedQty() {
+            const serVal = parseInt(serInput.value, 10) || 0;
+            const pwsVal = parseInt(pwsInput.value, 10) || 0;
+            qtyInput.value = serVal + pwsVal;
+        }
+
+        if (serInput && pwsInput && qtyInput) {
+            serInput.addEventListener('input', updateCalculatedQty);
+            pwsInput.addEventListener('input', updateCalculatedQty);
+            serInput.addEventListener('change', updateCalculatedQty);
+            pwsInput.addEventListener('change', updateCalculatedQty);
+            updateCalculatedQty();
+        }
+
+        // Voucher search filter for FOD Stock Entries Log table
+        const voucherLogSearchInput = document.getElementById('voucherLogSearchInput');
+        if (voucherLogSearchInput) {
+            voucherLogSearchInput.addEventListener('input', function() {
+                const query = this.value.trim().toLowerCase();
+                const rows = document.querySelectorAll('.stock-log-row');
+                let visibleCount = 0;
+
+                rows.forEach((row) => {
+                    const voucherText = row.getAttribute('data-voucher') || '';
+                    if (!query || voucherText.includes(query)) {
+                        row.style.display = '';
+                        visibleCount++;
+                        const snoCell = row.querySelector('.sno-cell');
+                        if (snoCell) snoCell.textContent = visibleCount;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                const noMatchRow = document.getElementById('noVoucherMatchRow');
+                if (noMatchRow) {
+                    noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+                }
+            });
+        }
+    });
+</script>
+{% include 'modals/direct_issue_modal.html' %}
+{% endblock %}

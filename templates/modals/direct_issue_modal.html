@@ -1,0 +1,452 @@
+<!-- ══════════════════════════════════════════════════════════════════════
+     MODAL: DIRECT ISSUE FROM 2 FOD TO UNIT
+══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="directIssueToUnitModal" tabindex="-1" aria-labelledby="directIssueToUnitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 16px; border: 1px solid var(--border-dim); background: var(--bg-surface); box-shadow: 0 12px 36px rgba(0,0,0,0.18);">
+            
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 16px 22px; background: var(--bg-raised); border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title" id="directIssueToUnitModalLabel" style="font-weight: 800; font-size: 1.05rem; color: var(--text-primary); display: flex; align-items: center; gap: 9px; margin: 0;">
+                    <span style="width: 32px; height: 32px; border-radius: 8px; background: rgba(2,132,199,0.12); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 0.95rem;">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </span>
+                    <span>Direct Issue Items from Stock to Unit</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="directIssueForm" autocomplete="off" novalidate>
+                <div class="modal-body" style="padding: 22px 24px;">
+                    
+                    <!-- Alert Notice -->
+                    <div style="background: rgba(2,132,199,0.08); border-left: 4px solid #0284c7; padding: 10px 14px; border-radius: 6px; margin-bottom: 18px; font-size: 0.82rem; color: var(--text-secondary);">
+                        <i class="fa-solid fa-circle-info text-info me-1"></i>
+                        This action will <strong>directly deduct</strong> items from 2 FOD stock and <strong>allocate</strong> them straight to the target unit's held stock ledger.
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- 1. SELECT DOU -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                DOU / Formation <span class="text-danger">*</span>
+                            </label>
+                            <select id="directIssueDou" class="form-select" required style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <option value="">— Loading DOUs… —</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. TARGET CHILD UNIT -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                Target Unit <span class="text-danger">*</span>
+                            </label>
+                            <select id="directIssueUnit" class="form-select" required disabled style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <option value="">— Select DOU First —</option>
+                            </select>
+                        </div>
+
+                        <!-- 3. STOCK TYPE -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                Stock Type <span class="text-danger">*</span>
+                            </label>
+                            <select id="directIssueStockType" class="form-select" style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <option value="FREE STK" selected>FREE STK (Free Stock)</option>
+                                <option value="COMD">COMD (Command Reserve)</option>
+                                <option value="IHQ">IHQ (Army HQ Reserve)</option>
+                            </select>
+                        </div>
+
+                        <!-- 4. ITEM CATEGORY -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                Category <span class="text-danger">*</span>
+                            </label>
+                            <select id="directIssueCategory" class="form-select" required style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <option value="">— Select Category —</option>
+                            </select>
+                        </div>
+
+                        <!-- 5. ITEM -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                Item <span class="text-danger">*</span>
+                            </label>
+                            <select id="directIssueItem" class="form-select" required disabled style="border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <option value="">— Select Category First —</option>
+                            </select>
+                        </div>
+
+                        <!-- LIVE STOCK BADGE -->
+                        <div class="col-12" id="directIssueStockContainer" style="display: none;">
+                            <div style="background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                                <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+                                    <i class="fa-solid fa-warehouse text-primary me-1"></i> Available 2 FOD Stock:
+                                </span>
+                                <div style="display: flex; gap: 8px;">
+                                    <span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-size: 0.78rem; font-weight: 700; padding: 5px 10px;">
+                                        SER: <span id="directAvailSer">0</span>
+                                    </span>
+                                    <span class="badge" style="background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); font-size: 0.78rem; font-weight: 700; padding: 5px 10px;">
+                                        PWS: <span id="directAvailPws">0</span>
+                                    </span>
+                                    <span class="badge" style="background: rgba(2,132,199,0.15); color: #0284c7; border: 1px solid rgba(2,132,199,0.3); font-size: 0.78rem; font-weight: 700; padding: 5px 10px;">
+                                        TOTAL: <span id="directAvailTotal">0</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. SER QUANTITY TO ISSUE -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                Serviceable (SER) Quantity <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" id="directIssueSer" class="form-control" min="0" value="0" style="border-radius: 8px; font-size: 0.88rem; font-weight: 700; text-align: center;">
+                            <div class="invalid-feedback" id="errDirectSerExceeded" style="display:none; font-size:0.75rem; color:#dc2626; margin-top:3px;">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available SER!
+                            </div>
+                        </div>
+
+                        <!-- 6. PWS QUANTITY TO ISSUE -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                Pre-Warranty / Repairable (PWS) Quantity
+                            </label>
+                            <input type="number" id="directIssuePws" class="form-control" min="0" value="0" style="border-radius: 8px; font-size: 0.88rem; font-weight: 700; text-align: center;">
+                            <div class="invalid-feedback" id="errDirectPwsExceeded" style="display:none; font-size:0.75rem; color:#dc2626; margin-top:3px;">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available PWS!
+                            </div>
+                        </div>
+
+                        <!-- 7. REMARKS / VOUCHER -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold" style="font-size: 0.82rem; color: var(--text-primary);">
+                                Remarks / Authority / Voucher No.
+                            </label>
+                            <input type="text" id="directIssueRemarks" class="form-control" placeholder="e.g. Issue Voucher #FOD-102 or Special Release" style="border-radius: 8px; font-size: 0.85rem;">
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px; background: var(--bg-raised); border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; padding: 7px 18px;">Cancel</button>
+                    <button type="submit" id="btnSubmitDirectIssue" class="btn btn-primary d-inline-flex align-items-center gap-2" style="border-radius: 8px; font-weight: 700; padding: 7px 22px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none;">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Confirm Issue to Unit</span>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let stockedItemsCache = [];
+    let douUnitsMapCache = {};
+    let currentSelectedStock = { total: 0, ser: 0, pws: 0 };
+
+    const modalEl = document.getElementById('directIssueToUnitModal');
+    if (!modalEl) return;
+
+    // Relocate modal to body to avoid z-index/stacking context trapping
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    const douSel = document.getElementById('directIssueDou');
+    const unitSel = document.getElementById('directIssueUnit');
+    const catSel = document.getElementById('directIssueCategory');
+    const itemSel = document.getElementById('directIssueItem');
+    const serInput = document.getElementById('directIssueSer');
+    const pwsInput = document.getElementById('directIssuePws');
+    const stockContainer = document.getElementById('directIssueStockContainer');
+    const availSerSpan = document.getElementById('directAvailSer');
+    const availPwsSpan = document.getElementById('directAvailPws');
+    const availTotalSpan = document.getElementById('directAvailTotal');
+    const errSer = document.getElementById('errDirectSerExceeded');
+    const errPws = document.getElementById('errDirectPwsExceeded');
+    const submitBtn = document.getElementById('btnSubmitDirectIssue');
+    const issueForm = document.getElementById('directIssueForm');
+
+    // On Modal Open → Load DOUs and Stocked Items
+    modalEl.addEventListener('show.bs.modal', function () {
+        loadUnits();
+        loadStockedItems();
+    });
+
+    function loadUnits() {
+        if (douSel.options.length > 1 && !douSel.options[0].text.includes('Loading')) return;
+
+        fetch('/scme/api/get-all-units')
+            .then(res => res.json())
+            .then(data => {
+                douSel.innerHTML = '<option value="">— Select DOU —</option>';
+                unitSel.innerHTML = '<option value="">— Select DOU First —</option>';
+                unitSel.disabled = true;
+
+                if (data.success && data.dous && data.dous.length > 0) {
+                    douUnitsMapCache = data.dou_units_map || {};
+                    data.dous.forEach(dou => {
+                        const opt = document.createElement('option');
+                        opt.value = dou;
+                        opt.textContent = dou.replace('_', ' ');
+                        douSel.appendChild(opt);
+                    });
+
+                    // If only 1 DOU exists, auto-select it and populate child units
+                    if (data.dous.length === 1) {
+                        douSel.value = data.dous[0];
+                        onDouChange();
+                    }
+                } else {
+                    douSel.innerHTML = '<option value="">No DOU found</option>';
+                }
+            })
+            .catch(err => {
+                console.error("Error loading DOUs:", err);
+                douSel.innerHTML = '<option value="">Failed to load DOUs</option>';
+            });
+    }
+
+    douSel.addEventListener('change', onDouChange);
+
+    function onDouChange() {
+        const selectedDou = douSel.value;
+        unitSel.innerHTML = '<option value="">— Select Target Unit —</option>';
+
+        if (!selectedDou) {
+            unitSel.disabled = true;
+            unitSel.innerHTML = '<option value="">— Select DOU First —</option>';
+            return;
+        }
+
+        const childUnits = douUnitsMapCache[selectedDou] || [];
+        if (childUnits.length > 0) {
+            childUnits.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.name;
+                opt.textContent = u.label || u.name;
+                unitSel.appendChild(opt);
+            });
+            unitSel.disabled = false;
+
+            // If only 1 child unit, auto-select it
+            if (childUnits.length === 1) {
+                unitSel.value = childUnits[0].name;
+            }
+        } else {
+            unitSel.innerHTML = '<option value="">No child units found for this DOU</option>';
+            unitSel.disabled = true;
+        }
+    }
+
+    function loadStockedItems() {
+        fetch('/scme/api/stocked-items')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    stockedItemsCache = data.items || [];
+                    catSel.innerHTML = '<option value="">— Select Category —</option>';
+                    (data.categories || []).forEach(cat => {
+                        const opt = document.createElement('option');
+                        opt.value = cat;
+                        opt.textContent = cat;
+                        catSel.appendChild(opt);
+                    });
+                }
+            })
+            .catch(err => console.error("Error loading stocked items:", err));
+    }
+
+    // Category Change → Filter Items
+    catSel.addEventListener('change', function() {
+        const cat = catSel.value;
+        itemSel.innerHTML = '<option value="">— Select Item —</option>';
+        stockContainer.style.display = 'none';
+        currentSelectedStock = { total: 0, ser: 0, pws: 0 };
+        validateQuantities();
+
+        if (!cat) {
+            itemSel.disabled = true;
+            return;
+        }
+
+        const filtered = stockedItemsCache.filter(it => it.category === cat);
+        if (filtered.length > 0) {
+            filtered.forEach(it => {
+                const opt = document.createElement('option');
+                opt.value = it.id;
+                opt.textContent = `${it.name} (Stock: ${it.total})`;
+                itemSel.appendChild(opt);
+            });
+            itemSel.disabled = false;
+        } else {
+            itemSel.innerHTML = '<option value="">No stocked items in this category</option>';
+            itemSel.disabled = true;
+        }
+    });
+
+    // Item Change → Show Stock Badges
+    itemSel.addEventListener('change', function() {
+        const itemId = parseInt(itemSel.value, 10);
+        const itemObj = stockedItemsCache.find(it => it.id === itemId);
+
+        if (itemObj) {
+            currentSelectedStock = {
+                total: itemObj.total || 0,
+                ser: itemObj.ser || 0,
+                pws: itemObj.pws || 0
+            };
+            availSerSpan.textContent = currentSelectedStock.ser;
+            availPwsSpan.textContent = currentSelectedStock.pws;
+            availTotalSpan.textContent = currentSelectedStock.total;
+            stockContainer.style.display = 'block';
+        } else {
+            stockContainer.style.display = 'none';
+            currentSelectedStock = { total: 0, ser: 0, pws: 0 };
+        }
+        validateQuantities();
+    });
+
+    // Quantity Input Validation
+    serInput.addEventListener('input', validateQuantities);
+    pwsInput.addEventListener('input', validateQuantities);
+
+    function validateQuantities() {
+        const serVal = parseInt(serInput.value, 10) || 0;
+        const pwsVal = parseInt(pwsInput.value, 10) || 0;
+        let valid = true;
+
+        if (serVal > currentSelectedStock.ser) {
+            errSer.style.display = 'block';
+            serInput.classList.add('is-invalid');
+            valid = false;
+        } else {
+            errSer.style.display = 'none';
+            serInput.classList.remove('is-invalid');
+        }
+
+        if (pwsVal > currentSelectedStock.pws) {
+            errPws.style.display = 'block';
+            pwsInput.classList.add('is-invalid');
+            valid = false;
+        } else {
+            errPws.style.display = 'none';
+            pwsInput.classList.remove('is-invalid');
+        }
+
+        if (serVal + pwsVal <= 0) {
+            valid = false;
+        }
+
+        submitBtn.disabled = !valid;
+    }
+
+    // Submit Direct Issue
+    issueForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const douName = douSel.value;
+        const unitName = unitSel.value;
+        const itemId = itemSel.value;
+        const serVal = parseInt(serInput.value, 10) || 0;
+        const pwsVal = parseInt(pwsInput.value, 10) || 0;
+        const stockType = document.getElementById('directIssueStockType').value;
+        const remarks = document.getElementById('directIssueRemarks').value.trim();
+
+        if (!douName) {
+            alert("Please select a DOU.");
+            douSel.focus();
+            return;
+        }
+        if (!unitName) {
+            alert("Please select a target unit.");
+            unitSel.focus();
+            return;
+        }
+        if (!itemId) {
+            alert("Please select an item.");
+            itemSel.focus();
+            return;
+        }
+        if (serVal + pwsVal <= 0) {
+            alert("Please enter a valid quantity to issue.");
+            serInput.focus();
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Issuing…';
+
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfMeta ? csrfMeta.content : "";
+
+        fetch('/scme/api/direct-issue-to-unit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                unit_name: unitName,
+                item_id: itemId,
+                ser: serVal,
+                pws: pwsVal,
+                stock_type: stockType,
+                remarks: remarks
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Confirm Issue to Unit';
+
+            if (data.success) {
+                if (window.Notify && window.Notify.success) {
+                    Notify.success(data.message);
+                } else {
+                    alert(data.message);
+                }
+
+                // Close modal
+                const bsModal = bootstrap.Modal.getInstance(modalEl);
+                if (bsModal) bsModal.hide();
+
+                // Reset form
+                issueForm.reset();
+                unitSel.innerHTML = '<option value="">— Select DOU First —</option>';
+                unitSel.disabled = true;
+                stockContainer.style.display = 'none';
+                itemSel.innerHTML = '<option value="">— Select Category First —</option>';
+                itemSel.disabled = true;
+                if (douSel.options.length === 2) {
+                    douSel.selectedIndex = 1;
+                    onDouChange();
+                }
+
+                // Reload page or refresh table if available
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                if (window.Notify && window.Notify.error) {
+                    Notify.error(data.message || "Failed to issue stock.");
+                } else {
+                    alert(data.message || "Failed to issue stock.");
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Direct issue error:", err);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Confirm Issue to Unit';
+            alert("An error occurred while issuing items.");
+        });
+    });
+
+})();
+</script>

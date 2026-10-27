@@ -1,0 +1,1913 @@
+{# ============================================================================
+   SCME Dashboard — Metric Card Drill-Down Modals
+   Included into scme.html via:  {% include 'modals/modals.html' %}
+
+   Data sources (already available in the scme_home() context):
+     - total_items          (int)
+     - active_units         (int)
+     - global_deficiency    (number)
+     - critical_alerts      (int)
+     - unit_chart_data      (list of {unit_name, a_u, held})
+                             NOTE: 'a_u' here is the summed unit_authorized total.
+     - item_chart_data      (list of {item_name, deficiency})  [top 5]
+     - issued_items         (list of ScmeIssuedItems: .unit_name, .item, .item_id,
+                             .record_type, .a_u ('Nos'/'Prs'), .unit_authorized,
+                             .scale ('50%'), .held, .deficiency,
+                             .created_at)
+     - catalog_items        (OPTIONAL – full ScmeItems list; see route snippet.
+                             Falls back to distinct issued items if not passed.)
+
+   IMPORTANT: after the schema change, `a_u` on a record is a STRING ('Nos'/'Prs')
+   and `scale` is a STRING ('50%'). Never do math/comparisons on those. The
+   authorised COUNT now lives in `unit_authorized`.
+   ============================================================================ #}
+
+   <style>
+    /* ── Shared styling for all metric drill-down modals ── */
+    .metric-card-clickable { cursor: pointer; }
+
+    .metric-modal .modal-content {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .metric-modal .modal-header {
+        border-bottom: 1px solid var(--border-dim);
+        padding: 20px 24px;
+    }
+    .metric-modal .modal-title {
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1rem;
+    }
+    .metric-modal .modal-body { padding: 0; }
+    .metric-modal .modal-footer {
+        border-top: 1px solid var(--border-dim);
+        padding: 16px 24px;
+    }
+    .metric-modal .btn-close { filter: opacity(0.7); }
+
+    /* Summary strip at the top of a modal body */
+    .mm-summary {
+        display: flex;
+        gap: 32px;
+        flex-wrap: wrap;
+        padding: 16px 24px;
+        background: var(--bg-raised);
+        border-bottom: 1px solid var(--border-dim);
+    }
+    .mm-stat { display: flex; flex-direction: column; gap: 2px; }
+    .mm-stat-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+    .mm-stat-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    /* Shared table look */
+    .mm-table { width: 100%; border-collapse: collapse; margin: 0; }
+    .mm-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 13px 20px;
+        background-color: var(--bg-raised);
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-dim);
+    }
+    .mm-table tbody td {
+        padding: 13px 20px;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-dim);
+    }
+    .mm-table tbody tr { transition: background-color 0.15s; }
+    .mm-table tbody tr:hover { background-color: var(--accent-muted); }
+
+    .mm-num { text-align: center; font-variant-numeric: tabular-nums; }
+    .mm-strong { font-weight: 600; }
+    .mm-def-high { color: var(--danger); font-weight: 700; }
+    .mm-def-ok   { color: #10b981; font-weight: 700; }
+
+    .mm-empty {
+        padding: 50px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    .mm-empty i {
+        font-size: 2rem;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    /* Header icon accents (match the card colours) */
+    .mm-ic-primary { color: var(--accent); }
+    .mm-ic-success { color: #10b981; }
+    .mm-ic-danger  { color: var(--danger); }
+    .mm-ic-warning { color: var(--warning); }
+
+    .metric-modal .modal-footer .btn-close-x {
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: var(--bg-raised);
+        border-color: var(--border-dim);
+        color: var(--text-primary);
+    }
+    .badge-category {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .badge-cat-1 {
+        background: linear-gradient(135deg, #0ea5e9, #2563eb);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    }
+    .badge-cat-2 {
+        background: linear-gradient(135deg, #a855f7, #7c3aed);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+    }
+</style>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 1 — REGISTERED ITEMS  (card: "Registered Items")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalRegisteredItems" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-boxes-stacked mm-ic-primary"></i>
+                    Registered Catalog Items
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            {% set item_list = catalog_items if catalog_items is defined
+                               else (issued_items | map(attribute='item') | unique(attribute='id') | list) %}
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Registered</span>
+                    <span class="mm-stat-value">{{ total_items }}</span>
+                </div>
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Shown Here</span>
+                    <span class="mm-stat-value">{{ item_list | length }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 32px;">Item Name</th>
+                            <th style="text-align: center;">Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in item_list %}
+                            <tr>
+                                <td class="mm-strong" style="padding-left: 32px; display: flex; align-items: center; gap: 10px; height: 50px;">
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; box-shadow: 0 0 6px {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; flex-shrink: 0;"></div>
+                                    {{ it.item_name }}
+                                </td>
+                                <td style="text-align: center; vertical-align: middle;">
+                                    <span class="badge-category {% if it.category == 'CAT-I' %}badge-cat-1{% else %}badge-cat-2{% endif %}">{{ it.category }}</span>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="mm-empty">
+                                    <i class="fa-solid fa-box-open"></i>
+                                    No registered items found.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 2 — ACTIVE UNITS  (card: "Active Units")
+     unit_chart_data.a_u is the summed unit_authorized total (an int) — safe math.
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalActiveUnits" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-sitemap mm-ic-primary"></i>
+                    Active Units — Ledger Rollup
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Units Tracked</span>
+                    <span class="mm-stat-value">{{ active_units }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th class="mm-num">Unit Auth</th>
+                            <th class="mm-num">Held</th>
+                            <th class="mm-num">Defi</th>
+                            <th class="mm-num">Fulfillment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in unit_chart_data %}
+                            {% set u_def = u.a_u - u.held %}
+                            {% set u_ful = ((u.held / u.a_u * 100) | round(1)) if u.a_u > 0 else 0 %}
+                            <tr>
+                                <td class="mm-strong">{{ u.unit_name.replace('_', ' ').upper() }}</td>
+                                <td class="mm-num">{{ u.a_u }}</td>
+                                <td class="mm-num">{{ u.held }}</td>
+                                <td class="mm-num {% if u_def > 0 %}mm-def-high{% else %}mm-def-ok{% endif %}">{{ u_def }}</td>
+                                <td class="mm-num">{{ u_ful }}%</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="mm-empty">
+                                    <i class="fa-solid fa-sitemap"></i>
+                                    No active units found.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 3 — GLOBAL DEFICIENCY  (card: "Deficiency (Deafy)")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalGlobalDeficiency" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-arrow-trend-down mm-ic-danger"></i>
+                    Global Defi Breakdown
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            {% set def_records = issued_items | sort(attribute='deficiency', reverse=True) | list %}
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Defi</span>
+                    <span class="mm-stat-value" style="color: var(--danger);">{{ global_deficiency }}</span>
+                </div>
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Records</span>
+                    <span class="mm-stat-value">{{ issued_items | length }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th class="mm-num">A/U</th>
+                            <th class="mm-num">Unit Auth</th>
+                            <th class="mm-num">Held</th>
+                            <th class="mm-num">Defi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in def_records if r.deficiency > 0 %}
+                            <tr>
+                                <td class="mm-strong">{{ r.unit_name.replace('_', ' ').upper() }}</td>
+                                <td>{{ r.item.item_name }}</td>
+                                <td><span class="badge-category">{{ r.item.category }}</span></td>
+                                <td class="mm-num">{{ r.a_u }}</td>
+                                <td class="mm-num">{{ r.unit_authorized }}</td>
+                                <td class="mm-num">{{ r.held }}</td>
+                                <td class="mm-num mm-def-high">{{ r.deficiency }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="mm-empty">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    No deficiencies recorded — everything is fulfilled.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 4 — CRITICAL ALERTS  (card: "Critical Alerts")
+     Rule mirrors the backend: held < unit_authorized / 2
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalCriticalAlerts" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-bell mm-ic-warning"></i>
+                    Critical Alerts &nbsp;<span style="font-weight:500; font-size:0.8rem; color: var(--text-secondary);">(Held below 50% of Unit Auth)</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Critical Records</span>
+                    <span class="mm-stat-value" style="color: var(--warning);">{{ critical_alerts }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Item</th>
+                            <th class="mm-num">Unit Auth</th>
+                            <th class="mm-num">Held %</th>
+                            <th class="mm-num">Deficiency %</th>
+                            <th class="mm-num">Defi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in issued_items if r.unit_authorized > 0 and r.held < (r.unit_authorized / 2) %}
+                            {% set held_pct = (r.held / r.unit_authorized * 100) | round(1) %}
+                            {% set defi_pct = (100 - held_pct) | round(1) %}
+                            <tr>
+                                <td class="mm-strong">{{ r.unit_name.replace('_', ' ').upper() }}</td>
+                                <td>{{ r.item.item_name }}</td>
+                                <td class="mm-num">{{ r.unit_authorized }}</td>
+                                <td class="mm-num">
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 4px 10px; font-weight: 700;">{{ held_pct }}%</span>
+                                </td>
+                                <td class="mm-num">
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 4px 10px; font-weight: 700;">{{ defi_pct }}%</span>
+                                </td>
+                                <td class="mm-num mm-def-high">{{ r.deficiency }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="mm-empty">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    No critical alerts — all units above 50% stock.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 6 — REGISTERED ECC ITEMS  (card: "Registered ECC Items")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalRegisteredEccItems" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-boxes-stacked mm-ic-primary"></i>
+                    Registered ECC Catalog Items
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            {% set ecc_item_list = ecc_catalog_items if ecc_catalog_items is defined else [] %}
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Total Registered</span>
+                    <span class="mm-stat-value">{{ total_ecc_items }}</span>
+                </div>
+                
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 32px;">Item Name</th>
+                            <th style="text-align: center;">Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in ecc_item_list %}
+                            <tr>
+                                <td class="mm-strong" style="padding-left: 32px; display: flex; align-items: center; gap: 10px; height: 50px;">
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; box-shadow: 0 0 6px {% if it.category == 'CAT-I' %}#2563eb{% else %}#7c3aed{% endif %}; flex-shrink: 0;"></div>
+                                    {{ it.item_name }}
+                                </td>
+                                <td style="text-align: center; vertical-align: middle;">
+                                    <span class="badge-category {% if it.category == 'CAT-I' %}badge-cat-1{% else %}badge-cat-2{% endif %}">{{ it.category }}</span>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="mm-empty">
+                                    <i class="fa-solid fa-box-open"></i>
+                                    No registered ECC items found.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 7 — DEPENDENT DOUs  (card: "Dependent DOU")
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalActiveDivisions" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-between align-items-center">
+                <h5 class="modal-title m-0">
+                    <i class="fa-solid fa-sitemap mm-ic-primary"></i>
+                    Dependent DOU & Strengths
+                </h5>
+                <div class="d-flex align-items-center gap-3">
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteDOU" style="border-radius: 8px; font-weight: 600; font-size: 0.82rem; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">DOU Tracked</span>
+                    <span class="mm-stat-value">{{ db_units | length }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table" id="tableDivStrengths">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center; width: 70px;">S.No</th>
+                            <th style="text-align: center;">DOU</th>
+                            <th style="text-align: center; width: 140px;">Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if db_units %}
+                            {% for u in db_units %}
+                                <tr>
+                                    <td class="mm-num" style="text-align: center; vertical-align: middle; color: var(--text-secondary); font-weight: 700;">{{ loop.index }}</td>
+                                    <td class="mm-strong" style="text-align: center; vertical-align: middle;">{{ u.name.replace('_', ' ').upper() }}</td>
+                                    <td style="text-align: center; vertical-align: middle;">
+                                        {% set u_cnt = u.child_units_count if u.child_units_count is defined else (dou_child_count_map.get(u.name, dou_child_count_map.get(u.name|lower, dou_child_count_map.get(u.name.replace('_', ' '), 0))) if dou_child_count_map is defined else (division_child_units_map.get(u.name, division_child_units_map.get(u.name.replace('_', ' '), [])) | length if division_child_units_map is defined else 0)) %}
+                                        <span class="badge {% if u_cnt > 0 %}bg-primary{% else %}bg-secondary{% endif %}" style="font-size: 0.85rem; padding: 5px 14px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                                            <i class="fa-solid fa-shield-halved" style="font-size: 0.75rem;"></i> {{ u_cnt }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="3" class="mm-empty text-center py-4">
+                                    <i class="fa-solid fa-sitemap"></i>
+                                    No divisions found in unit table.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 7C — DELETE DOU OR UNIT
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalDeleteDouOrUnit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.35); overflow: hidden;">
+            <div class="modal-header d-flex justify-content-between align-items-center" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px; background: var(--bg-raised);">
+                <h5 class="modal-title m-0" style="font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; color: var(--text-primary);">
+                    <i class="fa-solid fa-trash-can" style="color: var(--danger);"></i>
+                    Delete DOU or Unit
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+                <!-- 1. Selection Options: DOU vs Unit -->
+                <div>
+                    <label class="form-label fw-bold mb-2" style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                        Choose an option to delete <span class="text-danger">*</span>
+                    </label>
+                    <div class="d-flex gap-3 flex-wrap flex-sm-nowrap">
+                        <div class="delete-entity-card flex-fill active" id="cardDeleteDou" style="cursor: pointer; padding: 16px; border-radius: 12px; border: 2px solid var(--danger); background: rgba(192, 57, 43, 0.06); transition: all 0.2s ease;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(192, 57, 43, 0.12); color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                                    <i class="fa-solid fa-sitemap"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold" style="font-size: 0.95rem; color: var(--text-primary);">DOU</div>
+                                    <div style="font-size: 0.78rem; color: var(--text-secondary);">Delete a Dependent DOU</div>
+                                </div>
+                                <div>
+                                    <input type="radio" name="deleteEntityTypeRadio" id="radioDeleteDou" value="dou" checked style="width: 18px; height: 18px; accent-color: var(--danger); cursor: pointer;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="delete-entity-card flex-fill" id="cardDeleteUnit" style="cursor: pointer; padding: 16px; border-radius: 12px; border: 2px solid var(--border-dim); background: var(--bg-raised); transition: all 0.2s ease;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold" style="font-size: 0.95rem; color: var(--text-primary);">Unit</div>
+                                    <div style="font-size: 0.78rem; color: var(--text-secondary);">Delete a Child Unit</div>
+                                </div>
+                                <div>
+                                    <input type="radio" name="deleteEntityTypeRadio" id="radioDeleteUnit" value="unit" style="width: 18px; height: 18px; accent-color: var(--danger); cursor: pointer;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2A. Field for DOU: Show all dependent DOUs only -->
+                <div id="sectionDeleteDou">
+                    <label for="selectDeleteDou" class="form-label fw-bold" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 6px;">
+                        Select Dependent DOU to Delete <span class="text-danger">*</span>
+                    </label>
+                    <select id="selectDeleteDou" class="form-select" style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                        <option value="">-- Choose Dependent DOU --</option>
+                        {% for u in db_units %}
+                            <option value="{{ u.name }}">{{ u.name.replace('_', ' ').upper() }}</option>
+                        {% endfor %}
+                    </select>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px;">
+                        <i class="fa-solid fa-circle-info me-1"></i> Showing all dependent DOUs tracked in the system.
+                    </div>
+                    <!-- Container for child units check under DOU -->
+                    <div id="douChildUnitsContainer" class="mt-2" style="display: none;"></div>
+                </div>
+
+                <!-- 2B. Fields for Unit: Show DOU dropdown, then depending on chosen DOU show units -->
+                <div id="sectionDeleteUnit" style="display: none;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="selectParentDouForUnit" class="form-label fw-bold" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 6px;">
+                                1. Select Parent DOU <span class="text-danger">*</span>
+                            </label>
+                            <select id="selectParentDouForUnit" class="form-select" style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                                <option value="">-- Choose Parent DOU --</option>
+                                {% for u in db_units %}
+                                    <option value="{{ u.name }}">{{ u.name.replace('_', ' ').upper() }}</option>
+                                {% endfor %}
+                            </select>
+                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px;">
+                                Select the DOU this unit belongs to.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="selectDeleteUnit" class="form-label fw-bold" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 6px;">
+                                2. Select Unit to Delete <span class="text-danger">*</span>
+                            </label>
+                            <select id="selectDeleteUnit" class="form-select" disabled style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                                <option value="">-- Select DOU first --</option>
+                            </select>
+                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px;">
+                                Units dynamically loaded for the chosen DOU.
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Container for unit held stock validation check -->
+                    <div id="unitStockStatusContainer" class="mt-2" style="display: none;"></div>
+                </div>
+
+                <!-- Warning Alert -->
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-0 py-2 px-3" style="border-radius: 8px; font-size: 0.82rem; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: var(--warning);">
+                    <i class="fa-solid fa-triangle-exclamation flex-shrink-0"></i>
+                    <span><strong>Policy:</strong> Units currently holding equipment (held &gt; 0) cannot be deleted. All equipment must be returned or transferred first.</span>
+                </div>
+
+                <!-- Feedback alert message -->
+                <div id="deleteEntityFeedback" class="alert d-none mb-0 py-2 px-3" style="border-radius: 8px; font-size: 0.85rem;"></div>
+            </div>
+
+            <div class="modal-footer d-flex justify-content-between align-items-center" style="border-top: 1px solid var(--border-dim); padding: 16px 24px; background: var(--bg-raised);">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary px-3" id="btnBackToActiveDivisions" style="border-radius: 8px; font-weight: 600; font-size: 0.85rem;">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back to DOUs
+                    </button>
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; font-size: 0.85rem;">
+                        Cancel
+                    </button>
+                </div>
+                <button type="button" class="btn btn-danger px-4" id="btnConfirmDeleteEntity" disabled style="border-radius: 8px; font-weight: 700; font-size: 0.85rem; background: var(--danger); border-color: var(--danger); display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3);">
+                    <i class="fa-solid fa-trash-can"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CONFIRMATION POPUP MODAL — UNIT DELETION WITH 5-SEC COUNTDOWN
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalConfirmDeleteUnitPopup" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" style="z-index: 1070;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid rgba(220, 53, 69, 0.4); color: var(--text-primary); border-radius: 18px; box-shadow: 0 25px 60px rgba(0,0,0,0.5); overflow: hidden;">
+            
+            <div class="modal-header d-flex justify-content-between align-items-center" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px; background: linear-gradient(135deg, rgba(220, 53, 69, 0.12), rgba(220, 53, 69, 0.04));">
+                <h5 class="modal-title m-0 text-danger" style="font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Confirm Permanent Deletion
+                </h5>
+                <button type="button" class="btn-close" id="btnCloseConfirmDeleteUnit" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" style="padding: 24px;">
+                <!-- Initial Confirmation View -->
+                <div id="confirmDeleteInitialView">
+                    <div class="text-center mb-3">
+                        <div style="width: 62px; height: 62px; border-radius: 50%; background: rgba(220, 53, 69, 0.12); color: #dc3545; display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 0 25px rgba(220, 53, 69, 0.2);">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-3">
+                        <span class="badge bg-danger fs-6 px-3 py-2 fw-bold" id="confirmUnitBadge" style="letter-spacing: 0.5px;">
+                            UNIT NAME
+                        </span>
+                    </div>
+
+                    <div class="text-center mb-3 fw-semibold" id="confirmDeleteQuestion" style="font-size: 0.92rem; color: var(--text-primary);">
+                        Are you sure you want to permanently delete this unit?
+                    </div>
+
+                    <div class="p-3 rounded-3 mb-3" style="background: var(--bg-raised); border: 1px solid var(--border-dim); font-size: 0.8rem; line-height: 1.6; color: var(--text-secondary);">
+                        <div class="fw-bold text-danger mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> This action CANNOT be undone:</div>
+                        <div>• Permanently removes user login credentials & access</div>
+                        <div>• Removes formation node from OrgLadder & references</div>
+                        <div>• Deletes stock tracking, TPS stock, and authorizations</div>
+                        <div>• Wipes personnel, transactions, and audit records</div>
+                    </div>
+
+                    <!-- 5-second countdown notice -->
+                    <div class="text-center" id="countdownNotice" style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">
+                        <i class="fa-solid fa-clock-rotate-left me-1 text-warning"></i>
+                        Confirm button unlocks in: <span class="badge bg-warning text-dark px-2 py-1" id="countdownSecondsBadge">5s</span>
+                    </div>
+                </div>
+
+                <!-- Animated Execution Progress View (Shown when button is pressed) -->
+                <div id="confirmDeleteProgressView" style="display: none;">
+                    <div class="text-center mb-4">
+                        <h6 class="fw-bold mb-1" style="color: var(--text-primary); font-size: 1.05rem;">
+                            Deleting <span id="progressTargetType">Unit</span> <span id="progressUnitName" class="text-danger"></span>
+                        </h6>
+                        <div class="small text-muted">Please wait while the system completes permanent removal...</div>
+                    </div>
+
+                    <!-- Progress Step Cards -->
+                    <div class="d-flex flex-column gap-2" id="deleteProgressSteps">
+                        <!-- Step 1: VERIFYING -->
+                        <div class="p-3 rounded-3 d-flex align-items-center gap-3 delete-step" id="stepVerifying" style="background: var(--bg-raised); border: 1px solid var(--border-dim); transition: all 0.3s ease;">
+                            <div class="step-icon" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; background: rgba(100, 116, 139, 0.15); color: var(--text-muted);">
+                                <i class="fa-solid fa-hourglass-start"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold step-title" style="font-size: 0.88rem; color: var(--text-primary);">VERIFYING</div>
+                                <div class="small text-muted step-desc" id="stepVerifyingDesc" style="font-size: 0.76rem;">Validating stock balances and permissions...</div>
+                            </div>
+                            <div class="step-status"></div>
+                        </div>
+
+                        <!-- Step 2: CHECKING -->
+                        <div class="p-3 rounded-3 d-flex align-items-center gap-3 delete-step" id="stepChecking" style="background: var(--bg-raised); border: 1px solid var(--border-dim); opacity: 0.5; transition: all 0.3s ease;">
+                            <div class="step-icon" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; background: rgba(100, 116, 139, 0.15); color: var(--text-muted);">
+                                <i class="fa-solid fa-list-check"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold step-title" style="font-size: 0.88rem; color: var(--text-primary);">CHECKING</div>
+                                <div class="small text-muted step-desc" id="stepCheckingDesc" style="font-size: 0.76rem;">Checking all database references and user logins...</div>
+                            </div>
+                            <div class="step-status"></div>
+                        </div>
+
+                        <!-- Step 3: DELETING FROM ALL TABLES -->
+                        <div class="p-3 rounded-3 d-flex align-items-center gap-3 delete-step" id="stepDeleting" style="background: var(--bg-raised); border: 1px solid var(--border-dim); opacity: 0.5; transition: all 0.3s ease;">
+                            <div class="step-icon" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; background: rgba(100, 116, 139, 0.15); color: var(--text-muted);">
+                                <i class="fa-solid fa-database"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold step-title" style="font-size: 0.88rem; color: var(--text-primary);">DELETING FROM ALL TABLES</div>
+                                <div class="small text-muted step-desc" id="stepDeletingDesc" style="font-size: 0.76rem;">Removing from LoginUsers, OrgLadder, Ledgers, TPS & Personnel...</div>
+                            </div>
+                            <div class="step-status"></div>
+                        </div>
+
+                        <!-- Step 4: SUCCESSFULLY DELETED -->
+                        <div class="p-3 rounded-3 d-flex align-items-center gap-3 delete-step" id="stepCompleted" style="background: var(--bg-raised); border: 1px solid var(--border-dim); opacity: 0.5; transition: all 0.3s ease;">
+                            <div class="step-icon" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; background: rgba(100, 116, 139, 0.15); color: var(--text-muted);">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold step-title" style="font-size: 0.88rem; color: var(--text-primary);">SUCCESSFULLY DELETED</div>
+                                <div class="small text-muted step-desc" style="font-size: 0.76rem;">Unit permanently erased from everywhere.</div>
+                            </div>
+                            <div class="step-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer d-flex justify-content-between align-items-center" style="border-top: 1px solid var(--border-dim); padding: 16px 24px; background: var(--bg-raised);" id="confirmModalFooter">
+                <button type="button" class="btn btn-secondary px-3" id="btnCancelConfirmDeleteUnit" style="border-radius: 8px; font-weight: 600; font-size: 0.85rem;">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-secondary px-4 fw-bold" id="btnExecuteDeleteUnit" disabled style="border-radius: 8px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
+                    <i class="fa-solid fa-lock" id="iconExecuteDelete"></i> <span id="btnExecuteDeleteUnitText">Delete (5s)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let deleteDouUnitsMap = {{ (division_child_units_map or {}) | tojson }};
+
+    function initDeleteEntityModal() {
+        const modalActiveDivs = document.getElementById('modalActiveDivisions');
+        const modalDelete = document.getElementById('modalDeleteDouOrUnit');
+        const modalConfirmPopup = document.getElementById('modalConfirmDeleteUnitPopup');
+        const btnBack = document.getElementById('btnBackToActiveDivisions');
+
+        const cardDou = document.getElementById('cardDeleteDou');
+        const cardUnit = document.getElementById('cardDeleteUnit');
+        const radioDou = document.getElementById('radioDeleteDou');
+        const radioUnit = document.getElementById('radioDeleteUnit');
+        const secDou = document.getElementById('sectionDeleteDou');
+        const secUnit = document.getElementById('sectionDeleteUnit');
+
+        const selDou = document.getElementById('selectDeleteDou');
+        const douChildContainer = document.getElementById('douChildUnitsContainer');
+
+        const selParentDou = document.getElementById('selectParentDouForUnit');
+        const selUnit = document.getElementById('selectDeleteUnit');
+        const unitStockContainer = document.getElementById('unitStockStatusContainer');
+
+        const btnConfirm = document.getElementById('btnConfirmDeleteEntity');
+        const feedback = document.getElementById('deleteEntityFeedback');
+
+        // Confirm Popup elements
+        const btnCloseConfirm = document.getElementById('btnCloseConfirmDeleteUnit');
+        const btnCancelConfirm = document.getElementById('btnCancelConfirmDeleteUnit');
+        const btnExecuteDelete = document.getElementById('btnExecuteDeleteUnit');
+        const btnExecuteDeleteText = document.getElementById('btnExecuteDeleteUnitText');
+        const countdownBadge = document.getElementById('countdownSecondsBadge');
+        const countdownNotice = document.getElementById('countdownNotice');
+        const confirmUnitBadge = document.getElementById('confirmUnitBadge');
+        const progressUnitName = document.getElementById('progressUnitName');
+        const confirmInitialView = document.getElementById('confirmDeleteInitialView');
+        const confirmProgressView = document.getElementById('confirmDeleteProgressView');
+        const confirmModalFooter = document.getElementById('confirmModalFooter');
+
+        let currentEntityCanDelete = false;
+        let currentCheckingEntity = null;
+        let currentEntityType = 'dou'; // 'dou' or 'unit'
+        let countdownTimerInterval = null;
+
+        // Open Delete Modal from Dependent DOU modal button
+        document.addEventListener('click', function(e) {
+            const trigger = e.target.closest('#btnDeleteDOU');
+            if (trigger) {
+                e.preventDefault();
+                resetDeleteModal();
+                function showDelModal() {
+                    if (modalDelete) {
+                        const delModalBs = bootstrap.Modal.getOrCreateInstance(modalDelete);
+                        delModalBs.show();
+                    }
+                }
+                if (modalActiveDivs) {
+                    const activeModalBs = bootstrap.Modal.getInstance(modalActiveDivs);
+                    if (activeModalBs && modalActiveDivs.classList.contains('show')) {
+                        modalActiveDivs.addEventListener('hidden.bs.modal', function onActiveHidden() {
+                            modalActiveDivs.removeEventListener('hidden.bs.modal', onActiveHidden);
+                            showDelModal();
+                        });
+                        activeModalBs.hide();
+                        return;
+                    }
+                }
+                showDelModal();
+            }
+        });
+
+        // Back to Dependent DOUs Modal
+        if (btnBack) {
+            btnBack.addEventListener('click', function() {
+                function showActiveModal() {
+                    if (modalActiveDivs) {
+                        const activeModalBs = bootstrap.Modal.getOrCreateInstance(modalActiveDivs);
+                        activeModalBs.show();
+                    }
+                }
+                if (modalDelete) {
+                    const delModalBs = bootstrap.Modal.getInstance(modalDelete);
+                    if (delModalBs && modalDelete.classList.contains('show')) {
+                        modalDelete.addEventListener('hidden.bs.modal', function onDelHidden() {
+                            modalDelete.removeEventListener('hidden.bs.modal', onDelHidden);
+                            showActiveModal();
+                        });
+                        delModalBs.hide();
+                        return;
+                    }
+                }
+                showActiveModal();
+            });
+        }
+
+        function resetDeleteModal() {
+            if (feedback) feedback.classList.add('d-none');
+            if (douChildContainer) douChildContainer.style.display = 'none';
+            if (unitStockContainer) unitStockContainer.style.display = 'none';
+            currentEntityCanDelete = false;
+            currentCheckingEntity = null;
+            currentEntityType = (radioDou && radioDou.checked) ? 'dou' : 'unit';
+            if (btnConfirm) {
+                btnConfirm.disabled = true;
+                btnConfirm.className = 'btn btn-secondary px-4';
+                btnConfirm.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+            }
+        }
+
+        // Toggle DOU vs Unit
+        function setDeleteType(type) {
+            resetDeleteModal();
+            if (type === 'dou') {
+                if (radioDou) radioDou.checked = true;
+                if (cardDou) {
+                    cardDou.style.border = '2px solid var(--danger)';
+                    cardDou.style.background = 'rgba(192, 57, 43, 0.06)';
+                }
+                if (cardUnit) {
+                    cardUnit.style.border = '2px solid var(--border-dim)';
+                    cardUnit.style.background = 'var(--bg-raised)';
+                }
+                if (secDou) secDou.style.display = 'block';
+                if (secUnit) secUnit.style.display = 'none';
+                currentEntityType = 'dou';
+                if (selDou && selDou.value) onDouSelected();
+            } else {
+                if (radioUnit) radioUnit.checked = true;
+                if (cardUnit) {
+                    cardUnit.style.border = '2px solid var(--danger)';
+                    cardUnit.style.background = 'rgba(192, 57, 43, 0.06)';
+                }
+                if (cardDou) {
+                    cardDou.style.border = '2px solid var(--border-dim)';
+                    cardDou.style.background = 'var(--bg-raised)';
+                }
+                if (secDou) secDou.style.display = 'none';
+                if (secUnit) secUnit.style.display = 'block';
+                currentEntityType = 'unit';
+                if (selUnit && selUnit.value) onUnitSelected();
+            }
+        }
+
+        if (cardDou) cardDou.addEventListener('click', () => setDeleteType('dou'));
+        if (cardUnit) cardUnit.addEventListener('click', () => setDeleteType('unit'));
+        if (radioDou) radioDou.addEventListener('change', () => setDeleteType('dou'));
+        if (radioUnit) radioUnit.addEventListener('change', () => setDeleteType('unit'));
+
+        // Handle DOU selection: Check if child units exist!
+        function onDouSelected() {
+            if (!selDou || !douChildContainer) return;
+            const chosenDou = (selDou.value || '').trim();
+            douChildContainer.innerHTML = '';
+
+            if (!chosenDou) {
+                douChildContainer.style.display = 'none';
+                currentEntityCanDelete = false;
+                currentCheckingEntity = null;
+                if (btnConfirm) {
+                    btnConfirm.disabled = true;
+                    btnConfirm.className = 'btn btn-secondary px-4';
+                    btnConfirm.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+                }
+                return;
+            }
+
+            douChildContainer.style.display = 'block';
+            douChildContainer.innerHTML = `
+                <div class="alert alert-secondary py-2 px-3 mt-2 mb-0 d-flex align-items-center gap-2" style="font-size: 0.82rem;">
+                    <span class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+                    <span>Checking child units & stock for ${chosenDou.replace(/_/g, ' ').toUpperCase()}...</span>
+                </div>
+            `;
+
+            if (btnConfirm) {
+                btnConfirm.disabled = true;
+                btnConfirm.className = 'btn btn-secondary px-4';
+                btnConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking...';
+            }
+
+            fetch(`/scme/api/check-dou-delete-status?dou_name=${encodeURIComponent(chosenDou)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        douChildContainer.innerHTML = `<div class="alert alert-danger py-2 px-3 mt-2 mb-0" style="font-size: 0.82rem;">${data.message || 'Error checking DOU'}</div>`;
+                        return;
+                    }
+
+                    if (data.has_child_units && data.child_units && data.child_units.length > 0) {
+                        currentEntityCanDelete = false;
+                        currentCheckingEntity = null;
+
+                        douChildContainer.innerHTML = `
+                            <div class="alert alert-warning mt-2 mb-0 py-2 px-3" style="border-radius: 10px; border: 1px solid rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.08);">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="fa-solid fa-triangle-exclamation text-danger fs-5"></i>
+                                    <strong class="text-danger" style="font-size: 0.88rem;">Cannot Delete DOU: Child Units Exist!</strong>
+                                </div>
+                                <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 8px;">
+                                    This DOU currently has <strong>${data.child_units.length} child unit(s)</strong>. According to system rules, all child units must be deleted first before deleting this DOU:
+                                </div>
+                                <div class="d-flex flex-wrap gap-2" id="douChildUnitsChipsContainer"></div>
+                            </div>
+                        `;
+
+                        const chipsBox = document.getElementById('douChildUnitsChipsContainer');
+                        if (chipsBox) {
+                            data.child_units.forEach(u => {
+                                const btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.className = 'btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1';
+                                btn.style.borderRadius = '6px';
+                                btn.style.fontSize = '0.78rem';
+                                btn.style.fontWeight = '600';
+                                btn.innerHTML = `<i class="fa-solid fa-arrow-right"></i> Delete ${u.replace(/_/g, ' ').toUpperCase()}`;
+                                btn.onclick = function() {
+                                    switchToUnitDelete(chosenDou, u);
+                                };
+                                chipsBox.appendChild(btn);
+                            });
+                        }
+
+                        if (btnConfirm) {
+                            btnConfirm.disabled = true;
+                            btnConfirm.className = 'btn btn-secondary px-4';
+                            btnConfirm.innerHTML = '<i class="fa-solid fa-ban"></i> Delete Child Units First';
+                        }
+                    } else if (data.can_delete) {
+                        currentEntityCanDelete = true;
+                        currentCheckingEntity = chosenDou;
+                        currentEntityType = 'dou';
+
+                        douChildContainer.innerHTML = `
+                            <div class="alert alert-success mt-2 mb-0 py-2 px-3" style="border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                                    <strong class="text-success" style="font-size: 0.88rem;">DOU Ready for Permanent Deletion</strong>
+                                </div>
+                                <div style="font-size: 0.82rem; color: var(--text-primary);">
+                                    DOU <strong>${chosenDou.replace(/_/g, ' ').toUpperCase()}</strong> has <strong>0 child units</strong> and holds <strong>0 equipment</strong>.
+                                </div>
+                                <div class="mt-2" style="font-size: 0.76rem; color: var(--text-secondary);">
+                                    <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Ready to open confirmation. Click Delete to proceed.
+                                </div>
+                            </div>
+                        `;
+
+                        if (btnConfirm) {
+                            btnConfirm.disabled = false;
+                            btnConfirm.className = 'btn btn-danger px-4 fw-bold';
+                            btnConfirm.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+                        }
+                    } else if (data.total_held > 0) {
+                        currentEntityCanDelete = false;
+                        currentCheckingEntity = null;
+
+                        douChildContainer.innerHTML = `
+                            <div class="alert alert-danger mt-2 mb-0 py-2 px-3" style="border-radius: 10px; border: 1px solid rgba(220, 53, 69, 0.4); background: rgba(220, 53, 69, 0.08);">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="fa-solid fa-ban text-danger fs-5"></i>
+                                    <strong class="text-danger" style="font-size: 0.88rem;">Deletion Blocked — DOU Holds Equipment!</strong>
+                                </div>
+                                <div style="font-size: 0.82rem; color: var(--text-primary);">
+                                    DOU <strong>${chosenDou.replace(/_/g, ' ').toUpperCase()}</strong> has 0 child units, but holds <strong>${data.total_held} item(s)</strong> in stock. Deletion is prohibited until all stock is returned or transferred.
+                                </div>
+                            </div>
+                        `;
+
+                        if (btnConfirm) {
+                            btnConfirm.disabled = true;
+                            btnConfirm.className = 'btn btn-secondary px-4';
+                            btnConfirm.innerHTML = '<i class="fa-solid fa-ban"></i> Cannot Delete (Stock > 0)';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    douChildContainer.innerHTML = `<div class="alert alert-danger py-2 px-3 mt-2 mb-0" style="font-size: 0.82rem;">Could not check child units: ${err.message}</div>`;
+                });
+        }
+
+        if (selDou) {
+            selDou.addEventListener('change', onDouSelected);
+        }
+
+        // Switch to Unit Delete with pre-selected DOU and unit
+        window.switchToUnitDelete = function(parentDou, targetUnit) {
+            setDeleteType('unit');
+            if (selParentDou) {
+                selParentDou.value = parentDou;
+                onParentDouChange(targetUnit);
+            }
+        };
+
+        // Cascading Parent DOU -> Child Units
+        function onParentDouChange(preselectedUnit) {
+            if (!selParentDou || !selUnit) return;
+            const chosenDou = (selParentDou.value || '').trim();
+            selUnit.innerHTML = '';
+            if (unitStockContainer) unitStockContainer.style.display = 'none';
+            currentEntityCanDelete = false;
+            currentCheckingEntity = null;
+            if (btnConfirm) {
+                btnConfirm.disabled = true;
+                btnConfirm.className = 'btn btn-secondary px-4';
+                btnConfirm.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+            }
+
+            if (!chosenDou) {
+                selUnit.innerHTML = '<option value="">-- Select DOU first --</option>';
+                selUnit.disabled = true;
+                return;
+            }
+
+            // Look up child units
+            let units = deleteDouUnitsMap[chosenDou]
+                     || deleteDouUnitsMap[chosenDou.replace(/ /g, '_')]
+                     || deleteDouUnitsMap[chosenDou.replace(/_/g, ' ')]
+                     || [];
+
+            if (!units || units.length === 0) {
+                const norm = chosenDou.toLowerCase().replace(/_/g, ' ').trim();
+                for (const k in deleteDouUnitsMap) {
+                    if (k.toLowerCase().replace(/_/g, ' ').trim() === norm) {
+                        units = deleteDouUnitsMap[k];
+                        break;
+                    }
+                }
+            }
+
+            if (units && units.length > 0) {
+                selUnit.innerHTML = '<option value="">-- Choose Unit to Delete --</option>';
+                const unique = Array.from(new Set(units));
+                unique.sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ''), 10) || 9999;
+                    const numB = parseInt(b.replace(/\D/g, ''), 10) || 9999;
+                    return numA !== numB ? numA - numB : a.localeCompare(b);
+                });
+                unique.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u;
+                    opt.textContent = u.replace(/_/g, ' ').toUpperCase();
+                    if (preselectedUnit && (u.toLowerCase() === preselectedUnit.toLowerCase() || u.replace(/_/g, ' ').toLowerCase() === preselectedUnit.replace(/_/g, ' ').toLowerCase())) {
+                        opt.selected = true;
+                    }
+                    selUnit.appendChild(opt);
+                });
+                selUnit.disabled = false;
+
+                if (preselectedUnit) {
+                    onUnitSelected();
+                }
+            } else {
+                selUnit.innerHTML = '<option value="">(No child units found under this DOU)</option>';
+                selUnit.disabled = true;
+            }
+        }
+
+        if (selParentDou) {
+            selParentDou.addEventListener('change', () => onParentDouChange(null));
+        }
+
+        // When a unit is selected, check its stock balance!
+        function onUnitSelected() {
+            if (!selUnit || !unitStockContainer) return;
+            const chosenUnit = (selUnit.value || '').trim();
+            unitStockContainer.innerHTML = '';
+
+            if (!chosenUnit) {
+                unitStockContainer.style.display = 'none';
+                currentEntityCanDelete = false;
+                currentCheckingEntity = null;
+                if (btnConfirm) {
+                    btnConfirm.disabled = true;
+                    btnConfirm.className = 'btn btn-secondary px-4';
+                    btnConfirm.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+                }
+                return;
+            }
+
+            unitStockContainer.style.display = 'block';
+            unitStockContainer.innerHTML = `
+                <div class="alert alert-secondary py-2 px-3 mt-2 mb-0 d-flex align-items-center gap-2" style="font-size: 0.82rem;">
+                    <span class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+                    <span>Checking equipment and held stock for ${chosenUnit.replace(/_/g, ' ').toUpperCase()}...</span>
+                </div>
+            `;
+
+            if (btnConfirm) {
+                btnConfirm.disabled = true;
+                btnConfirm.className = 'btn btn-secondary px-4';
+                btnConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking Stock...';
+            }
+
+            fetch(`/scme/api/check-unit-delete-status?unit_name=${encodeURIComponent(chosenUnit)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        unitStockContainer.innerHTML = `<div class="alert alert-danger py-2 px-3 mt-2 mb-0" style="font-size: 0.82rem;">${data.message || 'Error checking unit stock'}</div>`;
+                        return;
+                    }
+
+                    if (!data.can_delete || data.total_held > 0) {
+                        currentEntityCanDelete = false;
+                        currentCheckingEntity = null;
+
+                        const breakdownRows = (data.held_items || []).map(it => `
+                            <tr style="border-bottom: 1px solid var(--border-dim);">
+                                <td class="px-2 py-1 fw-semibold">${it.item_name}</td>
+                                <td class="px-2 py-1 text-end">
+                                    <span class="badge bg-danger">${it.held} Held</span>
+                                    <span class="text-muted ms-1" style="font-size: 0.72rem;">(SER: ${it.ser}, PWS: ${it.pws})</span>
+                                </td>
+                            </tr>
+                        `).join('');
+
+                        unitStockContainer.innerHTML = `
+                            <div class="alert alert-danger mt-2 mb-0 py-2 px-3" style="border-radius: 10px; border: 1px solid rgba(220, 53, 69, 0.4); background: rgba(220, 53, 69, 0.08);">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="fa-solid fa-ban text-danger fs-5"></i>
+                                    <strong class="text-danger" style="font-size: 0.88rem;">Deletion Blocked — Unit Holds Equipment!</strong>
+                                </div>
+                                <div style="font-size: 0.82rem; color: var(--text-primary); margin-bottom: 6px;">
+                                    Unit <strong>${chosenUnit.replace(/_/g, ' ').toUpperCase()}</strong> currently holds <strong>${data.total_held} item(s)</strong> in stock. Deletion is strictly prohibited while equipment is held.
+                                </div>
+                                <div class="fw-bold mb-1" style="font-size: 0.76rem; color: var(--text-secondary); text-transform: uppercase;">Held Items Breakdown:</div>
+                                <div style="max-height: 130px; overflow-y: auto; border: 1px solid var(--border-dim); border-radius: 6px; background: var(--bg-surface);">
+                                    <table class="table table-sm table-borderless m-0" style="font-size: 0.78rem;">
+                                        <tbody>${breakdownRows}</tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-2 text-muted" style="font-size: 0.76rem;">
+                                    <i class="fa-solid fa-circle-info me-1"></i> Return or transfer all held equipment before attempting to delete this unit.
+                                </div>
+                            </div>
+                        `;
+
+                        if (btnConfirm) {
+                            btnConfirm.disabled = true;
+                            btnConfirm.className = 'btn btn-secondary px-4';
+                            btnConfirm.innerHTML = '<i class="fa-solid fa-ban"></i> Cannot Delete (Stock > 0)';
+                        }
+                    } else {
+                        currentEntityCanDelete = true;
+                        currentCheckingEntity = chosenUnit;
+                        currentEntityType = 'unit';
+
+                        unitStockContainer.innerHTML = `
+                            <div class="alert alert-success mt-2 mb-0 py-2 px-3" style="border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                                    <strong class="text-success" style="font-size: 0.88rem;">Unit Ready for Permanent Deletion</strong>
+                                </div>
+                                <div style="font-size: 0.82rem; color: var(--text-primary);">
+                                    Unit <strong>${chosenUnit.replace(/_/g, ' ').toUpperCase()}</strong> currently holds <strong>0 equipment</strong>.
+                                </div>
+                                <div class="mt-2" style="font-size: 0.76rem; color: var(--text-secondary);">
+                                    <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Ready to open confirmation. Click Delete to proceed.
+                                </div>
+                            </div>
+                        `;
+
+                        if (btnConfirm) {
+                            btnConfirm.disabled = false;
+                            btnConfirm.className = 'btn btn-danger px-4 fw-bold';
+                            btnConfirm.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    unitStockContainer.innerHTML = `<div class="alert alert-danger py-2 px-3 mt-2 mb-0" style="font-size: 0.82rem;">Could not check unit stock: ${err.message}</div>`;
+                });
+        }
+
+        if (selUnit) {
+            selUnit.addEventListener('change', onUnitSelected);
+        }
+
+        // Fetch /scme/api/admin-lists to enrich DOU and units mapping dynamically
+        fetch('/scme/api/admin-lists')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !data.success) return;
+                if (data.dou_units_map) {
+                    deleteDouUnitsMap = Object.assign({}, deleteDouUnitsMap, data.dou_units_map);
+                }
+                if (data.dou_admins && Array.isArray(data.dou_admins)) {
+                    [selDou, selParentDou].forEach(selectElem => {
+                        if (!selectElem) return;
+                        const existingValues = new Set(Array.from(selectElem.options).map(o => o.value.toLowerCase().replace(/_/g, ' ')));
+                        data.dou_admins.forEach(name => {
+                            const norm = name.toLowerCase().replace(/_/g, ' ').trim();
+                            if (!existingValues.has(norm)) {
+                                existingValues.add(norm);
+                                const opt = document.createElement('option');
+                                opt.value = name;
+                                opt.textContent = name.replace(/_/g, ' ').toUpperCase();
+                                selectElem.appendChild(opt);
+                            }
+                        });
+                    });
+                }
+            })
+            .catch(err => console.warn('Could not enrich admin lists:', err));
+
+        // Close/Cancel handlers for Confirmation Popup
+        function cancelConfirmPopup() {
+            if (countdownTimerInterval) clearInterval(countdownTimerInterval);
+            
+            function reopenDeleteModal() {
+                if (modalDelete) {
+                    const delBs = bootstrap.Modal.getOrCreateInstance(modalDelete);
+                    delBs.show();
+                }
+            }
+
+            if (modalConfirmPopup) {
+                const confBs = bootstrap.Modal.getInstance(modalConfirmPopup);
+                if (confBs && modalConfirmPopup.classList.contains('show')) {
+                    modalConfirmPopup.addEventListener('hidden.bs.modal', function onHidden() {
+                        modalConfirmPopup.removeEventListener('hidden.bs.modal', onHidden);
+                        reopenDeleteModal();
+                    });
+                    confBs.hide();
+                    return;
+                }
+            }
+            reopenDeleteModal();
+        }
+
+        if (btnCloseConfirm) btnCloseConfirm.addEventListener('click', cancelConfirmPopup);
+        if (btnCancelConfirm) btnCancelConfirm.addEventListener('click', cancelConfirmPopup);
+
+        // Click on initial Delete button in Modal 7C opens the 5-sec confirmation modal!
+        if (btnConfirm) {
+            btnConfirm.addEventListener('click', function() {
+                const isDou = (currentEntityType === 'dou');
+
+                if (!currentEntityCanDelete || !currentCheckingEntity) {
+                    if (feedback) {
+                        feedback.className = 'alert alert-danger mb-0 py-2 px-3';
+                        feedback.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> This ${isDou ? 'DOU' : 'unit'} cannot be deleted because it holds equipment or child units exist.`;
+                        feedback.classList.remove('d-none');
+                    }
+                    return;
+                }
+
+                const entityDisplayName = currentCheckingEntity.replace(/_/g, ' ').toUpperCase();
+                const entityTypeLabel = isDou ? 'DOU' : 'Unit';
+
+                // Prepare Confirmation Popup UI
+                if (confirmUnitBadge) confirmUnitBadge.textContent = entityDisplayName;
+                if (progressUnitName) progressUnitName.textContent = entityDisplayName;
+
+                const confirmQuestion = document.getElementById('confirmDeleteQuestion');
+                if (confirmQuestion) {
+                    confirmQuestion.textContent = `Are you sure you want to permanently delete this ${entityTypeLabel}?`;
+                }
+
+                const progressTypeHeader = document.getElementById('progressTargetType');
+                if (progressTypeHeader) {
+                    progressTypeHeader.textContent = entityTypeLabel;
+                }
+
+                const step1Desc = document.getElementById('stepVerifyingDesc');
+                if (step1Desc) {
+                    step1Desc.textContent = isDou 
+                        ? 'Validating DOU child units & stock balances...' 
+                        : 'Validating unit stock balances and permissions...';
+                }
+
+                const step2Desc = document.getElementById('stepCheckingDesc');
+                if (step2Desc) {
+                    step2Desc.textContent = isDou
+                        ? 'Checking OrgLadder, Divs, and division logins...'
+                        : 'Checking all database references and user logins...';
+                }
+
+                const step3Desc = document.getElementById('stepDeletingDesc');
+                if (step3Desc) {
+                    step3Desc.textContent = isDou
+                        ? 'Removing from Divs, OrgLadder, LoginUsers, TPS & Ledgers...'
+                        : 'Removing from LoginUsers, OrgLadder, Ledgers, TPS & Personnel...';
+                }
+
+                if (confirmInitialView) confirmInitialView.style.display = 'block';
+                if (confirmProgressView) confirmProgressView.style.display = 'none';
+                if (confirmModalFooter) confirmModalFooter.style.display = 'flex';
+
+                // Reset all progress steps
+                ['stepVerifying', 'stepChecking', 'stepDeleting', 'stepCompleted'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.style.opacity = (id === 'stepVerifying' ? '1' : '0.5');
+                        el.style.border = '1px solid var(--border-dim)';
+                        el.style.background = 'var(--bg-raised)';
+                        const icon = el.querySelector('.step-icon');
+                        if (icon) {
+                            if (id === 'stepVerifying') icon.innerHTML = '<i class="fa-solid fa-hourglass-start"></i>';
+                            else if (id === 'stepChecking') icon.innerHTML = '<i class="fa-solid fa-list-check"></i>';
+                            else if (id === 'stepDeleting') icon.innerHTML = '<i class="fa-solid fa-database"></i>';
+                            else if (id === 'stepCompleted') icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                        }
+                        const st = el.querySelector('.step-status');
+                        if (st) st.innerHTML = '';
+                    }
+                });
+
+                // Start 5-second countdown timer
+                let countdown = 5;
+                const iconLock = document.getElementById('iconExecuteDelete');
+                if (btnExecuteDelete) {
+                    btnExecuteDelete.disabled = true;
+                    btnExecuteDelete.className = 'btn btn-secondary px-4 fw-bold';
+                    btnExecuteDelete.style.boxShadow = 'none';
+                    if (btnExecuteDeleteText) btnExecuteDeleteText.textContent = `Delete (${countdown}s)`;
+                }
+                if (iconLock) iconLock.className = 'fa-solid fa-lock';
+                if (countdownBadge) countdownBadge.textContent = `${countdown}s`;
+                if (countdownNotice) {
+                    countdownNotice.innerHTML = `<i class="fa-solid fa-clock-rotate-left me-1 text-warning"></i> Confirm button unlocks in: <span class="badge bg-warning text-dark px-2 py-1" id="countdownSecondsBadge">${countdown}s</span>`;
+                }
+
+                if (countdownTimerInterval) clearInterval(countdownTimerInterval);
+                countdownTimerInterval = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        if (btnExecuteDeleteText) btnExecuteDeleteText.textContent = `Delete (${countdown}s)`;
+                        const cb = document.getElementById('countdownSecondsBadge');
+                        if (cb) cb.textContent = `${countdown}s`;
+                    } else {
+                        clearInterval(countdownTimerInterval);
+                        if (btnExecuteDelete) {
+                            btnExecuteDelete.disabled = false;
+                            btnExecuteDelete.className = 'btn btn-danger px-4 fw-bold';
+                            btnExecuteDelete.style.boxShadow = '0 4px 15px rgba(220, 53, 69, 0.45)';
+                            if (btnExecuteDeleteText) btnExecuteDeleteText.textContent = 'Delete Permanently';
+                        }
+                        const currentLock = document.getElementById('iconExecuteDelete');
+                        if (currentLock) currentLock.className = 'fa-solid fa-trash-can';
+                        if (countdownNotice) {
+                            countdownNotice.innerHTML = '<span class="text-danger fw-bold"><i class="fa-solid fa-unlock me-1"></i> Button unlocked. Click to confirm deletion.</span>';
+                        }
+                    }
+                }, 1000);
+
+                function showConfirmModal() {
+                    if (modalConfirmPopup) {
+                        const confBs = bootstrap.Modal.getOrCreateInstance(modalConfirmPopup);
+                        confBs.show();
+                    }
+                }
+
+                // Hide Delete modal cleanly, then open confirmation modal
+                if (modalDelete) {
+                    const delBs = bootstrap.Modal.getInstance(modalDelete);
+                    if (delBs && modalDelete.classList.contains('show')) {
+                        modalDelete.addEventListener('hidden.bs.modal', function onDelHidden() {
+                            modalDelete.removeEventListener('hidden.bs.modal', onDelHidden);
+                            showConfirmModal();
+                        });
+                        delBs.hide();
+                        return;
+                    }
+                }
+                showConfirmModal();
+            });
+        }
+
+        // When user presses the unlocked Delete button in Confirmation Popup:
+        // Run: VERIFYING -> CHECKING -> DELETING FROM ALL TABLES -> SUCCESSFULLY DELETED
+        if (btnExecuteDelete) {
+            btnExecuteDelete.addEventListener('click', function() {
+                if (countdownTimerInterval) clearInterval(countdownTimerInterval);
+
+                if (confirmInitialView) confirmInitialView.style.display = 'none';
+                if (confirmProgressView) confirmProgressView.style.display = 'block';
+                if (confirmModalFooter) confirmModalFooter.style.display = 'none';
+
+                const s1 = document.getElementById('stepVerifying');
+                const s2 = document.getElementById('stepChecking');
+                const s3 = document.getElementById('stepDeleting');
+                const s4 = document.getElementById('stepCompleted');
+
+                // STEP 1: VERIFYING
+                if (s1) {
+                    s1.style.opacity = '1';
+                    s1.style.border = '1px solid #3b82f6';
+                    s1.style.background = 'rgba(59, 130, 246, 0.08)';
+                    const ic = s1.querySelector('.step-icon');
+                    if (ic) ic.innerHTML = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+                    const st = s1.querySelector('.step-status');
+                    if (st) st.innerHTML = '<span class="badge bg-primary">Verifying...</span>';
+                }
+
+                setTimeout(() => {
+                    // Mark Step 1 complete
+                    if (s1) {
+                        s1.style.border = '1px solid #10b981';
+                        s1.style.background = 'rgba(16, 185, 129, 0.08)';
+                        const ic = s1.querySelector('.step-icon');
+                        if (ic) ic.innerHTML = '<i class="fa-solid fa-circle-check text-success fs-5"></i>';
+                        const st = s1.querySelector('.step-status');
+                        if (st) st.innerHTML = '<span class="badge bg-success">Verified</span>';
+                    }
+
+                    // STEP 2: CHECKING
+                    if (s2) {
+                        s2.style.opacity = '1';
+                        s2.style.border = '1px solid #3b82f6';
+                        s2.style.background = 'rgba(59, 130, 246, 0.08)';
+                        const ic = s2.querySelector('.step-icon');
+                        if (ic) ic.innerHTML = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+                        const st = s2.querySelector('.step-status');
+                        if (st) st.innerHTML = '<span class="badge bg-primary">Checking...</span>';
+                    }
+
+                    setTimeout(() => {
+                        // Mark Step 2 complete
+                        if (s2) {
+                            s2.style.border = '1px solid #10b981';
+                            s2.style.background = 'rgba(16, 185, 129, 0.08)';
+                            const ic = s2.querySelector('.step-icon');
+                            if (ic) ic.innerHTML = '<i class="fa-solid fa-circle-check text-success fs-5"></i>';
+                            const st = s2.querySelector('.step-status');
+                            if (st) st.innerHTML = '<span class="badge bg-success">Checked</span>';
+                        }
+
+                        // STEP 3: DELETING FROM ALL TABLES
+                        if (s3) {
+                            s3.style.opacity = '1';
+                            s3.style.border = '1px solid #dc3545';
+                            s3.style.background = 'rgba(220, 53, 69, 0.08)';
+                            const ic = s3.querySelector('.step-icon');
+                            if (ic) ic.innerHTML = '<span class="spinner-border spinner-border-sm text-danger"></span>';
+                            const st = s3.querySelector('.step-status');
+                            if (st) st.innerHTML = '<span class="badge bg-danger">Deleting...</span>';
+                        }
+
+                        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                        const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                        const isDou = (currentEntityType === 'dou');
+                        const endpoint = isDou ? '/scme/api/delete-dou' : '/scme/api/delete-unit';
+                        const payload = isDou ? { dou_name: currentCheckingEntity } : { unit_name: currentCheckingEntity };
+
+                        // Execute backend deletion
+                        fetch(endpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify(payload)
+                        })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.success) {
+                                // Mark Step 3 complete
+                                if (s3) {
+                                    s3.style.border = '1px solid #10b981';
+                                    s3.style.background = 'rgba(16, 185, 129, 0.08)';
+                                    const ic = s3.querySelector('.step-icon');
+                                    if (ic) ic.innerHTML = '<i class="fa-solid fa-circle-check text-success fs-5"></i>';
+                                    const st = s3.querySelector('.step-status');
+                                    if (st) st.innerHTML = '<span class="badge bg-success">Deleted</span>';
+                                }
+
+                                // STEP 4: SUCCESSFULLY DELETED
+                                if (s4) {
+                                    s4.style.opacity = '1';
+                                    s4.style.border = '2px solid #10b981';
+                                    s4.style.background = 'rgba(16, 185, 129, 0.15)';
+                                    const ic = s4.querySelector('.step-icon');
+                                    if (ic) ic.innerHTML = '<i class="fa-solid fa-circle-check text-success fs-4"></i>';
+                                    const title = s4.querySelector('.step-title');
+                                    if (title) title.innerHTML = '<span class="text-success fw-bold">SUCCESSFULLY DELETED</span>';
+                                    const desc = s4.querySelector('.step-desc');
+                                    if (desc) desc.textContent = res.message || `${isDou ? 'DOU' : 'Unit'} permanently erased from everywhere.`;
+                                    const st = s4.querySelector('.step-status');
+                                    if (st) st.innerHTML = '<span class="badge bg-success fs-6"><i class="fa-solid fa-check"></i> Done</span>';
+                                }
+
+                                if (typeof Notify !== 'undefined') {
+                                    Notify.success(res.message);
+                                }
+
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1800);
+                            } else {
+                                if (s3) {
+                                    s3.style.border = '1px solid #dc3545';
+                                    const ic = s3.querySelector('.step-icon');
+                                    if (ic) ic.innerHTML = '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>';
+                                    const st = s3.querySelector('.step-status');
+                                    if (st) st.innerHTML = '<span class="badge bg-danger">Failed</span>';
+                                    const desc = s3.querySelector('.step-desc');
+                                    if (desc) desc.textContent = res.message || 'Deletion failed';
+                                }
+                                if (confirmModalFooter) confirmModalFooter.style.display = 'flex';
+                            }
+                        })
+                        .catch(err => {
+                            if (s3) {
+                                s3.style.border = '1px solid #dc3545';
+                                const ic = s3.querySelector('.step-icon');
+                                if (ic) ic.innerHTML = '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>';
+                                const st = s3.querySelector('.step-status');
+                                if (st) st.innerHTML = '<span class="badge bg-danger">Error</span>';
+                                const desc = s3.querySelector('.step-desc');
+                                if (desc) desc.textContent = err.message || 'Network error';
+                            }
+                            if (confirmModalFooter) confirmModalFooter.style.display = 'flex';
+                        });
+
+                    }, 800);
+
+                }, 700);
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDeleteEntityModal);
+    } else {
+        initDeleteEntityModal();
+    }
+})();
+</script>
+
+<script>
+function saveSingleDivStrength(divId, divName) {
+    const authInput = document.getElementById(`divAuthInput_${divId}`);
+    const postedInput = document.getElementById(`divPostedInput_${divId}`);
+    if (!authInput || !postedInput) return;
+
+    const authVal = parseInt(authInput.value, 10) || 0;
+    const postedVal = parseInt(postedInput.value, 10) || 0;
+
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    fetch('/scme/api/update-div-strength', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            div_id: divId,
+            div_name: divName,
+            authorized_strength: authVal,
+            posted_strength: postedVal
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof Notify !== 'undefined') Notify.success(data.message);
+            else alert(data.message);
+            setTimeout(() => window.location.reload(), 500);
+        } else {
+            if (typeof Notify !== 'undefined') Notify.error(data.message || 'Failed to update strength.');
+            else alert(data.message || 'Failed to update strength.');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        if (typeof Notify !== 'undefined') Notify.error('Network error while updating strength.');
+    });
+}
+
+function saveAllDivStrengths() {
+    const authInputs = document.querySelectorAll('.div-auth-input');
+    const promises = [];
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    authInputs.forEach(input => {
+        const divId = input.getAttribute('data-div-id');
+        const divName = input.getAttribute('data-div-name');
+        const postedInput = document.getElementById(`divPostedInput_${divId}`);
+        const authVal = parseInt(input.value, 10) || 0;
+        const postedVal = postedInput ? (parseInt(postedInput.value, 10) || 0) : 0;
+
+        promises.push(
+            fetch('/scme/api/update-div-strength', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    div_id: parseInt(divId, 10),
+                    div_name: divName,
+                    authorized_strength: authVal,
+                    posted_strength: postedVal
+                })
+            }).then(r => r.json())
+        );
+    });
+
+    if (promises.length === 0) return;
+
+    Promise.all(promises).then(results => {
+        const allSuccess = results.every(r => r.success);
+        if (allSuccess) {
+            if (typeof Notify !== 'undefined') Notify.success('All Division Strengths updated successfully!');
+            else alert('All Division Strengths updated successfully!');
+            setTimeout(() => window.location.reload(), 500);
+        } else {
+            if (typeof Notify !== 'undefined') Notify.error('Some division strength updates failed.');
+            else alert('Some division strength updates failed.');
+        }
+    }).catch(err => {
+        console.error(err);
+        if (typeof Notify !== 'undefined') Notify.error('Error saving division strengths.');
+    });
+}
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 7B — SET ITEM AUTH PER DIVISION & ITEM
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalSetItemAuth" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); border-radius: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.35); overflow: hidden;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px; background: var(--bg-raised);">
+                <h5 class="modal-title" style="font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; color: var(--text-primary);">
+                    <i class="fa-solid fa-sliders" style="color: var(--accent);"></i>
+                    Set Item Authorization
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="formSetItemAuth" autocomplete="off">
+                <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+                    <div class="row g-3">
+                        <!-- 1. Select Division -->
+                        <div class="col-md-6">
+                            <label for="setItemAuthDiv" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                                Select Division <span class="text-danger">*</span>
+                            </label>
+                            <select id="setItemAuthDiv" name="unit_name" class="form-select" required
+                                    style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                                <option value="">-- Choose Division --</option>
+                                {% for u in db_units %}
+                                    <option value="{{ u.name }}">{{ u.name.replace('_', ' ').upper() }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- 2. Select Category -->
+                        <div class="col-md-6">
+                            <label for="setItemAuthCategory" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                                Select Category <span class="text-danger">*</span>
+                            </label>
+                            <select id="setItemAuthCategory" class="form-select" required
+                                    style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                                <option value="">-- Choose Category --</option>
+                                {% for cat in ecc_categories %}
+                                    <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- 3. Select Item -->
+                        <div class="col-md-8">
+                            <label for="setItemAuthItem" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                                Select Item <span class="text-danger">*</span>
+                            </label>
+                            <select id="setItemAuthItem" name="item_id" class="form-select" required
+                                    style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                                <option value="">-- Choose Item --</option>
+                                {% for item in items %}
+                                    <option value="{{ item.id }}" data-category="{{ item.category }}">{{ item.item_name }} ({{ item.category }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- 4. Item Authorization (AUTH) -->
+                        <div class="col-md-4">
+                            <label for="setItemAuthValue" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                                Item Auth (AUTH) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" id="setItemAuthValue" name="auth" class="form-control" placeholder="Qty (e.g. 100)" min="0" required
+                                   style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                        </div>
+                    </div>
+
+                    <div id="setItemAuthAlert" class="alert d-none mt-2" style="font-size: 0.88rem; padding: 10px 14px; border-radius: 8px;"></div>
+                </div>
+
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 16px 24px; gap: 12px; background: var(--bg-raised);">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; font-size: 0.85rem;">Cancel</button>
+                    <button type="submit" id="btnSubmitItemAuth" class="btn btn-primary px-4" style="background: linear-gradient(135deg, var(--accent), var(--accent-glow)); border: none; font-weight: 700; border-radius: 8px; font-size: 0.85rem; color: #fff;">
+                        <i class="fa-solid fa-save"></i> Save Authorization
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL 4B — ECC CRITICAL ALERTS  (card: "Critical Alerts" in ECC Tab)
+     Rule mirrors the backend: stock_total < unit_auth / 2
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade metric-modal" id="modalEccCriticalAlerts" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>
+                    ECC Critical Alerts &nbsp;<span style="font-weight:500; font-size:0.8rem; color: var(--text-secondary);">(Held below 50% of Unit Auth)</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="mm-summary">
+                <div class="mm-stat">
+                    <span class="mm-stat-label">Critical Records</span>
+                    <span class="mm-stat-value" style="color: #ef4444;">{{ ecc_critical_alerts }}</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <table class="mm-table">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Item</th>
+                            <th class="mm-num">Auth</th>
+                            <th class="mm-num">Held %</th>
+                            <th class="mm-num">Deficiency %</th>
+                            <th class="mm-num">Defi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in ecc_states if r.unit_auth > 0 and r.stock_total < (r.unit_auth / 2) %}
+                            {% set held_pct = (r.stock_total / r.unit_auth * 100) | round(1) %}
+                            {% set defi_pct = (100 - held_pct) | round(1) %}
+                            <tr>
+                                <td class="mm-strong">{{ r.bbf_division.replace('_', ' ').upper() }}</td>
+                                <td>{{ r.item.item_name if r.item else 'Unknown' }}</td>
+                                <td class="mm-num" style="color: #0d6efd; font-weight: 600;">{{ r.unit_auth }}</td>
+                                <td class="mm-num">
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 4px 10px; font-weight: 700;">{{ held_pct }}%</span>
+                                </td>
+                                <td class="mm-num">
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 4px 10px; font-weight: 700;">{{ defi_pct }}%</span>
+                                </td>
+                                <td class="mm-num" style="color: #ef4444; font-weight: 700;">{{ r.deficiency }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="mm-empty">
+                                    <i class="fa-solid fa-shield-halved me-2 text-success"></i>
+                                    No critical alerts — all divisions above 50% stock.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary px-4 btn-close-x" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    /* Move drill-down modals to <body> so the sidebar layout's stacking context
+       / z-index can't trap them — same trick already used for #ledgerTableModal. */
+    (function () {
+        function relocateMetricModals() {
+            document.querySelectorAll('.metric-modal').forEach(function (m) {
+                if (m.parentElement !== document.body) {
+                    document.body.appendChild(m);
+                }
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', relocateMetricModals);
+        } else {
+            relocateMetricModals();
+        }
+    })();
+</script>

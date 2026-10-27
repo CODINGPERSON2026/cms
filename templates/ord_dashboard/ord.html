@@ -1,0 +1,406 @@
+
+{% extends '/base.html' %}
+
+{% block page_title %}{{ username }} Dashboard{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/" class="nav-item active">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .ord-dash-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 8px 4px;
+    }
+
+    /* Cards Grid */
+    .ord-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 350px));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .ord-metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 16px;
+        padding: 22px 24px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+    }
+
+    .ord-metric-card.clickable {
+        cursor: pointer;
+    }
+
+    .ord-metric-card.clickable:hover {
+        transform: translateY(-3px);
+        border-color: var(--accent);
+        box-shadow: 0 10px 25px rgba(45, 107, 66, 0.12);
+    }
+
+    .ord-metric-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .metric-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .icon-divs {
+        background: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+    }
+
+    .click-badge {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .metric-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+        margin-bottom: 4px;
+    }
+
+    .metric-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--text-secondary);
+    }
+
+    /* Table Section Card */
+    .table-section-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+    }
+
+    .table-card-header {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-raised);
+    }
+
+    .table-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .custom-table th {
+        background: var(--bg-raised);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 14px 24px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .custom-table td {
+        padding: 14px 24px;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        border-bottom: 1px solid var(--border-dim);
+        vertical-align: middle;
+    }
+
+    .custom-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .custom-table tbody tr:hover {
+        background: rgba(0, 0, 0, 0.015);
+    }
+
+    .number-pill {
+        font-family: monospace;
+        font-size: 0.9rem;
+        font-weight: 600;
+        background: var(--bg-raised);
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border-dim);
+        display: inline-block;
+    }
+
+    .modal-backdrop {
+        z-index: 100000 !important;
+    }
+    .modal, #updateUnitsModal {
+        z-index: 100005 !important;
+    }
+</style>
+
+<div class="ord-dash-container">
+
+    <!-- TOP SECTION: ONE CARD (DIVS) -->
+    <div class="ord-metrics-grid">
+        <div class="ord-metric-card clickable" id="divsCard" onclick="toggleDivsTable()">
+            <div class="ord-metric-header">
+                <div class="metric-icon-wrap icon-divs">
+                    <i class="fa-solid fa-building-shield"></i>
+                </div>
+                <span class="click-badge">
+                    <i class="fa-solid fa-hand-pointer"></i> Click to View
+                </span>
+            </div>
+            <div class="metric-value">{{ div_count }}</div>
+            <div class="metric-title">DIVS</div>
+        </div>
+    </div>
+
+    <!-- UNITS TABLE SECTION (Shown when DIVS card is clicked) -->
+    <div class="table-section-card" id="divsTableSection" style="display: none;">
+        <div class="table-card-header">
+            <h3 class="table-card-title">
+                <i class="fa-solid fa-layer-group text-primary"></i>
+                Registered Formations & Units (`units` Table)
+            </h3>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleDivsTable()">
+                <i class="fa-solid fa-xmark me-1"></i> Close Table
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">#</th>
+                        <th>NAME</th>
+                        <th style="text-align: center;">AUTHORIZED STRENGTH</th>
+                        <th style="text-align: center;">POSTED STRENGTH</th>
+                        <th style="text-align: right;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in units %}
+                    <tr>
+                        <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                        <td style="font-weight: 600; color: var(--text-primary);">{{ u.name }}</td>
+                        <td style="text-align: center;">
+                            <span class="number-pill" id="auth-str-{{ u.id }}">{{ u.authorized_strength or 0 }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="number-pill" id="post-str-{{ u.id }}">{{ u.posted_strength or 0 }}</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;" onclick="openUpdateUnitsModal('{{ u.id }}', '{{ u.name }}', {{ u.authorized_strength or 0 }}, {{ u.posted_strength or 0 }}, 'auth-str-{{ u.id }}', 'post-str-{{ u.id }}')">
+                                <i class="fa-solid fa-pen-to-square me-1"></i> Update
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No unit records found in `units` table.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- UPDATE UNITS STRENGTH MODAL -->
+<div class="modal fade" id="updateUnitsModal" tabindex="-1" aria-labelledby="updateUnitsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" id="updateUnitsModalLabel" style="color: var(--text-primary); font-size: 1.1rem;">
+                    <i class="fa-solid fa-pen-to-square text-primary me-2"></i> Update Unit Strength Data
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <form id="updateUnitsForm" onsubmit="submitUnitsStrengthUpdate(event)">
+                    <input type="hidden" id="targetUnitId" name="unit_id">
+                    <input type="hidden" id="targetAuthElementId" name="target_auth_element_id">
+                    <input type="hidden" id="targetPostElementId" name="target_post_element_id">
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Unit Name</label>
+                        <input type="text" id="displayUnitName" class="form-control" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Authorized Strength</label>
+                        <input type="number" id="inputAuthStrength" class="form-control" min="0" required placeholder="Enter authorized strength e.g. 600" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Posted Strength</label>
+                        <input type="number" id="inputPostStrength" class="form-control" min="0" required placeholder="Enter posted strength e.g. 900" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                        <button type="submit" id="saveUnitsStrengthBtn" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 600;">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let ordModalObj = null;
+
+    function toggleDivsTable() {
+        const tableSection = document.getElementById("divsTableSection");
+        if (tableSection.style.display === "none") {
+            tableSection.style.display = "block";
+            tableSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            tableSection.style.display = "none";
+        }
+    }
+
+    function openUpdateUnitsModal(unitId, unitName, defaultAuthStr, defaultPostStr, authElId, postElId) {
+        document.getElementById("targetUnitId").value = unitId;
+        document.getElementById("displayUnitName").value = unitName;
+        document.getElementById("targetAuthElementId").value = authElId;
+        document.getElementById("targetPostElementId").value = postElId;
+
+        // Dynamically pre-fill with latest values from DOM
+        const authEl = document.getElementById(authElId);
+        const postEl = document.getElementById(postElId);
+
+        const currentAuth = authEl ? parseInt(authEl.textContent.trim(), 10) : defaultAuthStr;
+        const currentPost = postEl ? parseInt(postEl.textContent.trim(), 10) : defaultPostStr;
+
+        document.getElementById("inputAuthStrength").value = isNaN(currentAuth) ? 0 : currentAuth;
+        document.getElementById("inputPostStrength").value = isNaN(currentPost) ? 0 : currentPost;
+
+        const modalEl = document.getElementById('updateUnitsModal');
+        if (modalEl && modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
+
+        if (typeof bootstrap !== 'undefined') {
+            let bsModal = bootstrap.Modal.getInstance(modalEl);
+            if (!bsModal) {
+                bsModal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
+            }
+            ordModalObj = bsModal;
+            bsModal.show();
+        }
+    }
+
+    async function submitUnitsStrengthUpdate(event) {
+        event.preventDefault();
+        const saveBtn = document.getElementById("saveUnitsStrengthBtn");
+        const unitId = document.getElementById("targetUnitId").value;
+        const authStr = document.getElementById("inputAuthStrength").value;
+        const postStr = document.getElementById("inputPostStrength").value;
+        const targetAuthElId = document.getElementById("targetAuthElementId").value;
+        const targetPostElId = document.getElementById("targetPostElementId").value;
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...`;
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            const response = await fetch('/super_admin/update-units-strength', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    unit_id: unitId,
+                    authorized_strength: authStr,
+                    posted_strength: postStr
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Failed to update strength');
+            }
+
+            // Update DOM pills
+            const targetAuthEl = document.getElementById(targetAuthElId);
+            if (targetAuthEl) {
+                targetAuthEl.textContent = result.authorized_strength;
+            }
+            const targetPostEl = document.getElementById(targetPostElId);
+            if (targetPostEl) {
+                targetPostEl.textContent = result.posted_strength;
+            }
+
+            if (ordModalObj) {
+                ordModalObj.hide();
+            }
+
+            if (typeof notify !== 'undefined') {
+                notify.success(result.message || 'Strength updated successfully!');
+            } else {
+                alert(result.message || 'Strength updated successfully!');
+            }
+
+        } catch (error) {
+            if (typeof notify !== 'undefined') {
+                notify.error(error.message);
+            } else {
+                alert('Error: ' + error.message);
+            }
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk me-1"></i> Save Changes`;
+        }
+    }
+</script>
+{% endblock %}

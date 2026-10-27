@@ -1,0 +1,1458 @@
+{% extends '/base.html' %}
+
+{% block page_title %}Monthly Reports{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/scme/" class="nav-item">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/scme/add-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-packing"></i>
+    <span class="nav-tooltip">Add Stock</span>
+</a>
+<a href="/scme/current-stock" class="nav-item">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-tooltip">Available Stock</span>
+</a>
+<a href="/scme/monthly-reports" class="nav-item active">
+    <i class="fa-solid fa-calendar-days"></i>
+    <span class="nav-tooltip">Monthly Reports</span>
+</a>
+<!-- <a href="/logs/" class="nav-item">
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    <span class="nav-tooltip">Activity Logs</span>
+</a> -->
+{% endblock %}
+
+{% block head %}
+<style>
+    .mr-page {
+        padding: 10px 16px 12px 16px;
+        display: flex; flex-direction: column; gap: 10px;
+        height: calc(100vh - 74px);
+        min-height: 0;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .mr-control-bar {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        background: var(--bg-surface); border: 1px solid var(--border-dim);
+        border-radius: 10px; padding: 6px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+
+    .mr-title-block { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 160px; }
+    .mr-title-icon {
+        width: 28px; height: 28px; border-radius: 7px; background: rgba(16,124,65,0.1);
+        display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: #107c41; flex-shrink: 0;
+    }
+    .mr-title-text { display: flex; align-items: baseline; gap: 8px; }
+    .mr-title-text h1 { font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.2; }
+    .mr-title-text span { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px; }
+
+    .mr-divider { width: 1px; height: 20px; background: var(--border-dim); flex-shrink: 0; }
+
+    .mr-month-group { display: flex; align-items: center; gap: 6px; }
+    .mr-month-label { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+    .mr-month-select {
+        padding: 4px 8px; border-radius: 7px; border: 1px solid var(--border-dim);
+        background: var(--bg-raised); color: var(--text-primary); font-size: 0.78rem;
+        font-weight: 600; outline: none; cursor: pointer; transition: border-color 0.2s; height: 30px;
+    }
+    .mr-month-select:hover, .mr-month-select:focus { border-color: #107c41; }
+
+    .mr-btn {
+        display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+        border-radius: 7px; font-weight: 600; font-size: 0.78rem; border: none;
+        cursor: pointer; transition: all 0.2s ease; white-space: nowrap; height: 30px;
+    }
+    .mr-btn-excel { background: #107c41; color: #fff; }
+    .mr-btn-excel:hover { background: #0d6636; }
+    .mr-btn-print { background: #0284c7; color: #fff; }
+    .mr-btn-print:hover { background: #0369a1; }
+
+
+    .mr-zoom-group { display: flex; align-items: center; gap: 6px; }
+    .mr-zoom-label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+    #mrZoomRange { width: 75px; height: 4px; cursor: pointer; accent-color: #107c41; }
+    #mrZoomVal { font-size: 0.75rem; font-weight: 700; color: var(--text-primary); width: 28px; }
+    .mr-zoom-fit-btn {
+        background: rgba(16,124,65,0.1); color: #107c41; border: 1px solid rgba(16,124,65,0.25);
+        border-radius: 6px; padding: 2px 7px; font-size: 0.7rem; font-weight: 700;
+        cursor: pointer; transition: all 0.15s ease; height: 24px; display: inline-flex;
+        align-items: center; gap: 4px; line-height: 1;
+    }
+    .mr-zoom-fit-btn:hover { background: #107c41; color: #fff; }
+
+    /* SCME View-As Dropdown Groups */
+    .mr-viewas-group { display: flex; align-items: center; gap: 5px; }
+    .mr-viewas-label {
+        font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap;
+        display: flex; align-items: center; gap: 4px;
+    }
+    .mr-viewas-label i { font-size: 0.7rem; }
+    .mr-viewas-select {
+        padding: 4px 8px; border-radius: 7px; border: 1px solid var(--border-dim);
+        background: var(--bg-raised); color: var(--text-primary); font-size: 0.75rem;
+        font-weight: 600; outline: none; cursor: pointer; transition: border-color 0.2s;
+        height: 30px; min-width: 140px; max-width: 185px;
+    }
+    .mr-viewas-select:hover, .mr-viewas-select:focus { border-color: #107c41; }
+    .mr-viewas-select:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+    }
+    .mr-viewas-btn {
+        display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
+        border-radius: 7px; font-weight: 700; font-size: 0.72rem; border: none;
+        cursor: pointer; transition: all 0.18s ease; white-space: nowrap; height: 30px;
+        color: #fff;
+    }
+    .mr-viewas-btn-dou  { background: #7c3aed; }
+    .mr-viewas-btn-dou:hover  { background: #6d28d9; }
+    .mr-viewas-btn-unit { background: #0891b2; }
+    .mr-viewas-btn-unit:hover { background: #0e7490; }
+
+    /* Inline Report Modal */
+    #scmeReportModal {
+        display: none; position: fixed; inset: 0; z-index: 9999;
+        background: rgba(0,0,0,0.55); backdrop-filter: blur(3px);
+        align-items: flex-start; justify-content: center; padding: 20px;
+        overflow-y: auto;
+    }
+    #scmeReportModal.open { display: flex; }
+    .scme-modal-box {
+        background: #fff; border-radius: 14px; width: 100%; max-width: 1400px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.25); overflow: hidden;
+        animation: modalSlideUp 0.25s ease;
+    }
+    @keyframes modalSlideUp {
+        from { transform: translateY(40px); opacity:0; }
+        to   { transform: translateY(0);    opacity:1; }
+    }
+    .scme-modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 18px; border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+    .scme-modal-title {
+        display: flex; align-items: center; gap: 10px;
+        font-size: 0.88rem; font-weight: 700; color: #111827;
+    }
+    .scme-modal-title .badge {
+        font-size: 0.68rem; font-weight: 700; padding: 3px 10px;
+        border-radius: 20px; color: #fff;
+    }
+    .scme-modal-title .badge-dou  { background: #7c3aed; }
+    .scme-modal-title .badge-unit { background: #0891b2; }
+    .scme-modal-close {
+        background: none; border: none; font-size: 1.2rem; color: #6b7280;
+        cursor: pointer; padding: 4px 8px; border-radius: 6px;
+        transition: background 0.15s;
+    }
+    .scme-modal-close:hover { background: #fee2e2; color: #dc2626; }
+    .scme-modal-body {
+        padding: 16px; max-height: calc(100vh - 130px);
+        overflow: auto;
+    }
+    .scme-modal-loading {
+        display: flex; align-items: center; justify-content: center;
+        gap: 12px; padding: 60px 20px; font-size: 0.9rem;
+        color: #6b7280; font-weight: 600;
+    }
+    .scme-modal-loading .spinner {
+        width: 24px; height: 24px; border: 3px solid #e5e7eb;
+        border-top-color: #7c3aed; border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Inline table styles for modal */
+    .scme-inline-table { border-collapse: collapse; font-size: 11px; font-family: 'Segoe UI', Calibri, Arial, sans-serif; width: max-content; min-width: 100%; }
+    .scme-inline-table th, .scme-inline-table td { border: 1px solid #9ca3af; padding: 5px 7px; vertical-align: middle; }
+    .scme-inline-table th { text-align: center; text-transform: uppercase; font-weight: 700; }
+    .scme-inline-table tbody tr:hover td { background-color: rgba(0,0,0,0.02) !important; }
+    .si-title  { font-size:13px; font-weight:800; text-align:center; padding:10px; background:#f3f4f6; border-bottom:2px solid #374151; text-transform:uppercase; }
+    .si-col    { background:#e5e7eb; color:#111827; }
+    .si-ob     { background:#fef3c7; color:#78350f; }
+    .si-recd   { background:#dbeafe; color:#1e40af; }
+    .si-issd   { background:#fee2e2; color:#991b1b; }
+    .si-stk    { background:#f3e8ff; color:#6b21a8; }
+    .si-ustk   { background:#e0e7ff; color:#3730a3; }
+    .si-tot    { background:#ccfbf1; color:#0f766e; }
+    .si-net    { background:#d1fae5; color:#065f46; }
+    .si-cond   { background:#fce7f3; color:#9d174d; }
+    .si-bg-col  { background:#f9fafb; }
+    .si-bg-ob   { background:#fffbeb; }
+    .si-bg-recd { background:#eff6ff; }
+    .si-bg-issd { background:#fef2f2; }
+    .si-bg-stk  { background:#faf5ff; }
+    .si-bg-ustk { background:#eef2ff; }
+    .si-bg-tot  { background:#f0fdfa; }
+    .si-bg-net  { background:#ecfdf5; }
+    .si-bg-cond { background:#fdf2f8; }
+
+    /* Scroll navigation arrows */
+    .mr-table-nav-wrapper {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        flex: 1;
+        min-height: 0;
+    }
+    .mr-scroll-arrow {
+        position: fixed;
+        z-index: 100;
+        width: 36px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        color: #64748b;
+        font-size: 1.1rem;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        pointer-events: none;
+        border-radius: 4px;
+    }
+    .mr-scroll-arrow.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .mr-scroll-arrow:hover { color: #107c41; }
+    .mr-scroll-arrow.arrow-left {
+        background: linear-gradient(to right, rgba(255,255,255,0.92), rgba(255,255,255,0));
+    }
+    .mr-scroll-arrow.arrow-right {
+        background: linear-gradient(to left, rgba(255,255,255,0.92), rgba(255,255,255,0));
+    }
+
+    .mr-sheet-wrapper {
+        background: #f8fafc; border: 1px solid var(--border-dim); border-radius: 14px;
+        overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        display: flex; flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+    .mr-sheet-header {
+        padding: 10px 18px; background: var(--bg-raised); border-bottom: 1px solid var(--border-dim);
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .mr-sheet-header-title { font-size: 0.82rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .mr-sheet-header-title i { color: #107c41; }
+    .mr-sheet-header-badge { font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(16,124,65,0.1); color: #107c41; }
+
+    #mrTableContainer {
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        max-height: none;
+        background: #ffffff;
+        position: relative;
+        scrollbar-width: auto;
+        scrollbar-color: #94a3b8 #e2e8f0;
+    }
+    #mrTableContainer::-webkit-scrollbar {
+        height: 12px;
+        width: 10px;
+    }
+    #mrTableContainer::-webkit-scrollbar-track {
+        background: #e2e8f0;
+    }
+    #mrTableContainer::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 6px;
+        border: 2px solid #e2e8f0;
+    }
+    #mrTableContainer::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+    }
+
+    .mr-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 40px; gap:16px; text-align:center; }
+    .mr-empty i { font-size:3rem; color:var(--text-muted); }
+    .mr-empty h3 { font-size:1.1rem; font-weight:700; color:var(--text-primary); margin:0; }
+    .mr-empty p { font-size:0.88rem; color:var(--text-secondary); margin:0; max-width:320px; }
+
+    /* Excel table styles */
+    .excel-table { border-collapse:collapse; font-family:'Segoe UI',Calibri,Arial,sans-serif; font-size:10px; width:max-content; min-width:0; background:#fff; color:#333; table-layout:auto; }
+    .excel-table th, .excel-table td { border:1px solid #999b9e; padding:3px 4px; vertical-align:middle; line-height:1.15; }
+    .excel-table th { font-weight:bold; text-align:center; background:#f3f4f6; color:#1f2937; text-transform:uppercase; font-size:9.5px; letter-spacing:-0.2px; }
+    .excel-table tbody tr:hover { background:rgba(243,244,246,0.6) !important; }
+
+    .excel-header-title    { font-size:12px; font-weight:800; text-align:center; padding:7px; background:#fff; border-bottom:2px solid #000 !important; color:#000; text-transform:uppercase; }
+    .excel-header-sno,.excel-header-item,.excel-header-scale { background:#f2f2f2 !important; color:#000 !important; }
+    .excel-header-auth     { background:#fae8ff !important; color:#701a75 !important; }
+    .excel-header-ob       { background:#ffedd5 !important; color:#9a3412 !important; }
+    .excel-header-recd     { background:#ccfbf1 !important; color:#115e59 !important; }
+    .excel-header-stk-free  { background:#dbeafe !important; color:#1e40af !important; }  /* Free Stk 2FOD – light blue */
+    .excel-header-stk-res   { background:#93c5fd !important; color:#1e3a8a !important; }  /* Res Stk 2FOD – deeper blue */
+    .excel-header-stk      { background:#dbeafe !important; color:#1e40af !important; }  /* fallback */
+    .excel-header-unit-stk { background:#d1fae5 !important; color:#065f46 !important; }  /* Units – emerald */
+    .excel-header-dou-free { background:#ede9fe !important; color:#6b21a8 !important; }
+    .excel-header-cond     { background:#fce7f3 !important; color:#9d174d !important; }
+    .excel-header-res      { background:#f3e8ff !important; color:#6b21a8 !important; }
+    .excel-header-totalstk { background:#ccfbf1 !important; color:#0f766e !important; }
+    .excel-header-add      { background:#fef08a !important; color:#854d0e !important; }
+    .excel-header-net      { background:#e0f2fe !important; color:#0369a1 !important; }
+    .excel-header-remarks  { background:#fae8ff !important; color:#86198f !important; }
+    .excel-header-tps      { background:#ffe4e6 !important; color:#9f1239 !important; }
+    .excel-cell-num    { text-align:center; font-variant-numeric:tabular-nums; font-size:9.5px; padding:2px 3px !important; white-space:nowrap; }
+    .excel-cell-center { text-align:center; font-size:9.5px; padding:2px 3px; }
+    .excel-cell-bold   { font-weight:bold; }
+    .excel-header-item {
+        width: var(--item-col-max, 92px);
+        max-width: var(--item-col-max, 92px);
+        min-width: 0;
+        white-space: normal;
+    }
+    .excel-cell-item {
+        width: var(--item-col-max, 92px);
+        max-width: var(--item-col-max, 92px);
+        min-width: 0;
+        text-align: left;
+        font-weight: 700;
+        white-space: normal !important;
+        padding: 2px 4px;
+        vertical-align: middle;
+    }
+    .excel-item-text {
+        display: block;
+        width: var(--item-col-max, 92px);
+        max-width: var(--item-col-max, 92px);
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        line-height: 1.2;
+    }
+    col.mr-col-item {
+        width: var(--item-col-max, 92px);
+    }
+    .excel-bg-auth     { background:#faf5ff; }
+    .excel-bg-ob-free  { background:#fffaf0; }
+    .excel-bg-ob-res   { background:#fcf6f5; }
+    .excel-bg-recd     { background:#f0fdfa; }
+    .excel-bg-issd     { background:#fffdf5; }
+    .excel-bg-unit-stk { background:#eef2ff; }
+    .excel-bg-dou-free { background:#f5f3ff; }
+    .excel-bg-cond     { background:#fdf2f8; }
+    .excel-bg-stk-free { background:#eff6ff; }  /* Free Stk 2FOD – very light blue */
+    .excel-bg-stk-res  { background:#dbeafe; }  /* Res Stk 2FOD – slightly deeper blue, same family */
+    .excel-bg-unit-stk { background:#ecfdf5; }  /* Units – very light emerald */
+    .excel-bg-totalstk { background:#f0f9ff; }
+    .excel-bg-add      { background:#fefce8; }
+    .excel-bg-net      { background:#ecfeff; font-weight:bold; }
+    .excel-bg-remarks  { background:#faf5ff; }
+    .excel-bg-tps      { background:#fff1f2; }
+
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 0.3cm 0.4cm;
+        }
+        html, body {
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        body * {
+            visibility: hidden !important;
+        }
+        #mrTableContainer, #mrTableContainer * {
+            visibility: visible !important;
+        }
+        #mrTableContainer {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            font-size: 8px !important;
+            overflow: visible !important;
+            max-height: none !important;
+            zoom: 1 !important;
+        }
+        .excel-table {
+            width: 100% !important;
+            min-width: 100% !important;
+            font-size: 8px !important;
+            table-layout: auto !important;
+        }
+        .excel-table th, .excel-table td {
+            padding: 2px 3px !important;
+            font-size: 7.5px !important;
+            word-break: break-word !important;
+            line-height: 1.15 !important;
+        }
+        .excel-header-title {
+            font-size: 11px !important;
+            padding: 5px !important;
+        }
+        .category-header-row td {
+            font-size: 9px !important;
+            padding: 4px 6px !important;
+            background-color: #0f172a !important;
+            color: #38bdf8 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mr-page">
+
+    <!-- Control Bar -->
+    <div class="mr-control-bar">
+        <!-- Filter Type Selector -->
+        <div class="mr-month-group">
+            <span class="mr-month-label"><i class="fa-solid fa-filter"></i>&nbsp;Type</span>
+            <select class="mr-month-select" id="mrFilterType" style="min-width: 120px;" onchange="onFilterTypeChange(this.value)">
+                <option value="month" {% if filter_type == 'month' %}selected{% endif %}>Month-Wise</option>
+                <option value="year" {% if filter_type == 'year' %}selected{% endif %}>Year-Wise</option>
+            </select>
+        </div>
+
+        <div class="mr-divider"></div>
+
+        <!-- Month Picker Group -->
+        <div class="mr-month-group" id="mrMonthGroup" style="display: {{ 'none' if filter_type == 'year' else 'flex' }};">
+            <span class="mr-month-label"><i class="fa-solid fa-calendar-days"></i>&nbsp;Month</span>
+            <select class="mr-month-select" id="mrMonthSelect" onchange="navigateToMonth(this.value)">
+                {% for ym in available_months %}
+                    {% set parts = ym.split('-') %}
+                    {% set month_names = ['','January','February','March','April','May','June','July','August','September','October','November','December'] %}
+                    <option value="{{ ym }}" {% if ym == selected_month_str %}selected{% endif %}>
+                        {{ month_names[parts[1]|int] }} {{ parts[0] }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Year Picker Group -->
+        <div class="mr-month-group" id="mrYearGroup" style="display: {{ 'flex' if filter_type == 'year' else 'none' }};">
+            <span class="mr-month-label"><i class="fa-solid fa-calendar"></i>&nbsp;Year</span>
+            <select class="mr-month-select" id="mrYearSelect" onchange="navigateToYear(this.value)">
+                {% for y in available_years %}
+                    <option value="{{ y }}" {% if y == selected_year_str %}selected{% endif %}>
+                        Year {{ y }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mr-divider"></div>
+
+        <div class="mr-zoom-group">
+            <span class="mr-zoom-label"><i class="fa-solid fa-magnifying-glass-plus me-1"></i>Zoom:</span>
+            <input type="range" id="mrZoomRange" min="30" max="150" value="100">
+            <span id="mrZoomVal">100%</span>
+            <button type="button" class="mr-zoom-fit-btn" id="mrBtnFit" onclick="autoFitTable(true)" title="Auto-Fit all columns to screen">
+                <i class="fa-solid fa-arrows-left-right-to-line"></i> Fit
+            </button>
+        </div>
+
+        <div class="mr-divider"></div>
+
+        <!-- SCME: View DOU Monthly Report -->
+        <div class="mr-viewas-group" id="mrDouGroup">
+            <span class="mr-viewas-label"><i class="fa-solid fa-building-columns"></i> DOU</span>
+            <select class="mr-viewas-select" id="mrDouSelect" onchange="onDouChange()">
+                <option value="">— Select DOU —</option>
+            </select>
+        </div>
+
+        <div class="mr-divider"></div>
+
+        <!-- SCME: View Unit Monthly Report -->
+        <div class="mr-viewas-group" id="mrUnitGroup">
+            <span class="mr-viewas-label"><i class="fa-solid fa-shield-halved"></i> Unit</span>
+            <select class="mr-viewas-select" id="mrUnitSelect" onchange="onUnitChange()" disabled>
+                <option value="">— Select DOU first —</option>
+            </select>
+        </div>
+
+        <div class="mr-divider"></div>
+
+        <button type="button" class="mr-btn mr-btn-excel" id="mrBtnExport">
+            <i class="fa-solid fa-download"></i> Export Excel
+        </button>
+        <button type="button" class="mr-btn mr-btn-print" id="mrBtnPrint">
+            <i class="fa-solid fa-print"></i> Print Sheet
+        </button>
+    </div>
+
+    <!-- Spreadsheet Area -->
+    <div class="mr-sheet-wrapper">
+        <div class="mr-table-nav-wrapper">
+            <button class="mr-scroll-arrow arrow-left" id="mrScrollLeft" title="Scroll Left">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+
+            <div id="mrTableContainer">
+            {% if not ecc_states %}
+            <div class="mr-empty">
+                <i class="fa-solid fa-calendar-xmark"></i>
+                <h3>No Data for {{ selected_period_label }}</h3>
+                <p>No records were found for this period. Select a different period above.</p>
+            </div>
+            {% endif %}
+            </div>
+            <button class="mr-scroll-arrow arrow-right" id="mrScrollRight" title="Scroll Right">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══ Inline Report Viewer Modal ═══ -->
+<div id="scmeReportModal" role="dialog" aria-modal="true">
+    <div class="scme-modal-box">
+        <div class="scme-modal-header">
+            <div class="scme-modal-title">
+                <i class="fa-solid fa-file-invoice" id="scmeModalIcon"></i>
+                <span id="scmeModalTitleText">Report</span>
+                <span class="badge" id="scmeModalBadge"></span>
+                <span style="font-size:0.72rem; color:#6b7280; font-weight:600;" id="scmeModalPeriod"></span>
+                <span style="font-size:0.72rem; background:#1e3a8a; color:#fff; padding:2px 10px; border-radius:12px; font-weight:700;" id="scmeModalStrength"></span>
+            </div>
+            <button class="scme-modal-close" onclick="closeScmeModal()" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="scme-modal-body" id="scmeModalBody">
+            <div class="scme-modal-loading"><div class="spinner"></div> Loading report data&hellip;</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let eccStatesData = [
+    {% for s in ecc_states %}
+    {
+        id: {{ s.id or 0 }},
+        item_id: {{ s.item_id or 0 }},
+        item_name: "{{ s.item_name if s.item_name else (s.item.item_name if s.item else 'Unknown Item') }}",
+        category: "{{ s.category if s.category else (s.item.category if s.item else '') }}",
+        scale: "{{ s.scale or '1 per indl' }}",
+        auth_auth: {{ s.auth_auth or 0 }},
+        auth_res: {{ s.auth_res or 0 }},
+        auth_total: {{ s.auth_total or 0 }},
+        unit_auth: {{ s.unit_auth or 0 }},
+        bbf_division: "{{ s.bbf_division or '' }}",
+        bbf_ser: {{ s.bbf_ser or 0 }},
+        bbf_pws: {{ s.bbf_pws or 0 }},
+        bbf_total: {{ s.bbf_total or 0 }},
+        bbf_comd: {{ s.bbf_comd or 0 }},
+        bbf_ihq: {{ s.bbf_ihq or 0 }},
+        recd_ser: {{ s.recd_ser or 0 }},
+        recd_pws: {{ s.recd_pws or 0 }},
+        recd_comd: {{ s.recd_comd or 0 }},
+        recd_ihq: {{ s.recd_ihq or 0 }},
+        recd_total: {{ s.recd_total or 0 }},
+        issd_ser: {{ s.issd_ser or 0 }},
+        issd_pws: {{ s.issd_pws or 0 }},
+        issd_total: {{ s.issd_total or 0 }},
+        stock_ser: {{ s.stock_ser or 0 }},
+        stock_pws: {{ s.stock_pws or 0 }},
+        stock_total: {{ s.stock_total or 0 }},
+        stock_comd: {{ s.stock_comd or 0 }},
+        stock_ihq: {{ s.stock_ihq or 0 }},
+        dou_free_ser: {{ s.dou_free_ser or 0 }},
+        dou_free_pws: {{ s.dou_free_pws or 0 }},
+        dou_free_total: {{ s.dou_free_total or 0 }},
+        unit_stk_ser: {{ s.unit_stk_ser or 0 }},
+        unit_stk_pws: {{ s.unit_stk_pws or 0 }},
+        unit_stk_total: {{ s.unit_stk_total or 0 }},
+        condemned_ser: {{ s.condemned_ser or 0 }},
+        condemned_pws: {{ s.condemned_pws or 0 }},
+        total_condemnation: {{ s.total_condemnation or 0 }},
+        add_knd: {{ s.add_knd or 0 }},
+        add_tn_model: {{ s.add_tn_model or 0 }},
+        add_n_area_otg: {{ s.add_n_area_otg or 0 }},
+        add_idt_ict: {{ s.add_idt_ict or 0 }},
+        add_remarks_ro_bal: {{ s.add_remarks_ro_bal or 0 }},
+        tps: {{ s.tps or 0 }},
+        deficiency: {{ s.deficiency or 0 }},
+        has_whole_auth: {{ 'true' if s.has_whole_auth else 'false' }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+let currentFilterType     = "{{ filter_type }}";
+let currentPeriodLabel    = "{{ selected_period_label | upper }}";
+let currentTableHeader    = "{{ table_header_banner }}";
+let currentSelectedMonth  = "{{ selected_month_str }}";
+let currentSelectedYear   = "{{ selected_year_str }}";
+
+function fetchReportData(type, month, year) {
+    const urlParams = new URLSearchParams();
+    urlParams.set('type', type);
+    if (type === 'year' && year) urlParams.set('year', year);
+    if (type === 'month' && month) urlParams.set('month', month);
+
+    const apiUrl = '/scme/api/monthly-reports-data?' + urlParams.toString();
+    const pageUrl = '/scme/monthly-reports?' + urlParams.toString();
+
+    const tableContainer = document.getElementById('mrTableContainer');
+    if (tableContainer) {
+        tableContainer.style.opacity = '0.4';
+        tableContainer.style.transition = 'opacity 0.2s';
+    }
+
+    fetch(apiUrl)
+        .then(res => res.json())
+        .then(data => {
+            if (tableContainer) tableContainer.style.opacity = '1';
+            if (!data.success) return;
+
+            currentFilterType = data.filter_type;
+            currentPeriodLabel = (data.selected_period_label || '').toUpperCase();
+            currentTableHeader = data.table_header_banner;
+            currentSelectedMonth = data.selected_month_str;
+            currentSelectedYear = data.selected_year_str;
+
+            const titleEl = document.getElementById('mrPageH1Title');
+            if (titleEl) titleEl.textContent = (data.filter_type === 'year' ? 'Annual' : 'Monthly') + ' Reports';
+
+            const subSpan = document.getElementById('mrPageSubSpan');
+            if (subSpan) subSpan.textContent = currentPeriodLabel;
+
+            const badgeEl = document.getElementById('mrHeaderBadge');
+            if (badgeEl) badgeEl.textContent = currentPeriodLabel;
+
+            const sheetTitleEl = document.getElementById('mrSheetHeaderTitleText');
+            if (sheetTitleEl) sheetTitleEl.textContent = (data.filter_type === 'year' ? 'Annual' : 'Monthly') + ' Summary';
+
+            history.pushState({ type: data.filter_type, month: data.selected_month_str, year: data.selected_year_str }, '', pageUrl);
+
+            eccStatesData = data.ecc_states || [];
+            if (eccStatesData.length > 0) {
+                renderExcelViewTable();
+            } else {
+                tableContainer.innerHTML = `
+                    <div class="mr-empty">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                        <h3>No Data for ${currentPeriodLabel}</h3>
+                        <p>No records were found for this period. Select a different period above.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            if (tableContainer) tableContainer.style.opacity = '1';
+            console.error("Failed to load report data:", err);
+        });
+}
+
+function onFilterTypeChange(typeVal) {
+    const monthGroup = document.getElementById('mrMonthGroup');
+    const yearGroup = document.getElementById('mrYearGroup');
+
+    if (typeVal === 'year') {
+        if (monthGroup) monthGroup.style.display = 'none';
+        if (yearGroup) yearGroup.style.display = 'flex';
+        const yearSel = document.getElementById('mrYearSelect');
+        const selectedYear = yearSel ? yearSel.value : '';
+        fetchReportData('year', '', selectedYear);
+    } else {
+        if (yearGroup) yearGroup.style.display = 'none';
+        if (monthGroup) monthGroup.style.display = 'flex';
+        const monthSel = document.getElementById('mrMonthSelect');
+        const selectedMonth = monthSel ? monthSel.value : '';
+        fetchReportData('month', selectedMonth, '');
+    }
+}
+
+function navigateToMonth(monthVal) {
+    fetchReportData('month', monthVal, '');
+}
+
+function navigateToYear(yearVal) {
+    fetchReportData('year', '', yearVal);
+}
+
+function exportToExcel(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const styles = `table{border-collapse:collapse;}th,td{border:1px solid #999b9e;font-family:Calibri,sans-serif;font-size:11px;}
+    .excel-header-title{font-size:14px;font-weight:bold;background:#fff;text-align:center;}
+    .excel-header-sno,.excel-header-item,.excel-header-scale{background:#f2f2f2;}
+    .excel-header-auth{background:#fae8ff;color:#701a75;}.excel-header-ob{background:#ffedd5;color:#9a3412;}
+    .excel-header-recd{background:#ccfbf1;color:#115e59;}.excel-header-cond{background:#fce7f3;color:#9d174d;}.excel-header-issd{background:#fef3c7;color:#92400e;}
+    .excel-header-unit-stk{background:#e0e7ff;color:#3730a3;}.excel-header-dou-free{background:#ede9fe;color:#6b21a8;}.excel-header-stk{background:#ede9fe;color:#3730a3;}
+    .excel-header-res{background:#f3e8ff;color:#6b21a8;}.excel-header-totalstk{background:#ccfbf1;color:#0f766e;}
+    .excel-header-add{background:#fef08a;color:#854d0e;}.excel-header-net{background:#e0f2fe;color:#0369a1;}
+    .excel-header-remarks{background:#fae8ff;color:#86198f;}.excel-header-tps{background:#ffe4e6;color:#9f1239;}
+    .excel-cell-num{text-align:center;}.excel-cell-center{text-align:center;}.excel-cell-bold{font-weight:bold;}
+    .excel-bg-auth{background:#faf5ff;}.excel-bg-ob-free{background:#fffaf0;}.excel-bg-ob-res{background:#fcf6f5;}
+    .excel-bg-recd{background:#f0fdfa;}.excel-bg-cond{background:#fdf2f8;}.excel-bg-issd{background:#fffdf5;}
+    .excel-bg-unit-stk{background:#eef2ff;}.excel-bg-dou-free{background:#f5f3ff;}
+    .excel-bg-stk-free{background:#f5f3ff;}.excel-bg-stk-res{background:#f3f0ff;}
+    .excel-bg-totalstk{background:#f0f9ff;}.excel-bg-add{background:#fefce8;}
+    .excel-bg-net{background:#ecfeff;}.excel-bg-remarks{background:#faf5ff;}.excel-bg-tps{background:#fff1f2;}`;
+    const tmpl = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><style>${styles}</style></head><body>${table.outerHTML}</body></html>`;
+    const blob = new Blob([tmpl], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename || 'Report.xls';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function renderExcelViewTable() {
+    if (!eccStatesData.length) return;
+
+    const normDivName = d => (d || '').toString().trim().replace(/_/g, ' ').toUpperCase();
+    const is2Fod = d => normDivName(d) === '2 FOD';
+
+    const latestMap = new Map();
+    eccStatesData.forEach(r => {
+        if (r.bbf_division) {
+            r.bbf_division = normDivName(r.bbf_division);
+        }
+        const k = r.item_name + '||' + (r.bbf_division || '');
+        if (!latestMap.has(k)) latestMap.set(k, r);
+    });
+    const activeStates = Array.from(latestMap.values());
+
+    const allDivs   = Array.from(new Set(activeStates.map(r => normDivName(r.bbf_division)).filter(Boolean)));
+    const has2Fod   = allDivs.some(d => is2Fod(d));
+    const otherDivs = allDivs.filter(d => !is2Fod(d)).sort();
+    const divsOrder = has2Fod ? ['2 FOD', ...otherDivs] : otherDivs;
+    function catSortRank(item) {
+        const rec = activeStates.find(r => r.item_name === item);
+        const cat = (rec && rec.category ? rec.category : '').toUpperCase().replace(/[\s-]/g, '');
+        if (cat.includes('CAT1') || (cat.includes('CATI') && !cat.includes('CATII'))) return 1;
+        if (cat.includes('CAT2') || cat.includes('CATII')) return 2;
+        return 3;
+    }
+    const itemNames = Array.from(new Set(activeStates.map(r => r.item_name).filter(Boolean)));
+    itemNames.sort((a, b) => {
+        const rA = catSortRank(a);
+        const rB = catSortRank(b);
+        if (rA !== rB) return rA - rB;
+        return a.localeCompare(b);
+    });
+
+    const obCS  = 6;
+    const rCS   = 4;
+    const condCS = 1;
+    const iCS   = 2;
+    const sCS   = 4;
+    const uCS   = 3;
+    const totStkCS = 3;
+    const totC  = 3 + 3 + obCS + rCS + condCS + iCS + sCS + uCS + totStkCS + 1;
+
+    let html = `<table class="excel-table" id="mrExcelTable">
+<colgroup>
+    <col class="mr-col-sno">
+    <col class="mr-col-item">
+    <col class="mr-col-scale">
+</colgroup>
+<thead>
+<tr><th colspan="${totC}" class="excel-header-title">${currentTableHeader}</th></tr>
+<tr>
+    <th rowspan="3" class="excel-header-sno">S.No</th>
+    <th rowspan="3" class="excel-header-item">Item</th>
+    <th rowspan="3" class="excel-header-scale">Scale</th>
+    <th colspan="3" class="excel-header-auth">Auth</th>
+    <th colspan="${obCS}" class="excel-header-ob">BBF (of last month)</th>
+    <th colspan="${rCS}" class="excel-header-recd">Qty Received this month</th>
+    <th colspan="${iCS}" class="excel-header-issd">Qty Issued this month</th>
+    <th colspan="${sCS}" class="excel-header-stk">Stk Held with 2 FOD</th>
+    <th colspan="${uCS}" class="excel-header-unit-stk">Stk Held with Units</th>
+    <th colspan="${totStkCS}" class="excel-header-totalstk">Total Stock</th>
+    <th rowspan="3" class="excel-header-net">Sur /<br>Defi</th>
+    <th rowspan="3" class="excel-header-cond" style="min-width: 82px; padding: 4px 3px; font-size: 8.5px; line-height: 1.15;">TOTAL<br>CONDEMNATION</th>
+</tr>
+<tr>
+    <th rowspan="2" class="excel-header-auth">Auth</th>
+    <th rowspan="2" class="excel-header-auth">Res</th>
+    <th rowspan="2" class="excel-header-auth">Total</th>
+    <!-- BBF sub-headers -->
+    <th colspan="2" class="excel-header-ob">Free Stk</th>
+    <th colspan="2" class="excel-header-ob">Res Stk</th>
+    <th colspan="2" class="excel-header-ob">Total Stk (Incl Res)</th>
+    <!-- Recd sub-headers -->
+    <th colspan="2" class="excel-header-recd">Free Stk</th>
+    <th colspan="2" class="excel-header-recd">Res Stk</th>
+    <!-- Issued sub-headers -->
+    <th rowspan="2" class="excel-header-issd">Ser</th>
+    <th rowspan="2" class="excel-header-issd">PWS</th>
+    <!-- Stk Held with 2 FOD sub-headers -->
+    <th colspan="2" class="excel-header-stk-free">Free Stk</th>
+    <th colspan="2" class="excel-header-stk-res">Res Stk</th>
+    <!-- Stk Held with Units sub-headers -->
+    <th rowspan="2" class="excel-header-unit-stk">Ser</th>
+    <th rowspan="2" class="excel-header-unit-stk">PWS</th>
+    <th rowspan="2" class="excel-header-unit-stk">Total</th>
+    <!-- Total Stock sub-headers -->
+    <th rowspan="2" class="excel-header-totalstk">Ser</th>
+    <th rowspan="2" class="excel-header-totalstk">PWS</th>
+    <th rowspan="2" class="excel-header-totalstk">Total</th>
+</tr>
+<tr>
+    <!-- BBF leaves -->
+    <th class="excel-header-ob">Ser</th>
+    <th class="excel-header-ob">PWS</th>
+    <th class="excel-header-ob">Comd</th>
+    <th class="excel-header-ob">IHQ</th>
+    <th class="excel-header-ob">Ser</th>
+    <th class="excel-header-ob">PWS</th>
+    <!-- Recd leaves -->
+    <th class="excel-header-recd">Ser</th>
+    <th class="excel-header-recd">PWS</th>
+    <th class="excel-header-recd">Comd</th>
+    <th class="excel-header-recd">IHQ</th>
+    <!-- Stk Held with 2 FOD leaves -->
+    <th class="excel-header-stk-free">Ser</th>
+    <th class="excel-header-stk-free">PWS</th>
+    <th class="excel-header-stk-res">Comd</th>
+    <th class="excel-header-stk-res">IHQ</th>
+</tr>
+</thead>
+<tbody>`;
+
+    const cat1Names = itemNames.filter(i => catSortRank(i) === 1).sort((a,b) => a.localeCompare(b));
+    const cat2Names = itemNames.filter(i => catSortRank(i) === 2).sort((a,b) => a.localeCompare(b));
+    const catOtherNames = itemNames.filter(i => catSortRank(i) === 3).sort((a,b) => a.localeCompare(b));
+    const allSortedItems = [...cat1Names, ...cat2Names, ...catOtherNames];
+
+    let rowIndex = 0;
+    allSortedItems.forEach((itemName) => {
+        const sts  = activeStates.filter(r => r.item_name === itemName);
+        const r2f  = sts.find(r => is2Fod(r.bbf_division));
+        const rOth = otherDivs.map(d => sts.find(r => normDivName(r.bbf_division) === normDivName(d)));
+        const rAll = divsOrder.map(d => sts.find(r => normDivName(r.bbf_division) === normDivName(d)));
+
+        // AUTH always comes from the 2 FOD global row (whole_auth stored there),
+        // never from summing unit rows or from whichever sts[0] happens to be first.
+        const authSrc = r2f || sts[0];
+        const sc = authSrc ? (authSrc.scale || '-') : '-';
+        const aa = authSrc ? (authSrc.auth_auth || 0) : 0;
+        const ar = authSrc ? (authSrc.auth_res  || 0) : 0;
+        const at = aa + ar;
+
+        // BBF (strictly from 2 FOD record if available, or aggregated across divisions if division view)
+        const ob2s = r2f ? (r2f.bbf_ser || 0) : sts.reduce((s,r)=>s+(r.bbf_ser||0),0);
+        const ob2p = r2f ? (r2f.bbf_pws || 0) : sts.reduce((s,r)=>s+(r.bbf_pws||0),0);
+        const ob2c = r2f ? (r2f.bbf_comd || 0) : sts.reduce((s,r)=>s+(r.bbf_comd||0),0);
+        const ob2i = r2f ? (r2f.bbf_ihq || 0) : sts.reduce((s,r)=>s+(r.bbf_ihq||0),0);
+        const obTs = ob2s + ob2c + ob2i;
+        const obTp = ob2p;
+
+        const recd_ser = sts.reduce((maxVal, r) => Math.max(maxVal, r.recd_ser || 0), 0);
+        const recd_pws = sts.reduce((maxVal, r) => Math.max(maxVal, r.recd_pws || 0), 0);
+        const recd_comd = sts.reduce((maxVal, r) => Math.max(maxVal, r.recd_comd || 0), 0);
+        const recd_ihq = sts.reduce((maxVal, r) => Math.max(maxVal, r.recd_ihq || 0), 0);
+        const total_condemnation = sts.reduce((maxVal, r) => Math.max(maxVal, r.total_condemnation || 0), 0);
+        const is_s = r2f ? (r2f.issd_ser || 0) : sts.reduce((s, r) => s + (r.issd_ser || 0), 0);
+        const is_p = r2f ? (r2f.issd_pws || 0) : sts.reduce((s, r) => s + (r.issd_pws || 0), 0);
+
+        // STK HELD WITH 2 FOD = Qty Recd this month - Qty Issued this month + BBF
+        const sk2s = Math.max(0, recd_ser - is_s + ob2s);
+        const sk2p = Math.max(0, recd_pws - is_p + ob2p);
+        const sk2c = recd_comd + ob2c;
+        const sk2i = recd_ihq + ob2i;
+
+        // STK HELD WITH UNITS (Merged: unit stock + free stock held with DOU - Condemnation):
+        const u_ser_raw = sts.reduce((maxVal, r) => Math.max(maxVal, r.unit_stk_ser || 0), 0);
+        const u_pws_raw = sts.reduce((maxVal, r) => Math.max(maxVal, r.unit_stk_pws || 0), 0);
+        const dou_free_ser = sts.reduce((maxVal, r) => Math.max(maxVal, r.dou_free_ser || 0), 0);
+        const dou_free_pws = sts.reduce((maxVal, r) => Math.max(maxVal, r.dou_free_pws || 0), 0);
+        const gross_u_ser = u_ser_raw + dou_free_ser;
+        const gross_u_pws = u_pws_raw + dou_free_pws;
+
+        const cond_ser = sts.reduce((maxVal, r) => Math.max(maxVal, r.condemned_ser || 0), 0);
+        const cond_pws = sts.reduce((maxVal, r) => Math.max(maxVal, r.condemned_pws || 0), 0);
+        const total_cond = sts.reduce((maxVal, r) => Math.max(maxVal, r.total_condemnation || 0), 0);
+
+        let c_s = cond_ser;
+        let c_p = cond_pws;
+        if (c_s === 0 && c_p === 0 && total_cond > 0) {
+            c_s = total_cond;
+        }
+
+        let eff_cond_p = Math.min(gross_u_pws, c_p);
+        let leftover_p = c_p - eff_cond_p;
+        let eff_cond_s = Math.min(gross_u_ser, c_s + leftover_p);
+        let leftover_s = (c_s + leftover_p) - eff_cond_s;
+        if (leftover_s > 0) {
+            eff_cond_p = Math.min(gross_u_pws, eff_cond_p + leftover_s);
+        }
+
+        const u_ser = Math.max(0, gross_u_ser - eff_cond_s);
+        const u_pws = Math.max(0, gross_u_pws - eff_cond_p);
+        const u_total = u_ser + u_pws;
+
+        // TOTAL STOCK (Stk Held with 2 FOD + Stk Held with Units):
+        const tot_stk_ser = sk2s + sk2c + sk2i + u_ser;
+        const tot_stk_pws = sk2p + u_pws;
+        const tot_stk_total = tot_stk_ser + tot_stk_pws;
+
+        // SUR / DEFI (Deficiency vs Whole Auth Total):
+        const sur_defi = at - tot_stk_total;
+
+        rowIndex++;
+
+        html += '<tr style="border-bottom:1px solid #999b9e;">';
+        html += `<td class="excel-cell-center">${rowIndex}</td>
+<td class="excel-cell-item"><span class="excel-item-text">${itemName}</span></td>
+<td class="excel-cell-center">${sc}</td>
+<!-- Auth -->
+<td class="excel-cell-num excel-bg-auth">${aa}</td>
+<td class="excel-cell-num excel-bg-auth">${ar}</td>
+<td class="excel-cell-num excel-bg-auth excel-cell-bold">${at}</td>
+<!-- BBF -->
+<td class="excel-cell-num excel-bg-ob-free">${ob2s}</td>
+<td class="excel-cell-num excel-bg-ob-free">${ob2p}</td>
+<td class="excel-cell-num excel-bg-ob-res">${ob2c}</td>
+<td class="excel-cell-num excel-bg-ob-res">${ob2i}</td>
+<td class="excel-cell-num excel-bg-ob-free excel-cell-bold">${obTs}</td>
+<td class="excel-cell-num excel-bg-ob-free excel-cell-bold">${obTp}</td>
+<!-- Recd -->
+<td class="excel-cell-num excel-bg-recd excel-cell-bold">${recd_ser}</td>
+<td class="excel-cell-num excel-bg-recd excel-cell-bold">${recd_pws}</td>
+<td class="excel-cell-num excel-bg-recd excel-cell-bold" style="color:#0f766e;">${recd_comd}</td>
+<td class="excel-cell-num excel-bg-recd excel-cell-bold" style="color:#0f766e;">${recd_ihq}</td>
+<!-- Issued -->
+<td class="excel-cell-num excel-bg-issd excel-cell-bold">${is_s}</td>
+<td class="excel-cell-num excel-bg-issd excel-cell-bold">${is_p}</td>
+<!-- Stk Held with 2 FOD: Free Stk (blue) & Res Stk (amber) -->
+<td class="excel-cell-num excel-bg-stk-free" style="color:#1e40af;">${sk2s}</td>
+<td class="excel-cell-num excel-bg-stk-free" style="color:#1e40af;">${sk2p}</td>
+<td class="excel-cell-num excel-bg-stk-res" style="color:#1e3a8a;">${sk2c}</td>
+<td class="excel-cell-num excel-bg-stk-res" style="color:#1e3a8a;">${sk2i}</td>
+<!-- Stk Held with Units (emerald) -->
+<td class="excel-cell-num excel-bg-unit-stk" style="color:#065f46;">${u_ser}</td>
+<td class="excel-cell-num excel-bg-unit-stk" style="color:#065f46;">${u_pws}</td>
+<td class="excel-cell-num excel-bg-unit-stk excel-cell-bold" style="color:#065f46; background:#a7f3d0 !important;">${u_total}</td>
+<!-- Total Stock -->
+<td class="excel-cell-num excel-bg-totalstk excel-cell-bold" style="color:#0f766e;">${tot_stk_ser}</td>
+<td class="excel-cell-num excel-bg-totalstk excel-cell-bold" style="color:#0f766e;">${tot_stk_pws}</td>
+<td class="excel-cell-num excel-bg-totalstk excel-cell-bold" style="color:#0f766e; background-color:#ccfbf1 !important;">${tot_stk_total}</td>
+<!-- Sur / Defi -->
+<td class="excel-cell-num excel-bg-net excel-cell-bold" style="color:${sur_defi > 0 ? '#dc2626' : (sur_defi < 0 ? '#16a34a' : '#374151')};">
+    ${sur_defi > 0 ? sur_defi : (sur_defi < 0 ? '+' + Math.abs(sur_defi) : 0)}
+</td>
+<!-- Total Condemnation -->
+<td class="excel-cell-num excel-bg-cond" style="font-weight: 700; color: ${total_condemnation > 0 ? '#9d174d' : '#374151'};">${total_condemnation}</td>
+</tr>`;
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('mrTableContainer').innerHTML = html;
+    if (!userHasManualZoom) {
+        scheduleAutoFit();
+    } else {
+        const zrEl = document.getElementById('mrZoomRange');
+        if (zrEl) applyZoom(zrEl.value);
+    }
+}
+
+let userHasManualZoom = false;
+
+function itemColMaxForZoom(v) {
+    const pct = Math.max(30, Math.min(150, Number(v) || 100));
+    const wrapAt100 = 88;
+    if (pct > 100) {
+        // CSS zoom widens layout; shrink the Item column so names still wrap.
+        return Math.max(48, Math.round(wrapAt100 * (100 / pct)));
+    }
+    if (pct >= 90) return wrapAt100;
+    if (pct >= 60) return 80;
+    return 68;
+}
+
+function applyItemColumnWidth(tbl, v) {
+    const px = itemColMaxForZoom(v) + 'px';
+    tbl.style.setProperty('--item-col-max', px);
+    const col = tbl.querySelector('col.mr-col-item');
+    if (col) col.style.width = px;
+    tbl.querySelectorAll('.excel-cell-item, .excel-header-item, .excel-item-text').forEach(el => {
+        el.style.width = px;
+        el.style.maxWidth = px;
+        el.style.minWidth = '0';
+        el.style.whiteSpace = 'normal';
+        el.style.overflowWrap = 'break-word';
+        el.style.wordBreak = 'break-word';
+    });
+}
+
+function applyZoom(v) {
+    const tbl = document.getElementById('mrExcelTable');
+    const zr  = document.getElementById('mrZoomRange');
+    const zv  = document.getElementById('mrZoomVal');
+    if (zr) zr.value = v;
+    if (zv) zv.textContent = Math.round(Number(v)) + '%';
+    if (tbl) {
+        applyItemColumnWidth(tbl, v);
+        tbl.style.zoom = (v / 100);
+        tbl.style.width = 'max-content';
+        tbl.style.minWidth = '0';
+    }
+    setTimeout(() => {
+        if (typeof window.mrPositionArrows === 'function') window.mrPositionArrows();
+        if (typeof window.mrUpdateArrows === 'function') window.mrUpdateArrows();
+    }, 60);
+}
+
+function autoFitTable(force) {
+    if (force) userHasManualZoom = false;
+    const tbl = document.getElementById('mrExcelTable');
+    const ct  = document.getElementById('mrTableContainer');
+    if (!tbl || !ct) return;
+
+    tbl.style.zoom = '1';
+    tbl.style.width = 'max-content';
+    tbl.style.minWidth = '0';
+    applyItemColumnWidth(tbl, 80);
+    void tbl.offsetWidth;
+
+    const naturalWidth = Math.max(tbl.scrollWidth, tbl.offsetWidth);
+    const vScroll = ct.scrollHeight > ct.clientHeight ? 14 : 0;
+    const containerWidth = ct.clientWidth - 8 - vScroll;
+
+    if (naturalWidth > 0 && containerWidth > 200) {
+        if (naturalWidth > containerWidth) {
+            const fitZoom = Math.max(30, Math.min(100, Math.floor((containerWidth / naturalWidth) * 100)));
+            applyZoom(fitZoom);
+        } else {
+            applyZoom(100);
+            tbl.style.width = '100%';
+        }
+    } else {
+        applyZoom(100);
+        tbl.style.width = '100%';
+    }
+}
+
+function scheduleAutoFit() {
+    if (userHasManualZoom) return;
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => autoFitTable());
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const zr = document.getElementById('mrZoomRange');
+    const ct = document.getElementById('mrTableContainer');
+
+    if (zr) {
+        zr.addEventListener('input', () => {
+            userHasManualZoom = true;
+            applyZoom(zr.value);
+        });
+    }
+
+    document.getElementById('mrBtnExport').addEventListener('click', () => {
+        const fname = (currentFilterType === 'year' ? 'Annual_Report_' + currentSelectedYear : 'Monthly_Report_' + currentSelectedMonth) + '.xls';
+        exportToExcel('mrExcelTable', fname);
+    });
+
+    document.getElementById('mrBtnPrint').addEventListener('click', () => window.print());
+
+    // Scroll nav arrows
+    const arrowLeft  = document.getElementById('mrScrollLeft');
+    const arrowRight = document.getElementById('mrScrollRight');
+
+    function positionArrows() {
+        if (!ct) return;
+        const rect = ct.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        [arrowLeft, arrowRight].forEach(a => {
+            if (a) a.style.top = (midY - 36) + 'px';
+        });
+        if (arrowLeft)  arrowLeft.style.left  = (rect.left  + 8) + 'px';
+        if (arrowRight) arrowRight.style.left = (rect.right - 44) + 'px';
+    }
+
+    function updateArrows() {
+        if (!ct) return;
+        const atStart = ct.scrollLeft <= 4;
+        const atEnd   = ct.scrollLeft + ct.clientWidth >= ct.scrollWidth - 4;
+        if (arrowLeft)  arrowLeft.classList.toggle('visible',  !atStart);
+        if (arrowRight) arrowRight.classList.toggle('visible', !atEnd && ct.scrollWidth > ct.clientWidth + 4);
+        positionArrows();
+    }
+
+    window.mrPositionArrows = positionArrows;
+    window.mrUpdateArrows = updateArrows;
+
+    if (ct) ct.addEventListener('scroll', updateArrows);
+    window.addEventListener('scroll', positionArrows);
+    window.addEventListener('resize', () => {
+        if (!userHasManualZoom) autoFitTable();
+        updateArrows();
+    });
+    window.addEventListener('load', () => {
+        if (!userHasManualZoom) autoFitTable();
+    });
+
+    let scrollInterval = null;
+    function startScroll(dir) {
+        if (scrollInterval) return;
+        scrollInterval = setInterval(() => { if (ct) ct.scrollLeft += dir * 60; }, 30);
+    }
+    function stopScroll() { clearInterval(scrollInterval); scrollInterval = null; }
+
+    if (arrowLeft)  { arrowLeft.addEventListener('mousedown',  () => startScroll(-1)); arrowLeft.addEventListener('click',  () => { if (ct) ct.scrollLeft -= 200; }); }
+    if (arrowRight) { arrowRight.addEventListener('mousedown', () => startScroll(1));  arrowRight.addEventListener('click', () => { if (ct) ct.scrollLeft += 200; }); }
+    document.addEventListener('mouseup', stopScroll);
+
+    if (eccStatesData.length > 0) {
+        renderExcelViewTable();
+    }
+    let douUnitsMap = {};
+    let allDouAdmins = [];
+    let allUnitAdmins = [];
+
+    // ── Load SCME admin lists for view-as dropdowns ──
+    (function loadAdminLists() {
+        const douSel  = document.getElementById('mrDouSelect');
+        const unitSel = document.getElementById('mrUnitSelect');
+        if (!douSel && !unitSel) return;
+
+        fetch('/scme/api/admin-lists')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+
+                douUnitsMap   = data.dou_units_map || {};
+                allDouAdmins  = data.dou_admins || [];
+                allUnitAdmins = data.unit_admins || [];
+
+                if (douSel) {
+                    douSel.innerHTML = '<option value="">— Select DOU —</option>';
+                    allDouAdmins.forEach(name => {
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.textContent = name.replace(/_/g, ' ').toUpperCase();
+                        douSel.appendChild(opt);
+                    });
+                }
+
+                if (unitSel) {
+                    unitSel.innerHTML = '<option value="">— Select DOU first —</option>';
+                    unitSel.disabled = true;
+                }
+            })
+            .catch(err => console.warn('Could not load admin lists:', err));
+    })();
+
+    window.onDouChange = function() {
+        const douSel  = document.getElementById('mrDouSelect');
+        const unitSel = document.getElementById('mrUnitSelect');
+        if (!douSel || !unitSel) return;
+
+        const selectedDou = douSel.value;
+        unitSel.innerHTML = '';
+
+        if (!selectedDou) {
+            unitSel.disabled = true;
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '— Select DOU first —';
+            unitSel.appendChild(opt);
+            closeScmeModal();
+            return;
+        }
+
+        unitSel.disabled = false;
+
+        // "SELECT UNIT OPTION (SELECT UNIT MEANING WE ARE ONLY VIEW DOU OVERALL)"
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = 'Select Unit (Overall DOU)';
+        unitSel.appendChild(defaultOpt);
+
+        const childUnits = douUnitsMap[selectedDou] || [];
+        if (childUnits.length > 0) {
+            childUnits.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.textContent = u.replace(/_/g, ' ').toUpperCase();
+                unitSel.appendChild(opt);
+            });
+        } else {
+            const noUnitsOpt = document.createElement('option');
+            noUnitsOpt.value = '';
+            noUnitsOpt.disabled = true;
+            noUnitsOpt.textContent = '(No child units under this DOU)';
+            unitSel.appendChild(noUnitsOpt);
+        }
+
+        unitSel.value = '';
+        // Automatically open DOU Overall report popup on DOU change
+        openDouReport();
+    };
+
+    window.onUnitChange = function() {
+        const unitSel = document.getElementById('mrUnitSelect');
+        const douSel  = document.getElementById('mrDouSelect');
+        if (!unitSel || !douSel) return;
+
+        const douVal = douSel.value;
+        if (!douVal) {
+            closeScmeModal();
+            return;
+        }
+
+        const unitVal = unitSel.value;
+        if (!unitVal) {
+            // "Select Unit (Overall DOU)" chosen -> show DOU Overall
+            openDouReport();
+        } else {
+            // Specific unit chosen -> show Unit report
+            openUnitReport();
+        }
+    };
+
+    // Close modal on background click
+    document.getElementById('scmeReportModal').addEventListener('click', function(e) {
+        if (e.target === this) closeScmeModal();
+    });
+    // Close modal on Escape
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeScmeModal(); });
+});
+
+function closeScmeModal() {
+    const modal = document.getElementById('scmeReportModal');
+    if (modal) modal.classList.remove('open');
+}
+
+function openDouReport() {
+    const sel = document.getElementById('mrDouSelect');
+    const val = sel ? sel.value : '';
+    if (!val) { closeScmeModal(); return; }
+
+    const monthSel = document.getElementById('mrMonthSelect');
+    const ftype    = document.getElementById('mrFilterType');
+    let monthParam = '';
+    if (ftype && ftype.value === 'month' && monthSel && monthSel.value) {
+        monthParam = monthSel.value;
+    }
+
+    // Open modal with loading state
+    const modal = document.getElementById('scmeReportModal');
+    const body  = document.getElementById('scmeModalBody');
+    const badge = document.getElementById('scmeModalBadge');
+    const icon  = document.getElementById('scmeModalIcon');
+    const titleEl = document.getElementById('scmeModalTitleText');
+    const periodEl = document.getElementById('scmeModalPeriod');
+    const strEl = document.getElementById('scmeModalStrength');
+
+    icon.className = 'fa-solid fa-building-columns';
+    icon.style.color = '#7c3aed';
+    badge.textContent = 'DOU OVERALL';
+    badge.className = 'badge badge-dou';
+    titleEl.textContent = val.replace(/_/g, ' ').toUpperCase() + ' (OVERALL)';
+    periodEl.textContent = '';
+    strEl.textContent = '';
+    body.innerHTML = '<div class="scme-modal-loading"><div class="spinner"></div> Loading DOU report data&hellip;</div>';
+    modal.classList.add('open');
+
+    const url = '/scme/api/dou-report-data?dou=' + encodeURIComponent(val) + (monthParam ? '&month=' + monthParam : '');
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) { body.innerHTML = '<p style="color:#dc2626;padding:40px;text-align:center;">Failed to load: ' + (data.message||'Unknown error') + '</p>'; return; }
+            periodEl.textContent = data.selected_period_label || '';
+            strEl.textContent = 'Posted Str: ' + (data.posted_strength || 0);
+            body.innerHTML = renderDouTable(data);
+        })
+        .catch(err => { body.innerHTML = '<p style="color:#dc2626;padding:40px;text-align:center;">Error loading data.</p>'; console.error(err); });
+}
+
+function openUnitReport() {
+    const douSel  = document.getElementById('mrDouSelect');
+    const unitSel = document.getElementById('mrUnitSelect');
+    const douVal  = douSel ? douSel.value : '';
+    const unitVal = unitSel ? unitSel.value : '';
+
+    if (!douVal && !unitVal) {
+        closeScmeModal();
+        return;
+    }
+
+    // When "Select Unit (Overall DOU)" is chosen (value is empty), view DOU Overall!
+    if (!unitVal) {
+        openDouReport();
+        return;
+    }
+
+    const monthSel = document.getElementById('mrMonthSelect');
+    const ftype    = document.getElementById('mrFilterType');
+    let monthParam = '';
+    if (ftype && ftype.value === 'month' && monthSel && monthSel.value) {
+        monthParam = monthSel.value;
+    }
+
+    const modal = document.getElementById('scmeReportModal');
+    const body  = document.getElementById('scmeModalBody');
+    const badge = document.getElementById('scmeModalBadge');
+    const icon  = document.getElementById('scmeModalIcon');
+    const titleEl = document.getElementById('scmeModalTitleText');
+    const periodEl = document.getElementById('scmeModalPeriod');
+    const strEl = document.getElementById('scmeModalStrength');
+
+    icon.className = 'fa-solid fa-shield-halved';
+    icon.style.color = '#0891b2';
+    badge.textContent = 'UNIT REPORT';
+    badge.className = 'badge badge-unit';
+    titleEl.textContent = unitVal.replace(/_/g, ' ').toUpperCase() + (douVal ? ' (' + douVal.replace(/_/g, ' ') + ')' : '');
+    periodEl.textContent = '';
+    strEl.textContent = '';
+    body.innerHTML = '<div class="scme-modal-loading"><div class="spinner" style="border-top-color:#0891b2;"></div> Loading Unit report data&hellip;</div>';
+    modal.classList.add('open');
+
+    const url = '/scme/api/unit-report-data?unit=' + encodeURIComponent(unitVal) + (monthParam ? '&month=' + monthParam : '');
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) { body.innerHTML = '<p style="color:#dc2626;padding:40px;text-align:center;">Failed to load: ' + (data.message||'Unknown error') + '</p>'; return; }
+            periodEl.textContent = data.selected_period_label || '';
+            strEl.textContent = 'Posted Str: ' + (data.posted_strength || 0);
+            body.innerHTML = renderUnitTable(data);
+        })
+        .catch(err => { body.innerHTML = '<p style="color:#dc2626;padding:40px;text-align:center;">Error loading data.</p>'; console.error(err); });
+}
+
+function renderDouTable(data) {
+    const rows = data.report_rows || [];
+    let html = `<div style="overflow-x:auto;"><table class="scme-inline-table">
+<thead>
+<tr>
+  <th rowspan="2" class="si-col">ITEM</th>
+  <th rowspan="2" class="si-col">A/U</th>
+  <th rowspan="2" class="si-col">SCALE</th>
+  <th rowspan="2" class="si-col">AUTH</th>
+  <th colspan="2" class="si-ob">BBF (OF LAST MONTH)</th>
+  <th colspan="2" class="si-recd">QTY RECEIVED THIS MONTH</th>
+  <th colspan="2" class="si-issd">QTY ISSUED THIS MONTH</th>
+  <th colspan="3" class="si-ustk">STK HELD WITH UNITS</th>
+  <th colspan="3" class="si-stk">FREE STK HELD</th>
+  <th colspan="3" class="si-tot">TOTAL STOCK</th>
+  <th rowspan="2" class="si-net">SUR/<br>DEFI</th>
+  <th rowspan="2" class="si-cond" style="min-width:90px;">TOTAL<br>CONDEMNATION</th>
+</tr>
+<tr>
+  <th class="si-ob">SER</th><th class="si-ob">PWS</th>
+  <th class="si-recd">SER</th><th class="si-recd">PWS</th>
+  <th class="si-issd">SER</th><th class="si-issd">PWS</th>
+  <th class="si-ustk">SER</th><th class="si-ustk">PWS</th><th class="si-ustk">TOTAL</th>
+  <th class="si-stk">SER</th><th class="si-stk">PWS</th><th class="si-stk">TOTAL</th>
+  <th class="si-tot">SER</th><th class="si-tot">PWS</th><th class="si-tot">TOTAL</th>
+</tr>
+</thead><tbody>`;
+
+    if (!rows.length) {
+        html += '<tr><td colspan="21" style="text-align:center;padding:20px;color:#6b7280;">No data for this month.</td></tr>';
+    } else {
+        rows.forEach(r => {
+            const sd = r.sur_defi;
+            const sdColor = sd > 0 ? '#dc2626' : (sd < 0 ? '#16a34a' : '#374151');
+            const sdText  = sd > 0 ? sd : (sd < 0 ? '+' + Math.abs(sd) : 0);
+            const condColor = r.total_condemnation > 0 ? '#9d174d' : '#374151';
+            html += `<tr>
+  <td class="si-bg-col" style="text-align:left;font-weight:600;">${r.item_name}</td>
+  <td class="si-bg-col" style="text-align:center;">${r.au}</td>
+  <td class="si-bg-col" style="text-align:center;">${r.scale}</td>
+  <td class="si-bg-col" style="text-align:center;font-weight:700;">${r.auth}</td>
+  <td class="si-bg-ob" style="text-align:center;">${r.bbf_ser}</td>
+  <td class="si-bg-ob" style="text-align:center;">${r.bbf_pws}</td>
+  <td class="si-bg-recd" style="text-align:center;font-weight:700;color:#1e40af;">${r.recd_ser}</td>
+  <td class="si-bg-recd" style="text-align:center;font-weight:700;color:#1e40af;">${r.recd_pws}</td>
+  <td class="si-bg-issd" style="text-align:center;font-weight:700;color:#991b1b;">${r.issd_ser}</td>
+  <td class="si-bg-issd" style="text-align:center;font-weight:700;color:#991b1b;">${r.issd_pws}</td>
+  <td class="si-bg-ustk" style="text-align:center;">${r.unit_stk_ser}</td>
+  <td class="si-bg-ustk" style="text-align:center;">${r.unit_stk_pws}</td>
+  <td class="si-bg-ustk" style="text-align:center;font-weight:700;color:#1d4ed8;">${r.unit_stk_total}</td>
+  <td class="si-bg-stk" style="text-align:center;">${r.stk_ser}</td>
+  <td class="si-bg-stk" style="text-align:center;">${r.stk_pws}</td>
+  <td class="si-bg-stk" style="text-align:center;font-weight:700;color:#6b21a8;">${r.stk_total}</td>
+  <td class="si-bg-tot" style="text-align:center;font-weight:700;color:#0f766e;">${r.tot_stk_ser}</td>
+  <td class="si-bg-tot" style="text-align:center;font-weight:700;color:#0f766e;">${r.tot_stk_pws}</td>
+  <td class="si-bg-tot" style="text-align:center;font-weight:800;color:#0f766e;background:#ccfbf1!important;">${r.tot_stk_total}</td>
+  <td class="si-bg-net" style="text-align:center;font-weight:700;color:${sdColor};">${sdText}</td>
+  <td class="si-bg-cond" style="text-align:center;font-weight:700;color:${condColor};">${r.total_condemnation}</td>
+</tr>`;
+        });
+    }
+    html += '</tbody></table></div>';
+    return html;
+}
+
+function renderUnitTable(data) {
+    const rows = data.report_rows || [];
+    let html = `<div style="overflow-x:auto;"><table class="scme-inline-table">
+<thead>
+<tr>
+  <th rowspan="2" class="si-col" style="min-width:170px;">ITEM</th>
+  <th rowspan="2" class="si-col">A/U</th>
+  <th rowspan="2" class="si-col" style="min-width:90px;">SCALE</th>
+  <th rowspan="2" class="si-col">AUTH</th>
+  <th colspan="3" class="si-ob">BBF (OF LAST MONTH)</th>
+  <th colspan="2" class="si-recd">QTY RECEIVED DURING THIS MONTH</th>
+  <th colspan="2" class="si-recd" style="background-color:#c7d2fe;color:#1e1b4b;">QTY RECEIVED FROM 2 FOD</th>
+  <th rowspan="2" class="si-recd" style="min-width:98px; width:104px; white-space:nowrap;">TOTAL RECEIVED</th>
+  <th rowspan="2" class="si-cond" style="min-width:100px;">CONDEMNED<br>THIS MONTH</th>
+  <th colspan="3" class="si-stk">STK HELD WITH UNITS</th>
+  <th rowspan="2" class="si-net">SUR/<br>DEFI</th>
+</tr>
+<tr>
+  <th class="si-ob">SER</th><th class="si-ob">PWS</th><th class="si-ob">TOTAL</th>
+  <th class="si-recd">SER</th><th class="si-recd">PWS</th>
+  <th class="si-recd" style="background-color:#c7d2fe;color:#1e1b4b;">SER</th><th class="si-recd" style="background-color:#c7d2fe;color:#1e1b4b;">PWS</th>
+  <th class="si-stk">SER</th><th class="si-stk">PWS</th><th class="si-stk">TOTAL</th>
+</tr>
+</thead><tbody>`;
+
+    if (!rows.length) {
+        html += '<tr><td colspan="17" style="text-align:center;padding:20px;color:#6b7280;">No data for this month.</td></tr>';
+    } else {
+        rows.forEach(r => {
+            const sd = r.sur_defi;
+            const sdColor = sd > 0 ? '#b91c1c' : (sd < 0 ? '#047857' : '#374151');
+            const sdText  = sd > 0 ? sd : (sd < 0 ? '+' + Math.abs(sd) : 0);
+            const condColor = (r.cond_total || 0) > 0 ? '#991b1b' : '#374151';
+            html += `<tr>
+  <td class="si-bg-col" style="text-align:left;font-weight:600;min-width:170px;">${r.item_name}</td>
+  <td class="si-bg-col" style="text-align:center;">${r.au}</td>
+  <td class="si-bg-col" style="text-align:center;">${r.scale}</td>
+  <td class="si-bg-col" style="text-align:center;font-weight:700;">${r.auth}</td>
+  <td class="si-bg-ob" style="text-align:center;">${r.bbf_ser}</td>
+  <td class="si-bg-ob" style="text-align:center;">${r.bbf_pws}</td>
+  <td class="si-bg-ob" style="text-align:center;font-weight:700;">${r.bbf_total||0}</td>
+  <td class="si-bg-recd" style="text-align:center;font-weight:700;color:#1e40af;">${r.recd_ser}</td>
+  <td class="si-bg-recd" style="text-align:center;font-weight:700;color:#1e40af;">${r.recd_pws}</td>
+  <td class="si-bg-recd" style="text-align:center;font-weight:700;color:#312e81;background-color:#e0e7ff!important;">${r.recd_fod_ser||0}</td>
+  <td class="si-bg-recd" style="text-align:center;font-weight:700;color:#312e81;background-color:#e0e7ff!important;">${r.recd_fod_pws||0}</td>
+  <td class="si-bg-recd" style="text-align:center;font-weight:700;color:#1e40af;min-width:98px;width:104px;">${r.recd_total||0}</td>
+  <td class="si-bg-cond" style="text-align:center;font-weight:700;color:${condColor};">${r.cond_total||0}</td>
+  <td class="si-bg-stk" style="text-align:center;">${r.stk_ser}</td>
+  <td class="si-bg-stk" style="text-align:center;">${r.stk_pws}</td>
+  <td class="si-bg-stk" style="text-align:center;font-weight:700;color:#6b21a8;">${r.stk_total}</td>
+  <td class="si-bg-net" style="text-align:center;font-weight:700;color:${sdColor};">${sdText}</td>
+</tr>`;
+        });
+    }
+    html += '</tbody></table></div>';
+    return html;
+}
+</script>
+{% include 'modals/direct_issue_modal.html' %}
+{% endblock %}

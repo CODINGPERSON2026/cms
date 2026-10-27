@@ -1,0 +1,2421 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ username }} Dashboard{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/division_admin/" class="nav-item active">
+    <i class="fa-solid fa-gauge-high"></i>
+    <span class="nav-tooltip">Dashboard</span>
+</a>
+<a href="/division_admin/monthly-reports" class="nav-item">
+    <i class="fa-solid fa-file-invoice"></i>
+    <span class="nav-tooltip">Monthly Reports (DOU)</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .div-dash-container {
+        margin: 0 auto;
+        padding: 12px 16px;
+    }
+
+    /* Cards Grid (Compact SCME Style) */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 14px;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    .metric-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; right: 0;
+        width: 35px; height: 35px;
+        background: var(--accent-muted);
+        border-radius: 50% 0 0 0;
+        opacity: 0.4;
+        transition: transform 0.3s;
+    }
+
+    .metric-card:hover::after {
+        transform: scale(1.4);
+    }
+
+    .metric-card.clickable {
+        cursor: pointer;
+    }
+
+    .metric-card.clickable:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 6px 20px rgba(45, 107, 66, 0.1);
+    }
+
+    .metric-card.clickable:active {
+        transform: translateY(0);
+    }
+
+    .btn-stock-held-action {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 14px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: 0.92rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        width: 100%;
+        text-align: left;
+    }
+
+    .btn-stock-held-action:hover {
+        transform: translateY(-2px);
+        border-color: #6f42c1;
+        background: rgba(111, 66, 193, 0.08);
+        box-shadow: 0 6px 20px rgba(111, 66, 193, 0.15);
+        color: #6f42c1;
+    }
+
+    .btn-stock-held-action:active {
+        transform: translateY(0);
+    }
+
+    .metric-icon-wrap {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        flex-shrink: 0;
+    }
+
+    .icon-units {
+        background: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+    }
+
+    .icon-items {
+        background: rgba(25, 135, 84, 0.1);
+        color: #198754;
+    }
+
+    .icon-alerts {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    .icon-stock {
+        background: rgba(111, 66, 193, 0.1);
+        color: #6f42c1;
+    }
+
+    .metric-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .metric-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .metric-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--text-secondary);
+    }
+
+    .metric-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .click-hint {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--accent);
+        opacity: 0.85;
+    }
+
+    /* Collapsible Units Table Card */
+    .table-section-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-dim);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .table-card-header {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border-dim);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-raised);
+    }
+
+    .table-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .custom-table th {
+        background: var(--bg-raised);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 14px 24px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-dim);
+    }
+
+    .custom-table td {
+        padding: 14px 24px;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        border-bottom: 1px solid var(--border-dim);
+        vertical-align: middle;
+    }
+
+    .custom-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .custom-table tbody tr:hover {
+        background: rgba(0, 0, 0, 0.015);
+    }
+
+    .unit-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #198754;
+    }
+
+    .strength-pill {
+        font-family: monospace;
+        font-size: 0.9rem;
+        font-weight: 600;
+        background: var(--bg-raised);
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border-dim);
+        display: inline-block;
+    }
+
+    /* Modal Backdrop & Top Alignment Fix */
+    .modal-backdrop {
+        z-index: 100000 !important;
+    }
+    .modal, #updateStrengthModal, #modalInsertUnitAuth {
+        z-index: 100005 !important;
+    }
+    .modal .modal-dialog:not(.modal-dialog-centered) {
+        margin-top: 10px !important;
+        margin-bottom: 20px !important;
+    }
+</style>
+
+<div class="div-dash-container">
+
+    <!-- TOP ROW ACTIONS TOOLBAR -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h4 class="mb-0" style="color: var(--text-primary); font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 9px;">
+            <i class="fa-solid fa-gauge-high" style="color: var(--accent);"></i>
+            <span>Overview &amp; Quick Actions</span>
+        </h4>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-open-insert-unit-auth d-inline-flex align-items-center gap-2" onclick="openInsertUnitAuthModal()" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>Insert Unit Auth</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2" onclick="openDouCondemnModal()" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Condemnation History</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- FIRST SECTION: 4 METRIC CARDS -->
+    <div class="metrics-grid">
+        
+        <!-- CARD 1: UNITS (Count Card) -->
+        <div class="metric-card clickable" id="unitsCard" onclick="openUnitsModal()">
+            <div class="metric-icon-wrap icon-units">
+                <i class="fa-solid fa-sitemap"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-header-row">
+                    <span class="metric-title">UNITS</span>
+                    <span class="click-hint"><i class="fa-solid fa-hand-pointer"></i> Click</span>
+                </div>
+                <div class="metric-value">{{ unit_count }}</div>
+            </div>
+        </div>
+
+        <!-- CARD 2: CRITICAL ALERTS (Count Card) -->
+        <div class="metric-card card-clickable" onclick="openDivCriticalAlertsModal()" style="cursor: pointer;">
+            <div class="metric-icon-wrap icon-alerts">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-header-row">
+                    <span class="metric-title">CRITICAL ALERTS</span>
+                    <span class="click-hint"><i class="fa-solid fa-hand-pointer"></i> Click</span>
+                </div>
+                <div class="metric-value" {% if critical_alerts_count > 0 %}style="color: var(--danger, #ef4444);"{% endif %}>{{ critical_alerts_count }}</div>
+            </div>
+        </div>
+
+        <!-- CARD 3: REGISTERED ITEM (Button Card - No Count) -->
+        <div class="metric-card clickable" id="registeredItemsCard" onclick="openRegisteredItemsModal()">
+            <div class="metric-icon-wrap icon-items">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-header-row">
+                    <span class="metric-title">REGISTERED ITEM</span>
+                    <span class="click-hint"><i class="fa-solid fa-hand-pointer"></i> Click</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 4: TOTAL STOCK HELD (Button Card - No Count) -->
+        <button type="button" class="btn-stock-held-action" id="stockHeldCard" onclick="openStockHeldModal()">
+            <div class="metric-icon-wrap icon-stock">
+                <i
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                 class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <div class="d-flex flex-column gap-1">
+                <span style="font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Total Stock Held</span>
+                <span style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> View Stock Details</span>
+            </div>
+        </button>
+    </div>
+
+    <!-- CHARTS SECTION: SUBORDINATE UNIT BAR GRAPH & SER/PWS PIE CHART -->
+    <script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='highcharts.js') }}"></script>
+
+    <!-- ROW 1 CHARTS: BAR CHART & ITEM DISTRIBUTION -->
+    <div class="row g-4 mb-4">
+        <!-- GRAPH 1: SUBORDINATE UNIT ITEM STATUS (BAR CHART) -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-chart-column text-primary"></i> Item Stock
+                    </h6>
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                        <select id="divBarUnitFilter" class="form-select form-select-sm" onchange="onDivBarUnitChanged(this.value)" style="width: auto; max-width: 105px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            {% for u in units %}
+                            <option value="{{ u.name }}" {% if loop.first %}selected{% endif %}>{{ u.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select id="divBarItemFilter" class="form-select form-select-sm" onchange="updateDivBarChart()" style="width: auto; max-width: 110px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            <!-- Dynamically populated based on unit selection -->
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div id="divBarChartWrap" style="height: 280px; position: relative;">
+                        <canvas id="divUnitBarChart"></canvas>
+                    </div>
+                    <div id="divBarEmptyState" class="text-center text-muted py-5 d-none">
+                        <i class="fa-solid fa-chart-bar fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No item records found for this unit.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRAPH 2: ITEM OCCUPIED SHARE ACROSS UNITS (PIE CHART) -->
+        <div class="col-lg-6">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-chart-pie text-success"></i> Item Distribution
+                    </h6>
+                    <div class="d-flex align-items-center gap-1">
+                        <select id="divPieItemFilter" class="form-select form-select-sm" onchange="updateDivPieChart(this.value)" style="width: auto; max-width: 140px; font-size: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; border-radius: 8px;">
+                            {% for item in issued_unit_items %}
+                            <option value="{{ item.item_name }}" {% if loop.first %}selected{% endif %}>{{ item.item_name }}</option>
+                            {% else %}
+                            <option value="">No items issued yet</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div id="divPieChartWrap" style="height: 280px; position: relative;">
+                        <canvas id="divUnitPieChart"></canvas>
+                    </div>
+                    <div id="divPieEmptyState" class="text-center text-muted py-5 d-none">
+                        <i class="fa-solid fa-chart-pie fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                        No units currently hold this item.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: OVERALL ANALYSIS (AUTH vs HELD) -->
+    <div class="row g-4 mb-4">
+        <!-- GRAPH: OVERALL ANALYSIS -->
+        <div class="col-12">
+            <div class="card h-100" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 14px 20px; border-radius: 16px 16px 0 0;">
+                    <h6 class="mb-0 font-weight-bold" style="color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-column text-primary"></i> Overall Analysis
+                        <i class="fa-solid fa-circle-info text-muted ms-1 chart-info-icon" style="font-size: 0.85rem; cursor: pointer; opacity: 0.7;" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" title="Overall Analysis Information" data-bs-content="Visualizes Authorization (AUTH) vs Stock Held (HELD) for ECC items by Category for this division."></i>
+                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="overallCategoryFilter" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin: 0;">
+                            <i class="fa-solid fa-filter me-1"></i>Category:
+                        </label>
+                        <select id="overallCategoryFilter" class="form-select form-select-sm" style="min-width: 140px; font-weight: 700; border-radius: 8px; padding: 4px 10px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-size: 0.78rem;" aria-label="Select Category for Overall Analysis">
+                            <option value="CAT-I" selected>CAT I</option>
+                            <option value="CAT-II">CAT II</option>
+                            <option value="ALL">ALL CATEGORIES</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 20px; position: relative;">
+                    <div id="overallAnalysisBarChart" data-chart='{{ overall_analysis_data | tojson }}' style="width: 100%; min-height: 380px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- SUBORDINATE UNITS MODAL -->
+<div class="modal fade" id="modalUnits" tabindex="-1" aria-labelledby="modalUnitsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" id="modalUnitsLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-shield-halved text-primary"></i> Subordinate Units Under Current Division
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-3" style="border-bottom: 1px solid var(--border-dim);">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);">
+                        Total Subordinate Units: <strong style="color: var(--text-primary);">{{ unit_count }}</strong>
+                    </span>
+                    <input type="text" id="searchUnitsInput" onkeyup="filterUnits()" class="form-control form-control-sm" placeholder="Search unit..." style="max-width: 250px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                </div>
+
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="custom-table" id="subordinateUnitsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 55px;">#</th>
+                                <th>UNIT NAME</th>
+                                <th style="text-align: center;">POSTED STRENGTH</th>
+                                <th style="text-align: right;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for unit in units %}
+                            <tr style="cursor: pointer;" onclick="openUnitBreakdown('{{ unit.name }}')">
+                                <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                                <td>
+                                    <div class="unit-badge">
+                                        <span class="badge-dot"></span>
+                                        {{ unit.name }}
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="strength-pill" style="font-weight: 700; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);">{{ unit.authorized_strength }}</span>
+                                </td>
+                                <td style="text-align: right;" onclick="event.stopPropagation()">
+                                    <button class="btn btn-sm btn-outline-primary px-3" style="border-radius: 8px; font-weight: 600;" onclick="openUpdateAuthModal('{{ unit.name }}', {{ unit.authorized_strength }})">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i> Update Strength
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No units registered under this division.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UPDATE STRENGTH MODAL -->
+<div class="modal fade" id="modalUpdateAuth" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" style="max-width: 420px; margin-top: 10px !important;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title" style="color: var(--text-primary); font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-pen-to-square text-primary"></i> Update Posted Strength
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <form id="updateAuthForm" onsubmit="submitUpdateAuth(event)">
+                    <input type="hidden" id="authTargetUnitName">
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Unit Name</label>
+                        <input type="text" id="authDisplayUnitName" class="form-control" readonly
+                            style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Posted Personnel Strength</label>
+                        <input type="number" id="authNewValue" class="form-control" min="0" required placeholder="Enter personnel count"
+                            style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600; font-size: 1rem;">
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                        <button type="submit" id="saveAuthBtn" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 600;">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UNIT EQUIPMENT BREAKDOWN MODAL -->
+<div class="modal fade" id="modalUnitBreakdown" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-boxes-packing text-primary"></i>
+                    Item Inventory Breakdown — <span id="breakdownUnitTitle" style="color: var(--accent);">Unit</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 55px;">#</th>
+                                <th>ITEM NAME</th>
+                                <th style="text-align: center;">AUTH</th>
+                                <th style="text-align: center;">HELD</th>
+                                <th style="text-align: center;">SER</th>
+                                <th style="text-align: center;">PWS</th>
+                                <th style="text-align: center;">COND SER</th>
+                                <th style="text-align: center;">COND PWS</th>
+                                <th style="text-align: center;">DEFI</th>
+                                <th style="text-align: center;">ISSUED AT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unitBreakdownTbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REGISTERED CATALOG ITEMS MODAL -->
+<div class="modal fade" id="modalRegisteredItems" tabindex="-1" aria-labelledby="modalRegisteredItemsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" id="modalRegisteredItemsLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-boxes-stacked text-success"></i> Registered Catalog Items
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+
+                <!-- ECC ITEMS -->
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-secondary);">
+                        Total ECC Items: <strong style="color: var(--text-primary);">{{ ecc_catalog_items | length }}</strong>
+                    </span>
+                    <input type="text" onkeyup="filterModalTableRows('eccCatalogTable', this.value)" class="form-control form-control-sm" placeholder="Search ECC item..." style="max-width: 240px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                </div>
+                <div class="table-responsive" style="max-height: 380px;">
+                    <table class="custom-table" id="eccCatalogTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">#</th>
+                                <th>ITEM NAME</th>
+                                <th style="text-align: center; width: 140px;">CATEGORY</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ecc_catalog_items %}
+                            <tr>
+                                <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary);">{{ item.item_name }}</td>
+                                <td style="text-align: center;">
+                                    <span class="badge" style="background: {% if item.category == 'CAT-I' %}rgba(13, 110, 253, 0.15){% else %}rgba(111, 66, 193, 0.15){% endif %}; color: {% if item.category == 'CAT-I' %}#0d6efd{% else %}#6f42c1{% endif %}; border: 1px solid {% if item.category == 'CAT-I' %}rgba(13, 110, 253, 0.3){% else %}rgba(111, 66, 193, 0.3){% endif %}; border-radius: 6px; padding: 4px 10px; font-weight: 600;">
+                                        {{ item.category or 'CAT-I' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">No ECC catalog items found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CRITICAL ALERTS MODAL -->
+<div class="modal fade" id="modalDivCriticalAlerts" tabindex="-1" aria-labelledby="modalDivCriticalAlertsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" id="modalDivCriticalAlertsLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-triangle-exclamation text-danger"></i> Critical Stock Alerts
+                    <span style="font-weight: 500; font-size: 0.8rem; color: var(--text-secondary);">(Units with Stock Held &lt; 50% of Authorized)</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-3" style="border-bottom: 1px solid var(--border-dim);">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);">
+                        Total Critical Alert Records: <strong style="color: #ef4444;">{{ critical_alerts_count }}</strong>
+                    </span>
+                    <input type="text" onkeyup="filterModalTableRows('criticalAlertsTable', this.value)" class="form-control form-control-sm" placeholder="Search critical item..." style="max-width: 250px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary);">
+                </div>
+
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="custom-table" id="criticalAlertsTable">
+                        <thead>
+                            <tr>
+                                <th>UNIT</th>
+                                <th>ITEM NAME</th>
+                                <th style="text-align: center;">AUTH</th>
+                                <th style="text-align: center;">DEFICIENCY %</th>
+                                <th style="text-align: center;">DEFICIENCY</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in critical_alert_items %}
+                            <tr>
+                                <td style="font-weight: 700; color: var(--text-primary);">{{ r.unit_name.replace('_', ' ').upper() }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary);">{{ r.item_name }}</td>
+                                <td style="text-align: center; font-weight: 600; color: #0d6efd;">{{ r.authorized }}</td>
+                                <td style="text-align: center;">
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 4px 10px; font-weight: 700;">{{ (100 - r.held_pct) | round(1) }}%</span>
+                                </td>
+                                <td style="text-align: center; font-weight: 700; color: #ef4444;">{{ r.deficiency }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fa-solid fa-shield-halved me-2 text-success" style="font-size: 1.2rem;"></i> No critical alerts — all subordinate units are above 50% stock.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOTAL STOCK HELD DETAILS MODAL -->
+<div class="modal fade" id="modalStockHeld" tabindex="-1" aria-labelledby="modalStockHeldLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 1120px; width: 92%; margin-top: 1.5rem;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.2); max-height: 85vh;">
+            <div class="modal-header d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-bottom: 1px solid var(--border-dim); padding: 12px 20px;">
+                <h5 class="modal-title font-weight-bold mb-0" id="modalStockHeldLabel" style="color: var(--text-primary); font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-cubes-stacked" style="color: #6f42c1;"></i> Stock Details
+                </h5>
+                <div class="d-flex align-items-center gap-2 ms-auto me-2">
+                    <input type="text" id="searchStockInput" onkeyup="filterStockItems()" class="form-control form-control-sm" placeholder="Search stock item..." style="width: 220px; border-radius: 8px; background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-size: 0.8rem;">
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 14px 18px;">
+                <div class="table-responsive" style="max-height: calc(85vh - 120px);">
+                    <table class="table table-bordered align-middle custom-table" id="stockItemsTable" style="border-collapse: collapse; width: 100%; border: 1px solid var(--border-dim); font-size: 0.82rem;">
+                        <thead>
+                            <tr style="background: var(--bg-raised); color: var(--text-primary);">
+                                <th rowspan="2" style="width: 40px; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 8px;">#</th>
+                                <th rowspan="2" style="vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">ITEM NAME</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); color: var(--text-secondary); font-size: 0.78rem; padding: 6px 8px;">SCALE</th>
+                                <th rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); color: #0d6efd; font-weight: 700; padding: 6px 8px;">AUTH</th>
+                                <!-- Received During this year Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #f59e0b; background: linear-gradient(135deg, #78350f, #d97706); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 5px 6px;">Received During this year</th>
+                                <!-- Issued during this year Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #10b981; background: linear-gradient(135deg, #064e3b, #059669); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 5px 6px;">Issued during this year</th>
+                                <!-- Res Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #3b82f6; background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 5px 6px;">Res</th>
+                                <!-- STK Held by Units Main Group Header -->
+                                <th colspan="2" style="text-align: center; border: 1px solid #8b5cf6; background: linear-gradient(135deg, #581c87, #7c3aed); color: #ffffff; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; padding: 5px 6px;">STK Held WITH UNITS</th>
+                                <th rowspan="2" style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim); background: var(--bg-raised); padding: 6px 10px;">ACTION</th>
+                            </tr>
+                            <tr>
+                                <!-- Received During this year Subheaders -->
+                                <th style="text-align: center; border: 1px solid #fde047; background: rgba(217, 119, 6, 0.12); color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">SER</th>
+                                <th style="text-align: center; border: 1px solid #fde047; background: rgba(217, 119, 6, 0.12); color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">PWS</th>
+                                <!-- Issued during this year Subheaders -->
+                                <th style="text-align: center; border: 1px solid #6ee7b7; background: rgba(5, 150, 105, 0.12); color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">SER</th>
+                                <th style="text-align: center; border: 1px solid #6ee7b7; background: rgba(5, 150, 105, 0.12); color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">PWS</th>
+                                <!-- Res Subheaders -->
+                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(37, 99, 235, 0.12); color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">SER</th>
+                                <th style="text-align: center; border: 1px solid #93c5fd; background: rgba(37, 99, 235, 0.12); color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">PWS</th>
+                                <!-- STK Held by Units Subheaders -->
+                                <th style="text-align: center; border: 1px solid #c084fc; background: rgba(124, 58, 237, 0.12); color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">SER</th>
+                                <th style="text-align: center; border: 1px solid #c084fc; background: rgba(124, 58, 237, 0.12); color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 4px 6px;">PWS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in stock_records %}
+                            {% set res_ser = item.available_ser or 0 %}
+                            {% set res_pws = item.available_pws or 0 %}
+                            {% set avail_res_total = res_ser + res_pws %}
+                            <tr>
+                                <td style="color: var(--text-secondary); font-weight: 600; text-align: center; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">{{ loop.index }}</td>
+                                <td style="font-weight: 600; color: var(--text-primary); vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 10px;">{{ item.item_name }}</td>
+                                <td style="text-align: center; vertical-align: middle; color: var(--text-secondary); font-size: 0.78rem; border: 1px solid var(--border-dim); padding: 5px 8px; text-transform: uppercase;">{{ (item.scale or '') | upper }}</td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(13,110,253,0.3); background: rgba(13,110,253,0.07); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #0d6efd; font-weight: 700;">{{ item.auth }}</span>
+                                </td>
+                                <!-- Received During this year Sub-columns: SER & PWS -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(245,158,11,0.35); background: rgba(234,179,8,0.12); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #d97706; font-weight: 700;">{{ item.recd_year_ser or 0 }}</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(245,158,11,0.35); background: rgba(234,179,8,0.12); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #d97706; font-weight: 700;">{{ item.recd_year_pws or 0 }}</span>
+                                </td>
+                                <!-- Issued during this year Sub-columns: SER & PWS -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(16,185,129,0.35); background: rgba(16,185,129,0.11); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #059669; font-weight: 700;">{{ item.issd_year_ser or 0 }}</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(16,185,129,0.35); background: rgba(16,185,129,0.11); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #059669; font-weight: 700;">{{ item.issd_year_pws or 0 }}</span>
+                                </td>
+                                <!-- Res Sub-columns: SER & PWS -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(59,130,246,0.35); background: rgba(13,110,253,0.09); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #2563eb; font-weight: 700;">{{ res_ser }}</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(59,130,246,0.35); background: rgba(13,110,253,0.09); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #2563eb; font-weight: 700;">{{ res_pws }}</span>
+                                </td>
+                                <!-- STK Held by Units Sub-columns: SER & PWS (Overall total issued to all subordinate units) -->
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(139,92,246,0.35); background: rgba(168,85,247,0.11); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #7c3aed; font-weight: 700;">{{ item.stock_ser or 0 }}</span>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle; border: 1px solid rgba(139,92,246,0.35); background: rgba(168,85,247,0.11); padding: 5px 8px;">
+                                    <span class="strength-pill" style="color: #7c3aed; font-weight: 700;">{{ item.stock_pws or 0 }}</span>
+                                </td>
+                                <td style="text-align: right; vertical-align: middle; border: 1px solid var(--border-dim); padding: 5px 8px;">
+                                    <button class="btn btn-sm btn-outline-primary px-2 py-1" 
+                                            style="border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" 
+                                            data-item-id="{{ item.item_id }}"
+                                            data-item-name="{{ item.item_name }}"
+                                            data-current-reserve="{{ avail_res_total }}"
+                                            data-avail-ser="{{ res_ser }}"
+                                            data-avail-pws="{{ res_pws }}"
+                                            data-scale="{{ item.scale or '' }}"
+                                            onclick="handleIssueItemBtn(this)">
+                                        <i class="fa-solid fa-hand-holding-hand"></i> Issue
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="13" class="text-center text-muted py-4" style="border: 1px solid var(--border-dim);">No stock held items found for this division.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ISSUE ITEM TO SUBORDINATE UNIT MODAL -->
+<div class="modal fade" id="modalIssueItem" tabindex="-1" aria-labelledby="modalIssueItemLabel" aria-hidden="true">
+    <div class="modal-dialog" style="margin-top: 10px !important;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px;">
+                <h5 class="modal-title font-weight-bold" id="modalIssueItemLabel" style="color: var(--text-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-hand-holding-hand text-primary"></i> Issue Item to Subordinate Unit
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <form id="issueItemModalForm" onsubmit="submitIssueItem(event)">
+                    <input type="hidden" id="issueTargetItemId">
+                    <input type="hidden" id="issueCurrentStock">
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Selected Item</label>
+                        <input type="text" id="displayIssueItemName" class="form-control" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 700;" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Select Subordinate Unit</label>
+                        <select id="issueUnitSelect" class="form-select" onchange="fetchExistingUnitItemAuth()" required style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                            <option value="" disabled selected>-- Select Subordinate Unit --</option>
+                            {% for u in units %}
+                            <option value="{{ u.name }}">{{ u.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">SCALE</label>
+                            <input type="text" id="issueItemScaleInput" class="form-control" placeholder="1 per indl" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">AUTH</label>
+                            <input type="number" id="issueItemAuthInput" class="form-control" min="0" placeholder="Max limit" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">HELD (UNIT)</label>
+                            <input type="number" id="issueItemHeldInput" class="form-control" readonly placeholder="0" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">SER Qty</label>
+                            <input type="number" id="issueSerInput" class="form-control" min="0" value="0" placeholder="SER Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="updateIssueQtyFromSplit()">
+                            <small class="text-muted d-block mt-1" style="font-size: 0.73rem; font-weight: 600;">
+                                <i class="fa-solid fa-boxes-stacked text-success me-1"></i>Avail SER: <strong id="displayAvailSerCount" style="color: #10b981;">0</strong>
+                            </small>
+                            <span id="errIssueSerExceeded" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available SER!</span>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">PWS Qty</label>
+                            <input type="number" id="issuePwsInput" class="form-control" min="0" value="0" placeholder="PWS Qty" style="background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-primary); font-weight: 600;" oninput="updateIssueQtyFromSplit()">
+                            <small class="text-muted d-block mt-1" style="font-size: 0.73rem; font-weight: 600;">
+                                <i class="fa-solid fa-boxes-stacked text-warning me-1"></i>Avail PWS: <strong id="displayAvailPwsCount" style="color: #f59e0b;">0</strong>
+                            </small>
+                            <span id="errIssuePwsExceeded" style="color:var(--danger);font-size:0.65rem;font-weight:700;display:none;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Exceeds Available PWS!</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label mb-0" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Issue Qty (SER + PWS)</label>
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;" id="displayAvailStockBadge">Available Reserve: 0</span>
+                        </div>
+                        <input type="number" id="issueCountInput" class="form-control" readonly placeholder="0" style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: #6f42c1; font-weight: 800; font-size: 1.05rem; cursor: not-allowed;">
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                        <button type="submit" id="confirmIssueBtn" class="btn btn-primary px-4" style="border-radius: 8px; font-weight: 600;">
+                            <i class="fa-solid fa-hand-holding-hand me-1"></i> Confirm Issue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentActiveStockRow = null;
+
+    // ---- Clean up stuck modal backdrops ----
+    document.addEventListener('hidden.bs.modal', function () {
+        if (!document.querySelector('.modal.show')) {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }
+    });
+
+    // Ensure any modal being shown is moved directly to document.body to avoid stacking context traps
+    document.addEventListener('show.bs.modal', function(e) {
+        if (e.target && e.target.parentElement !== document.body) {
+            document.body.appendChild(e.target);
+        }
+    });
+
+    function _showModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        bootstrap.Modal.getOrCreateInstance(el).show();
+    }
+
+    function _hideModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const m = bootstrap.Modal.getInstance(el);
+        if (m) m.hide();
+    }
+
+    function openInsertUnitAuthModal() {
+        _showModal('modalInsertUnitAuth');
+        if (typeof window.fetchUnitItemAuth === 'function') {
+            window.fetchUnitItemAuth();
+        }
+    }
+    window.openInsertUnitAuthModal = openInsertUnitAuthModal;
+
+    // ---- Stock Held Modal ----
+    function openStockHeldModal() { _showModal('modalStockHeld'); }
+
+    function filterStockItems() {
+        const filter = document.getElementById('searchStockInput').value.toLowerCase().trim();
+        const tbody = document.getElementById('stockItemsTable').getElementsByTagName('tbody')[0];
+        if (!tbody) return;
+        const rows = tbody.getElementsByTagName('tr');
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].classList.contains('category-header-row')) {
+                rows[i].style.display = filter ? 'none' : '';
+                continue;
+            }
+            const td = rows[i].getElementsByTagName('td')[1];
+            rows[i].style.display = td && (td.textContent || '').toLowerCase().includes(filter) ? '' : 'none';
+        }
+    }
+
+    // ---- Critical Alerts Modal ----
+    function openDivCriticalAlertsModal() { _showModal('modalDivCriticalAlerts'); }
+
+    // ---- Registered Items Modal ----
+    function openRegisteredItemsModal() { _showModal('modalRegisteredItems'); }
+
+    function filterCatalogItems() {
+        const filter = document.getElementById('searchCatalogInput').value.toLowerCase();
+        const rows = document.getElementById('catalogItemsTable').getElementsByTagName('tr');
+        for (let i = 1; i < rows.length; i++) {
+            const td = rows[i].getElementsByTagName('td')[1];
+            rows[i].style.display = td && (td.textContent || '').toLowerCase().includes(filter) ? '' : 'none';
+        }
+    }
+
+    // ---- Subordinate Units Modal & Breakdown ----
+    function openUnitsModal() { _showModal('modalUnits'); }
+
+    function filterUnits() {
+        const filter = document.getElementById('searchUnitsInput').value.toLowerCase();
+        const rows = document.getElementById('subordinateUnitsTable').getElementsByTagName('tr');
+        for (let i = 1; i < rows.length; i++) {
+            const td = rows[i].getElementsByTagName('td')[1];
+            rows[i].style.display = td && (td.textContent || '').toLowerCase().includes(filter) ? '' : 'none';
+        }
+    }
+
+    async function openUnitBreakdown(unitName) {
+        document.getElementById('breakdownUnitTitle').textContent = unitName;
+        const tbody = document.getElementById('unitBreakdownTbody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center text-muted py-4">
+                    <i class="fa-solid fa-spinner fa-spin me-2"></i> Loading breakdown data...
+                </td>
+            </tr>
+        `;
+
+        _showModal('modalUnitBreakdown');
+
+        try {
+            const res = await fetch('/division_admin/api/unit-breakdown?unit_name=' + encodeURIComponent(unitName));
+            const result = await res.json();
+
+            if (!res.ok || !result.success) {
+                throw new Error(result.message || 'Failed to load breakdown');
+            }
+
+            const records = result.records || [];
+            if (records.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-box-open fa-2x mb-2 d-block" style="opacity:0.3;"></i>
+                            No equipment records found for ${unitName}.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            records.forEach((rec, idx) => {
+                const defi = rec.deficiency;
+                const defiBadge = defi > 0
+                    ? `<span class="badge" style="background:rgba(220,53,69,0.1);color:#dc3545;border:1px solid rgba(220,53,69,0.25);border-radius:6px;padding:4px 10px;font-weight:700;font-family:monospace;">${defi}</span>`
+                    : `<span class="badge" style="background:rgba(25,135,84,0.1);color:#198754;border:1px solid rgba(25,135,84,0.25);border-radius:6px;padding:4px 10px;font-weight:700;font-family:monospace;">${defi}</span>`;
+
+                const condSerBadge = (rec.condemned_ser || 0) > 0
+                    ? `<span class="badge" style="background:rgba(239,68,68,0.12);color:#dc2626;border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:3px 8px;font-weight:700;">${rec.condemned_ser}</span>`
+                    : `<span style="color:var(--text-secondary);font-size:0.8rem;">0</span>`;
+                const condPwsBadge = (rec.condemned_pws || 0) > 0
+                    ? `<span class="badge" style="background:rgba(239,68,68,0.12);color:#dc2626;border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:3px 8px;font-weight:700;">${rec.condemned_pws}</span>`
+                    : `<span style="color:var(--text-secondary);font-size:0.8rem;">0</span>`;
+
+                const issuedAtStr = rec.issued_at || '—';
+
+                html += `
+                    <tr>
+                        <td style="color: var(--text-secondary); font-weight: 600;">${idx + 1}</td>
+                        <td style="font-weight: 600; color: var(--text-primary);">${rec.item_name}</td>
+                        <td style="text-align: center;"><span class="strength-pill">${rec.authorized}</span></td>
+                        <td style="text-align: center;"><span class="strength-pill font-weight-bold" style="color:#0d6efd;">${rec.held}</span></td>
+                        <td style="text-align: center;"><span class="strength-pill" style="color:#10b981;">${rec.ser || 0}</span></td>
+                        <td style="text-align: center;"><span class="strength-pill" style="color:#f59e0b;">${rec.pws || 0}</span></td>
+                        <td style="text-align: center;">${condSerBadge}</td>
+                        <td style="text-align: center;">${condPwsBadge}</td>
+                        <td style="text-align: center;">${defiBadge}</td>
+                        <td style="text-align: center; color: var(--text-secondary); font-size: 0.85rem;">${issuedAtStr}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+
+        } catch (err) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center text-danger py-4">
+                        <i class="fa-solid fa-circle-exclamation me-1"></i> ${err.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // ---- Issue Item from Stock Held Modal ----
+    window.currentAvailSer = 0;
+    window.currentAvailPws = 0;
+
+    function updateIssueQtyFromSplit() {
+        const serInput = document.getElementById("issueSerInput");
+        const pwsInput = document.getElementById("issuePwsInput");
+        const ser = Math.max(0, parseInt(serInput ? serInput.value : 0, 10) || 0);
+        const pws = Math.max(0, parseInt(pwsInput ? pwsInput.value : 0, 10) || 0);
+        document.getElementById("issueCountInput").value = ser + pws;
+
+        const errSer = document.getElementById("errIssueSerExceeded");
+        const errPws = document.getElementById("errIssuePwsExceeded");
+        const confirmBtn = document.getElementById("confirmIssueBtn");
+
+        let hasError = false;
+
+        if (window.currentAvailSer !== undefined && window.currentAvailSer !== null && ser > window.currentAvailSer) {
+            if (errSer) {
+                errSer.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> SER (${ser}) exceeds Avail SER (${window.currentAvailSer})!`;
+                errSer.style.display = "block";
+            }
+            if (serInput) serInput.style.borderColor = "var(--danger)";
+            hasError = true;
+        } else {
+            if (errSer) errSer.style.display = "none";
+            if (serInput) serInput.style.borderColor = "var(--border-dim)";
+        }
+
+        if (window.currentAvailPws !== undefined && window.currentAvailPws !== null && pws > window.currentAvailPws) {
+            if (errPws) {
+                errPws.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> PWS (${pws}) exceeds Avail PWS (${window.currentAvailPws})!`;
+                errPws.style.display = "block";
+            }
+            if (pwsInput) pwsInput.style.borderColor = "var(--danger)";
+            hasError = true;
+        } else {
+            if (errPws) errPws.style.display = "none";
+            if (pwsInput) pwsInput.style.borderColor = "var(--border-dim)";
+        }
+
+        if (confirmBtn) confirmBtn.disabled = hasError;
+    }
+
+    async function fetchExistingUnitItemAuth() {
+        const unitName = document.getElementById("issueUnitSelect").value;
+        const itemId = document.getElementById("issueTargetItemId").value;
+        const authInput = document.getElementById("issueItemAuthInput");
+        const heldInput = document.getElementById("issueItemHeldInput");
+        const scaleInput = document.getElementById("issueItemScaleInput");
+
+        if (!unitName || !itemId) return;
+
+        try {
+            const res = await fetch(`/division_admin/api/unit-item-auth?unit_name=${encodeURIComponent(unitName)}&item_id=${encodeURIComponent(itemId)}`);
+            const result = await res.json();
+            if (res.ok && result.success) {
+                if (authInput) authInput.value = (result.auth !== null && result.auth !== undefined) ? result.auth : 0;
+                if (heldInput) heldInput.value = (result.held !== undefined && result.held !== null) ? result.held : 0;
+                if (scaleInput && result.scale) scaleInput.value = result.scale;
+            } else {
+                if (authInput) authInput.value = 0;
+                if (heldInput) heldInput.value = 0;
+            }
+        } catch (err) {
+            console.error('Error fetching unit item details:', err);
+        }
+    }
+
+    function handleIssueItemBtn(btnElement) {
+        if (!btnElement) return;
+        const itemId = btnElement.getAttribute("data-item-id");
+        const itemName = btnElement.getAttribute("data-item-name") || "";
+        const currentReserve = parseInt(btnElement.getAttribute("data-current-reserve"), 10) || 0;
+        const availSer = parseInt(btnElement.getAttribute("data-avail-ser"), 10) || 0;
+        const availPws = parseInt(btnElement.getAttribute("data-avail-pws"), 10) || 0;
+        const scale = btnElement.getAttribute("data-scale") || "";
+        handleIssueItem(itemId, itemName, currentReserve, btnElement, availSer, availPws, scale);
+    }
+
+    function handleIssueItem(itemId, itemName, currentReserve, btnElement, availSer = 0, availPws = 0, scale = "") {
+        window.currentAvailSer = availSer;
+        window.currentAvailPws = availPws;
+
+        document.getElementById("issueTargetItemId").value = itemId;
+        document.getElementById("issueCurrentStock").value = currentReserve;
+        document.getElementById("displayIssueItemName").value = itemName;
+        document.getElementById("issueItemScaleInput").value = scale || "";
+        document.getElementById("issueItemAuthInput").value = "";
+        document.getElementById("issueItemHeldInput").value = "0";
+        document.getElementById("issueSerInput").value = "0";
+        document.getElementById("issuePwsInput").value = "0";
+        document.getElementById("issueCountInput").value = "0";
+        document.getElementById("displayAvailStockBadge").textContent = `Available Reserve: ${currentReserve}`;
+
+        const availSerEl = document.getElementById("displayAvailSerCount");
+        const availPwsEl = document.getElementById("displayAvailPwsCount");
+        if (availSerEl) availSerEl.textContent = availSer;
+        if (availPwsEl) availPwsEl.textContent = availPws;
+
+        updateIssueQtyFromSplit();
+
+        currentActiveStockRow = btnElement ? btnElement.closest("tr") : null;
+
+        _showModal('modalIssueItem');
+        fetchExistingUnitItemAuth();
+    }
+
+    async function submitIssueItem(event) {
+        event.preventDefault();
+        const btn = document.getElementById('confirmIssueBtn');
+        const itemId = document.getElementById('issueTargetItemId').value;
+        const unitName = document.getElementById('issueUnitSelect').value;
+        const totalVal = parseInt(document.getElementById('issueCountInput').value, 10) || 0;
+        const serVal = parseInt(document.getElementById('issueSerInput').value, 10) || 0;
+        const pwsVal = parseInt(document.getElementById('issuePwsInput').value, 10) || 0;
+        const itemScale = (document.getElementById('issueItemScaleInput').value || "").trim();
+        const itemAuthVal = document.getElementById('issueItemAuthInput').value.trim();
+        const itemAuth = itemAuthVal !== "" ? parseInt(itemAuthVal, 10) : null;
+        const availReserve = parseInt(document.getElementById('issueCurrentStock').value, 10) || 0;
+
+        if (!unitName) { alert('Please select a target subordinate unit.'); return; }
+
+        if (totalVal <= 0) { alert('Enter a valid positive total issue quantity.'); return; }
+        if (totalVal > availReserve) { alert(`Cannot issue ${totalVal}. Maximum available reserve is ${availReserve}.`); return; }
+
+        if (window.currentAvailSer !== undefined && serVal > window.currentAvailSer) {
+            alert(`SER quantity (${serVal}) cannot exceed Available SER stock (${window.currentAvailSer}).`);
+            return;
+        }
+
+        if (window.currentAvailPws !== undefined && pwsVal > window.currentAvailPws) {
+            alert(`PWS quantity (${pwsVal}) cannot exceed Available PWS stock (${window.currentAvailPws}).`);
+            return;
+        }
+
+        if (serVal + pwsVal !== totalVal) {
+            alert(`SER (${serVal}) + PWS (${pwsVal}) must equal Total Issue Quantity (${totalVal}).`);
+            return;
+        }
+
+        if (itemAuth !== null && (isNaN(itemAuth) || itemAuth < 0)) {
+            alert('Item Authorized Limit (AUTH) must be a valid non-negative integer.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Issuing...';
+
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await fetch('/division_admin/issue-item', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+                body: JSON.stringify({ unit_name: unitName, item_id: itemId, scale: itemScale, ser: serVal, pws: pwsVal, issue_count: totalVal, item_auth: itemAuth })
+            });
+            const result = await res.json();
+            if (!res.ok || !result.success) throw new Error(result.message || 'Failed to issue item');
+
+            if (currentActiveStockRow) {
+                const resPill = currentActiveStockRow.querySelector('td:nth-child(3) .strength-pill');
+                const heldBadge = currentActiveStockRow.querySelector('td:nth-child(4) .badge');
+                const serPill = currentActiveStockRow.querySelector('td:nth-child(5) .strength-pill');
+                const pwsPill = currentActiveStockRow.querySelector('td:nth-child(6) .strength-pill');
+
+                if (resPill && result.new_item_reserve !== undefined) resPill.textContent = result.new_item_reserve;
+                if (heldBadge && result.new_item_stock !== undefined) heldBadge.textContent = result.new_item_stock;
+                if (serPill && result.new_item_stock_ser !== undefined) serPill.textContent = result.new_item_stock_ser;
+                if (pwsPill && result.new_item_stock_pws !== undefined) pwsPill.textContent = result.new_item_stock_pws;
+            }
+
+            _hideModal('modalIssueItem');
+            alert(result.message || 'Item issued successfully!');
+            window.location.reload();
+
+        } catch (err) {
+            alert('Error: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save';
+        }
+    }
+
+    // ---- Update AUTH Modal ----
+    function openUpdateAuthModal(unitName, currentAuth) {
+        document.getElementById('authTargetUnitName').value = unitName;
+        document.getElementById('authDisplayUnitName').value = unitName;
+        document.getElementById('authNewValue').value = currentAuth;
+        _showModal('modalUpdateAuth');
+    }
+
+    async function submitUpdateAuth(event) {
+        event.preventDefault();
+        const btn = document.getElementById('saveAuthBtn');
+        const unitName = document.getElementById('authTargetUnitName').value;
+        const newAuth = parseInt(document.getElementById('authNewValue').value, 10);
+
+        if (isNaN(newAuth) || newAuth < 0) { alert('Enter a valid non-negative number.'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
+
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await fetch('/division_admin/update-strength', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+                body: JSON.stringify({ unit_name: unitName, unit_strength: newAuth, authorized_strength: newAuth })
+            });
+            const result = await res.json();
+            if (!res.ok || !result.success) throw new Error(result.message || 'Failed to update AUTH');
+
+            _hideModal('modalUpdateAuth');
+            alert(result.message || 'AUTH updated successfully!');
+            window.location.reload();
+
+        } catch (err) {
+            alert('Error: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save';
+        }
+    }
+
+    // ---- DIVISION CHARTS INITIALIZATION & HANDLERS ----
+    const divUnitEquipmentMap = {{ unit_equipment_map | tojson }};
+    let divUnitBarChart = null;
+    let divUnitPieChart = null;
+
+    const divBarDataLabelsPlugin = {
+        id: 'divBarDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((bar, index) => {
+                    const rawArr = dataset.rawValues;
+                    const rawVal = (rawArr && rawArr[index] !== undefined) ? rawArr[index] : dataset.data[index];
+                    const displayVal = dataset.data[index];
+                    if (rawVal !== undefined && rawVal !== null) {
+                        // DEFI bar (index 2): if negative (surplus), show '+N' green badge
+                        if (index === 2 && rawVal < 0) {
+                            ctx.save();
+                            const surplusText = '+' + Math.abs(rawVal);
+                            const yScale = chart.scales.y;
+                            const yZero = yScale ? yScale.getPixelForValue(0) : bar.y;
+                            const yVal  = yScale ? yScale.getPixelForValue(Math.abs(rawVal)) : (bar.y - 30);
+                            const textY = Math.min(yZero - 32, yVal - 8);
+
+                            ctx.font = 'bold 14px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+
+                            const textWidth = ctx.measureText(surplusText).width;
+                            const pillW = Math.max(textWidth + 18, 52);
+                            const pillH = 26;
+                            const pillX = bar.x - (pillW / 2);
+                            const pillY = textY - (pillH / 2);
+
+                            ctx.beginPath();
+                            if (ctx.roundRect) {
+                                ctx.roundRect(pillX, pillY, pillW, pillH, 6);
+                            } else {
+                                ctx.rect(pillX, pillY, pillW, pillH);
+                            }
+                            ctx.fillStyle = 'rgba(16, 185, 129, 0.16)';
+                            ctx.fill();
+                            ctx.strokeStyle = '#10b981';
+                            ctx.lineWidth = 1.5;
+                            ctx.stroke();
+
+                            ctx.fillStyle = '#047857';
+                            ctx.fillText(surplusText, bar.x, textY);
+                            ctx.restore();
+                        } else if (displayVal > 0) {
+                            ctx.save();
+                            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333333';
+                            ctx.font = 'bold 13px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            ctx.fillText(rawVal, bar.x, bar.y - 6);
+                            ctx.restore();
+                        }
+                    }
+                });
+            });
+        }
+    };
+
+    const divPieDataLabelsPlugin = {
+        id: 'divPieDataLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                meta.data.forEach((element, index) => {
+                    const val = dataset.data[index];
+                    if (val !== undefined && val !== null && val > 0) {
+                        const pos = element.tooltipPosition();
+                        ctx.save();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                        ctx.shadowBlur = 4;
+                        ctx.font = 'bold 13px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(val, pos.x, pos.y);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // GLOBAL UNIT DROPDOWN SYNCHRONIZATION LOGIC
+    // ══════════════════════════════════════════════════════════════════════════
+    let isSyncingUnit = false;
+    const syncedUnitSelectIds = [
+        'divBarUnitFilter',
+        'issueUnitSelect',
+        'insertUnitName'
+    ];
+
+    function syncAllUnitDropdowns(sourceSelect) {
+        if (isSyncingUnit || !sourceSelect) return;
+        const selectedValue = sourceSelect.value;
+        if (!selectedValue || selectedValue === '__ALL__') return;
+
+        isSyncingUnit = true;
+
+        syncedUnitSelectIds.forEach(id => {
+            const target = document.getElementById(id);
+            if (!target || target === sourceSelect) return;
+
+            const optionExists = Array.from(target.options).some(opt => opt.value === selectedValue);
+            if (optionExists && target.value !== selectedValue) {
+                target.value = selectedValue;
+
+                if (id === 'divBarUnitFilter') {
+                    if (typeof onDivBarUnitChanged === 'function') {
+                        onDivBarUnitChanged(selectedValue);
+                    }
+                } else if (id === 'divSerPwsUnitFilter') {
+                    if (typeof updateDivSerPwsChart === 'function') {
+                        updateDivSerPwsChart();
+                    }
+                } else if (id === 'issueUnitSelect') {
+                    if (typeof fetchExistingUnitItemAuth === 'function') {
+                        fetchExistingUnitItemAuth();
+                    }
+                } else if (id === 'insertUnitName') {
+                    if (typeof window.fetchUnitItemAuth === 'function') {
+                        window.fetchUnitItemAuth();
+                    }
+                }
+            }
+        });
+
+        isSyncingUnit = false;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Attach change sync listeners to all unit dropdowns
+        syncedUnitSelectIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', function() {
+                    syncAllUnitDropdowns(this);
+                });
+            }
+        });
+
+        // Initialize Bar Chart for 1st unit
+        const barUnitSelect = document.getElementById('divBarUnitFilter');
+        if (barUnitSelect && barUnitSelect.value) {
+            onDivBarUnitChanged(barUnitSelect.value);
+        }
+
+        // Initialize Pie Chart for 1st item
+        const pieItemSelect = document.getElementById('divPieItemFilter');
+        if (pieItemSelect && pieItemSelect.value) {
+            updateDivPieChart(pieItemSelect.value);
+        }
+
+        // Initialize Overall Analysis Highcharts (AUTH vs HELD)
+        renderOverallAnalysisChart();
+
+        // Initial sync of all unit dropdowns based on divBarUnitFilter
+        if (barUnitSelect && barUnitSelect.value) {
+            syncAllUnitDropdowns(barUnitSelect);
+        }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // OVERALL ANALYSIS (AUTH vs HELD BY CATEGORY) - DIVISION ADMIN
+    // ─────────────────────────────────────────────────────────────────────────
+    let chartOverallAnalysis = null;
+
+    function renderOverallAnalysisChart() {
+        const overallAnalysisEl = document.getElementById('overallAnalysisBarChart');
+        if (!overallAnalysisEl || typeof Highcharts === 'undefined') return;
+
+        const overallRawData = JSON.parse(overallAnalysisEl.dataset.chart || "[]");
+        const overallCategoryFilter = document.getElementById('overallCategoryFilter');
+        const selectedCat = overallCategoryFilter ? overallCategoryFilter.value : 'CAT-I';
+
+        // Filter items based on selected category
+        let filteredItems = overallRawData;
+        if (selectedCat !== 'ALL') {
+            filteredItems = overallRawData.filter(item => {
+                const c = (item.category || '').toUpperCase().replace(/[\s-]/g, '');
+                const target = selectedCat.toUpperCase().replace(/[\s-]/g, '');
+                return c === target;
+            });
+        }
+
+        const categories = filteredItems.map(d => d.item_name);
+        const authValues = filteredItems.map(d => Number(d.auth || 0));
+        const heldValues = filteredItems.map(d => Number(d.held || 0));
+
+        if (chartOverallAnalysis) {
+            chartOverallAnalysis.destroy();
+            chartOverallAnalysis = null;
+        }
+
+        const computedStyles = getComputedStyle(document.documentElement);
+        const textPrimary = computedStyles.getPropertyValue('--text-primary').trim() || '#333333';
+        const textSecondary = computedStyles.getPropertyValue('--text-secondary').trim() || '#666666';
+        const borderDim = computedStyles.getPropertyValue('--border-dim').trim() || '#e5e7eb';
+        const bgSurface = computedStyles.getPropertyValue('--bg-surface').trim() || '#ffffff';
+
+        chartOverallAnalysis = Highcharts.chart('overallAnalysisBarChart', {
+            chart: {
+                type: 'column',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            xAxis: {
+                categories: categories,
+                labels: {
+                    rotation: -30,
+                    style: {
+                        color: textSecondary,
+                        fontWeight: '600',
+                        fontSize: '10px'
+                    }
+                },
+                gridLineColor: borderDim,
+                lineColor: borderDim
+            },
+            yAxis: {
+                title: {
+                    text: 'Quantity',
+                    style: { color: textSecondary, fontWeight: 'bold' }
+                },
+                labels: {
+                    style: { color: textSecondary }
+                },
+                gridLineColor: borderDim,
+                min: 0
+            },
+            plotOptions: {
+                column: {
+                    grouping: true,
+                    borderRadius: 4,
+                    borderWidth: 0,
+                    pointPadding: 0.1,
+                    groupPadding: 0.15,
+                    dataLabels: {
+                        enabled: true,
+                        crop: false,
+                        overflow: 'none',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: '10px',
+                            textOutline: 'none',
+                            color: textPrimary
+                        },
+                        formatter: function() {
+                            return this.y > 0 ? this.y : '';
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'AUTH',
+                data: authValues,
+                color: '#3b82f6'
+            }, {
+                name: 'HELD',
+                data: heldValues,
+                color: '#10b981'
+            }],
+            legend: {
+                enabled: true,
+                itemStyle: {
+                    color: textPrimary,
+                    textTransform: 'uppercase',
+                    fontSize: '11px',
+                    fontWeight: 'bold'
+                }
+            },
+            tooltip: {
+                shared: true,
+                backgroundColor: bgSurface,
+                borderWidth: 1,
+                borderColor: borderDim,
+                style: {
+                    color: textPrimary
+                },
+                formatter: function() {
+                    const idx = this.points && this.points[0] ? this.points[0].point.index : 0;
+                    const item = filteredItems[idx];
+                    let s = `<div style="padding: 4px;"><b style="font-size: 12px;">${this.x}</b><br/>`;
+                    this.points.forEach(p => {
+                        s += `<span style="color:${p.color}">●</span> ${p.series.name}: <b>${p.y}</b><br/>`;
+                    });
+                    if (item && item.defi !== undefined && item.defi > 0) {
+                        s += `<span style="color:#ef4444">●</span> DEFI: <b>${item.defi}</b>`;
+                    }
+                    s += `</div>`;
+                    return s;
+                },
+                useHTML: true
+            },
+            credits: { enabled: false }
+        });
+    }
+
+    const overallCatFilter = document.getElementById('overallCategoryFilter');
+    if (overallCatFilter) {
+        overallCatFilter.addEventListener('change', renderOverallAnalysisChart);
+    }
+
+    function onDivBarUnitChanged(unitName) {
+        const itemSelect = document.getElementById('divBarItemFilter');
+        if (!itemSelect) return;
+
+        const items = divUnitEquipmentMap[unitName] || [];
+        itemSelect.innerHTML = '';
+
+        if (items.length === 0) {
+            document.getElementById('divBarChartWrap').classList.add('d-none');
+            document.getElementById('divBarEmptyState').classList.remove('d-none');
+            return;
+        }
+
+        document.getElementById('divBarChartWrap').classList.remove('d-none');
+        document.getElementById('divBarEmptyState').classList.add('d-none');
+
+        items.forEach((it, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = it.item_name;
+            if (idx === 0) opt.selected = true;
+            itemSelect.appendChild(opt);
+        });
+
+        updateDivBarChart();
+    }
+
+    function updateDivBarChart() {
+        const unitName = document.getElementById('divBarUnitFilter').value;
+        const itemIdxStr = document.getElementById('divBarItemFilter').value;
+        const items = divUnitEquipmentMap[unitName] || [];
+        const itemIdx = parseInt(itemIdxStr, 10);
+        const itemRec = items[itemIdx];
+
+        if (!itemRec) return;
+
+        const auth = Number(itemRec.authorized || 0);
+        const held = Number(itemRec.held || 0);
+        const cond = Number(itemRec.condemned_ser || 0) + Number(itemRec.condemned_pws || 0);
+        const defi = (itemRec.deficiency !== undefined && itemRec.deficiency !== null)
+            ? Number(itemRec.deficiency)
+            : (auth - held);
+        const isSurplus = defi < 0;
+
+        const chartBarData  = [auth, held, isSurplus ? 0 : Math.max(0, defi)];
+        const chartRawData  = [auth, held, defi];
+        const bgColors = [
+            'rgba(13, 110, 253, 0.75)',
+            'rgba(16, 185, 129, 0.75)',
+            isSurplus ? 'rgba(0,0,0,0)' : 'rgba(220, 53, 69, 0.75)'
+        ];
+        const borderColors = [
+            '#0d6efd', '#10b981',
+            isSurplus ? 'rgba(0,0,0,0)' : '#dc3545'
+        ];
+
+        const ctx = document.getElementById('divUnitBarChart');
+        if (!ctx) return;
+
+        if (!divUnitBarChart) {
+            divUnitBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['AUTH', 'HELD', 'DEFI'],
+                    datasets: [{
+                        label: itemRec.item_name,
+                        data: chartBarData,
+                        rawValues: chartRawData,
+                        backgroundColor: bgColors,
+                        borderColor: borderColors,
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        maxBarThickness: 70,
+                        barPercentage: 0.9,
+                        categoryPercentage: 0.9
+                    }]
+                },
+                plugins: [divBarDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const rawArr = context.dataset.rawValues;
+                                    const raw = (rawArr && rawArr[context.dataIndex] !== undefined) ? rawArr[context.dataIndex] : context.raw;
+                                    if (context.dataIndex === 2 && raw < 0) {
+                                        return ` SURPLUS: +${Math.abs(raw)}`;
+                                    }
+                                    return ` ${context.label}: ${raw}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            beginAtZero: true,
+                            grace: '15%',
+                            ticks: { precision: 0 },
+                            title: {
+                                display: true,
+                                text: 'ITEM COUNT',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            divUnitBarChart.data.datasets[0].label = itemRec.item_name;
+            divUnitBarChart.data.datasets[0].data = chartBarData;
+            divUnitBarChart.data.datasets[0].rawValues = chartRawData;
+            divUnitBarChart.data.datasets[0].backgroundColor = bgColors;
+            divUnitBarChart.data.datasets[0].borderColor = borderColors;
+            divUnitBarChart.update();
+        }
+    }
+
+    function updateDivPieChart(itemName) {
+        if (!itemName) {
+            const itemSelect = document.getElementById('divPieItemFilter');
+            if (itemSelect && itemSelect.value) itemName = itemSelect.value;
+        }
+        if (!itemName) return;
+
+        const ctx = document.getElementById('divUnitPieChart');
+        if (!ctx) return;
+
+        const unitLabels = [];
+        const heldData = [];
+
+        Object.keys(divUnitEquipmentMap).forEach(unitName => {
+            const items = divUnitEquipmentMap[unitName] || [];
+            const itemRec = items.find(it => it.item_name === itemName);
+            if (itemRec && (itemRec.held || 0) > 0) {
+                unitLabels.push(unitName);
+                heldData.push(itemRec.held);
+            }
+        });
+
+        const totalHeld = heldData.reduce((a, b) => a + b, 0);
+
+        if (totalHeld === 0 || heldData.length === 0) {
+            document.getElementById('divPieChartWrap').classList.add('d-none');
+            document.getElementById('divPieEmptyState').classList.remove('d-none');
+            return;
+        }
+
+        document.getElementById('divPieChartWrap').classList.remove('d-none');
+        document.getElementById('divPieEmptyState').classList.add('d-none');
+
+        const vibrantColors = [
+            '#10b981', '#0d6efd', '#f59e0b', '#8b5cf6', '#ec4899',
+            '#14b8a6', '#6366f1', '#f43f5e', '#06b6d4', '#84cc16'
+        ];
+        const bgColors = unitLabels.map((_, i) => vibrantColors[i % vibrantColors.length]);
+
+        if (!divUnitPieChart) {
+            divUnitPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: unitLabels,
+                    datasets: [{
+                        data: heldData,
+                        backgroundColor: bgColors,
+                        borderWidth: 2
+                    }]
+                },
+                plugins: [divPieDataLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 14,
+                                font: { size: 11, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw} held`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            divUnitPieChart.data.labels = unitLabels;
+            divUnitPieChart.data.datasets[0].data = heldData;
+            divUnitPieChart.data.datasets[0].backgroundColor = bgColors;
+            divUnitPieChart.update();
+        }
+    }
+
+
+    function switchCatalogTab(tabType) {
+        const eccBtn = document.getElementById('ecc-catalog-tab');
+        const scmeBtn = document.getElementById('scme-catalog-tab');
+        const eccPanel = document.getElementById('panel-ecc-catalog');
+        const scmePanel = document.getElementById('panel-scme-catalog');
+
+        if (!eccBtn || !scmeBtn || !eccPanel || !scmePanel) return;
+
+        if (tabType === 'ecc') {
+            eccBtn.className = "btn btn-primary px-4 py-2 font-weight-bold";
+            scmeBtn.className = "btn btn-outline-primary text-muted px-4 py-2 font-weight-bold";
+            eccPanel.style.display = 'block';
+            scmePanel.style.display = 'none';
+        } else {
+            scmeBtn.className = "btn btn-primary px-4 py-2 font-weight-bold";
+            eccBtn.className = "btn btn-outline-primary text-muted px-4 py-2 font-weight-bold";
+            scmePanel.style.display = 'block';
+            eccPanel.style.display = 'none';
+        }
+    }
+
+    function filterModalTableRows(tableId, query) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const filter = (query || '').toLowerCase().trim();
+        const rows = table.getElementsByTagName('tr');
+        for (let i = 1; i < rows.length; i++) {
+            const text = rows[i].textContent || rows[i].innerText;
+            if (text.toLowerCase().indexOf(filter) > -1) {
+                rows[i].style.display = '';
+            } else {
+                rows[i].style.display = 'none';
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Move all modals to body for proper z-index and backdrop rendering
+        document.querySelectorAll('.modal').forEach(function(modalEl) {
+            if (modalEl.parentElement !== document.body) {
+                document.body.appendChild(modalEl);
+            }
+            // Fix stuck backdrop: clean up on every modal close
+            modalEl.addEventListener('hidden.bs.modal', function() {
+                if (!document.querySelector('.modal.show')) {
+                    document.querySelectorAll('.modal-backdrop').forEach(function(bd) { bd.remove(); });
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('overflow');
+                    document.body.style.removeProperty('padding-right');
+                }
+            });
+        });
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // INSERT UNIT AUTH MODAL LOGIC
+        // ══════════════════════════════════════════════════════════════════════════
+        const modalInsertUnit = document.getElementById('modalInsertUnitAuth');
+        const formInsertUnit = document.getElementById('formInsertUnitAuth');
+        const unitSelect = document.getElementById('insertUnitName');
+        const catSelect = document.getElementById('insertUnitCategory');
+        const itemSelect = document.getElementById('insertUnitItem');
+        const authInput = document.getElementById('insertUnitAuthValue');
+        const alertBox = document.getElementById('insertUnitAuthAlert');
+
+        if (itemSelect) {
+            const allItemOptions = Array.from(itemSelect.querySelectorAll('option')).slice(1);
+            if (catSelect) {
+                catSelect.addEventListener('change', function() {
+                    const selCat = this.value;
+                    itemSelect.innerHTML = '<option value="">-- Choose Item --</option>';
+                    allItemOptions.forEach(opt => {
+                        if (!selCat || opt.dataset.category === selCat) {
+                            itemSelect.appendChild(opt.cloneNode(true));
+                        }
+                    });
+                    fetchUnitItemAuth();
+                });
+            }
+        }
+
+        function fetchUnitItemAuth() {
+            const unit = unitSelect ? unitSelect.value : '';
+            const item = itemSelect ? itemSelect.value : '';
+            if (!unit || !item || !authInput) return;
+
+            fetch(`/scme/api/get-item-auth?unit_name=${encodeURIComponent(unit)}&item_id=${encodeURIComponent(item)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && authInput) {
+                        authInput.value = (data.auth !== null && data.auth !== undefined) ? data.auth : '';
+                    }
+                })
+                .catch(err => console.error("Error fetching unit item auth:", err));
+        }
+        window.fetchUnitItemAuth = fetchUnitItemAuth;
+
+        if (unitSelect) unitSelect.addEventListener('change', fetchUnitItemAuth);
+        if (itemSelect) itemSelect.addEventListener('change', fetchUnitItemAuth);
+
+        if (formInsertUnit) {
+            formInsertUnit.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const unitName = unitSelect ? unitSelect.value : '';
+                const itemId = itemSelect ? itemSelect.value : '';
+                const authVal = authInput ? authInput.value : '';
+
+                if (!unitName || !itemId || authVal === '') {
+                    if (alertBox) {
+                        alertBox.className = 'alert alert-danger mt-2';
+                        alertBox.textContent = 'Please fill in all required fields.';
+                        alertBox.classList.remove('d-none');
+                    }
+                    return;
+                }
+
+                const btnSubmit = document.getElementById('btnSubmitInsertUnitAuth');
+                if (btnSubmit) {
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
+                }
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                fetch('/division_admin/api/set-unit-auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        unit_name: unitName,
+                        item_id: parseInt(itemId),
+                        auth: parseInt(authVal)
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (btnSubmit) {
+                        btnSubmit.disabled = false;
+                        btnSubmit.innerHTML = '<i class="fa-solid fa-save me-1"></i> Save Unit Auth';
+                    }
+                    if (data.success) {
+                        if (alertBox) {
+                            alertBox.className = 'alert alert-success mt-2';
+                            alertBox.textContent = data.message;
+                            alertBox.classList.remove('d-none');
+                        }
+                        setTimeout(() => {
+                            const modalBs = bootstrap.Modal.getInstance(modalInsertUnit);
+                            if (modalBs) modalBs.hide();
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        if (alertBox) {
+                            alertBox.className = 'alert alert-danger mt-2';
+                            alertBox.textContent = data.message || 'Error saving unit authorization.';
+                            alertBox.classList.remove('d-none');
+                        }
+                    }
+                })
+                .catch(err => {
+                    if (btnSubmit) {
+                        btnSubmit.disabled = false;
+                        btnSubmit.innerHTML = '<i class="fa-solid fa-save me-1"></i> Save Unit Auth';
+                    }
+                    if (alertBox) {
+                        alertBox.className = 'alert alert-danger mt-2';
+                        alertBox.textContent = 'Server error occurred.';
+                        alertBox.classList.remove('d-none');
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+<!-- ── INSERT UNIT AUTH MODAL ── -->
+<div class="modal fade" id="modalInsertUnitAuth" tabindex="-1" aria-labelledby="modalInsertUnitAuthLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="background: var(--bg-raised); border-bottom: 1px solid var(--border-dim); padding: 16px 24px; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title font-weight-bold" id="modalInsertUnitAuthLabel" style="font-size: 1.05rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i>
+                    <span>Insert Unit Authorization</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formInsertUnitAuth" autocomplete="off">
+                <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                    <!-- 1. Select Unit -->
+                    <div>
+                        <label for="insertUnitName" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                            Select Unit <span class="text-danger">*</span>
+                        </label>
+                        <select id="insertUnitName" name="unit_name" class="form-select" required style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                            <option value="">-- Select Unit / Formation --</option>
+                            {% for u in (auth_units if auth_units is defined else units) %}
+                                <option value="{{ u.name }}">{{ u.name.replace('_', ' ').upper() }}{% if u.is_current %} (Current Formation / DOU){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 2. Select Category -->
+                    <div>
+                        <label for="insertUnitCategory" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                            Select Category
+                        </label>
+                        <select id="insertUnitCategory" class="form-select" style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                            <option value="">All Categories</option>
+                            <option value="CAT-I">CAT-I</option>
+                            <option value="CAT-II">CAT-II</option>
+                        </select>
+                    </div>
+
+                    <!-- 3. Select Item -->
+                    <div>
+                        <label for="insertUnitItem" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                            Select Item <span class="text-danger">*</span>
+                        </label>
+                        <select id="insertUnitItem" name="item_id" class="form-select" required style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                            <option value="">-- Choose Item --</option>
+                            {% for item in catalog_items %}
+                                <option value="{{ item.id }}" data-category="{{ item.category or 'CAT-II' }}">{{ item.item_name }} ({{ item.category or 'CAT-II' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 4. AUTH Quantity -->
+                    <div>
+                        <label for="insertUnitAuthValue" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">
+                            AUTH <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" id="insertUnitAuthValue" name="auth" class="form-control" placeholder="Max limit" min="0" required style="background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; width: 100%;">
+                    </div>
+
+                    <div id="insertUnitAuthAlert" class="alert d-none mt-2" style="font-size: 0.88rem; padding: 10px 14px; border-radius: 8px;"></div>
+                </div>
+
+                <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 16px 24px; gap: 12px; background: var(--bg-raised); border-radius: 0 0 16px 16px;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; font-size: 0.85rem;">Cancel</button>
+                    <button type="submit" id="btnSubmitInsertUnitAuth" class="btn btn-primary px-4" style="background: linear-gradient(135deg, var(--accent), var(--accent-glow)); border: none; font-weight: 700; border-radius: 8px; font-size: 0.85rem; color: #fff;">
+                        <i class="fa-solid fa-save"></i> Save Unit Auth
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===================================================== -->
+<!-- DOU: CONDEMNATION HISTORY MODAL -->
+<!-- ===================================================== -->
+<div class="modal fade" id="modalDouCondemnReview" tabindex="-1" aria-labelledby="modalDouCondemnReviewLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95vw; width: 95vw; margin: 15px auto !important; margin-bottom: 25px !important;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 18px 24px; background: var(--bg-raised); border-radius: 16px 16px 0 0;">
+                <div>
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="modalDouCondemnReviewLabel" style="font-weight: 800; font-size: 1.15rem; color: var(--text-primary); margin: 0;">
+                        <span style="background: rgba(239,68,68,0.12); color: #dc2626; width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </span>
+                        Condemnation History
+                    </h5>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 4px 0 0 42px;">
+                        Historical records of all per-item condemnations submitted by subordinate units.
+                    </p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px 24px;">
+                <!-- Toolbar: Total Records Badge & Search Box -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                            <i class="fa-solid fa-clock-rotate-left text-danger me-1"></i> Recorded Submissions
+                        </span>
+                        <span class="badge" style="background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.25); font-weight: 800; font-size: 0.74rem; padding: 5px 12px; border-radius: 12px;" id="douCondemnTotalRecordsBadge">
+                            0 Records
+                        </span>
+                    </div>
+
+                    <div style="max-width: 320px; width: 100%;">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text" style="background: var(--bg-raised); border-color: var(--border-dim); color: var(--text-secondary);">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="searchDouCondemnInput" onkeyup="filterDouCondemnTable()" class="form-control form-control-sm" placeholder="Search unit, item, or cond no..." style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); border-radius: 0 8px 8px 0;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert banner for actions -->
+                <div id="douCondemnActionAlert" style="display: none; margin-bottom: 14px;"></div>
+
+                <!-- Loading spinner -->
+                <div id="douCondemnLoading" class="text-center py-5">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x text-primary mb-2"></i>
+                    <p style="color: var(--text-secondary); font-size: 0.88rem;">Loading condemnation history...</p>
+                </div>
+
+                <!-- Table Container -->
+                <div id="douCondemnTableWrap" style="display: none;">
+                    <div class="table-responsive" style="max-height: 480px; border: 1px solid var(--border-dim); border-radius: 12px;">
+                        <table class="table mb-0" style="color: var(--text-primary); font-size: 0.85rem; min-width: 1050px;">
+                            <thead style="background: var(--bg-raised); position: sticky; top: 0; z-index: 2;">
+                                <tr>
+                                    <th style="padding: 10px 14px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;">Unit</th>
+                                    <th style="padding: 10px 14px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;">Item Name</th>
+                                    <th style="padding: 10px 14px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;">Condemnation No.</th>
+                                    <th style="text-align: center; padding: 10px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: #dc2626; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;">SER</th>
+                                    <th style="text-align: center; padding: 10px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: #dc2626; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;">PWS</th>
+                                    <th style="text-align: center; padding: 10px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;">Document</th>
+                                    <th style="text-align: center; padding: 10px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px; white-space: nowrap;">Salvage RV</th>
+                                    <th style="text-align: center; padding: 10px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px; white-space: nowrap;">Destruction Cert</th>
+                                    <th style="text-align: center; padding: 10px; border-bottom: 1px solid var(--border-dim); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px;">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="douCondemnTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="douCondemnEmptyState" class="text-center py-5" style="display: none;">
+                        <i class="fa-solid fa-clock-rotate-left text-muted fa-2x mb-2" style="opacity: 0.5;"></i>
+                        <p style="color: var(--text-secondary); font-weight: 600; margin-bottom: 0;">No condemnation history records to display.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 14px 24px; background: var(--bg-raised); border-radius: 0 0 16px 16px;">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; font-size: 0.85rem;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================================================== -->
+<!-- DOU: REJECT CONDEMNATION MODAL -->
+<!-- ===================================================== -->
+<div class="modal fade" id="modalDouCondemnReject" tabindex="-1" aria-labelledby="modalDouCondemnRejectLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-dim); padding: 16px 20px; background: var(--bg-raised); border-radius: 16px 16px 0 0;">
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold" id="modalDouCondemnRejectLabel" style="color: #dc2626; margin: 0;">
+                    <i class="fa-solid fa-circle-xmark"></i> Reject Condemnation Request
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <input type="hidden" id="rejectDouCondemnReqId">
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">
+                    Rejecting request for <strong id="rejectDouCondemnUnitItem" style="color: var(--text-primary);"></strong>.
+                </p>
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.82rem; margin-bottom: 6px; color: var(--text-secondary);">
+                        Reason for Rejection <span style="font-size: 0.75rem; color: var(--text-secondary);">(Optional)</span>
+                    </label>
+                    <textarea id="rejectDouCondemnReason" rows="3" class="form-control" placeholder="Specify why this condemnation request is rejected..." style="background: var(--bg-raised); border: 1px solid var(--border-dim); color: var(--text-primary); border-radius: 8px; font-size: 0.85rem; resize: vertical;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-dim); padding: 12px 20px; background: var(--bg-raised); border-radius: 0 0 16px 16px; gap: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal" style="border-radius: 6px; font-weight: 600;">Cancel</button>
+                <button type="button" id="btnConfirmRejectCondemn" onclick="submitDouCondemnReject()" class="btn btn-danger btn-sm px-3" style="border-radius: 6px; font-weight: 700;">
+                    <i class="fa-solid fa-ban me-1"></i> Confirm Rejection
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // =====================================================
+    // DOU CONDEMNATION HISTORY MANAGEMENT
+    // =====================================================
+    let _douCondemnRequests = [];
+
+    function openDouCondemnModal() {
+        const m = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDouCondemnReview'));
+        m.show();
+        loadDouCondemnRequests();
+    }
+
+    function loadDouCondemnRequests() {
+        const loading = document.getElementById('douCondemnLoading');
+        const wrap = document.getElementById('douCondemnTableWrap');
+        if (loading) loading.style.display = 'block';
+        if (wrap) wrap.style.display = 'none';
+
+        fetch('/division_admin/api/condemnation-requests')
+            .then(r => r.json())
+            .then(data => {
+                if (loading) loading.style.display = 'none';
+                if (wrap) wrap.style.display = 'block';
+
+                if (data.success) {
+                    _douCondemnRequests = data.requests || [];
+                    renderDouCondemnTable();
+                } else {
+                    renderDouCondemnError(data.message || 'Failed to load records.');
+                }
+            })
+            .catch(() => {
+                if (loading) loading.style.display = 'none';
+                if (wrap) wrap.style.display = 'block';
+                renderDouCondemnError('Network error loading records.');
+            });
+    }
+
+    function renderDouCondemnTable() {
+        const tbody = document.getElementById('douCondemnTableBody');
+        const emptyState = document.getElementById('douCondemnEmptyState');
+        const searchVal = (document.getElementById('searchDouCondemnInput')?.value || '').toLowerCase().trim();
+
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        let filtered = _douCondemnRequests.filter(r => {
+            if (searchVal) {
+                const u = (r.unit_name || '').toLowerCase();
+                const i = (r.item_name || '').toLowerCase();
+                const cn = (r.condemnation_no || '').toLowerCase();
+                const re = (r.reason || '').toLowerCase();
+                if (!u.includes(searchVal) && !i.includes(searchVal) && !cn.includes(searchVal) && !re.includes(searchVal)) return false;
+            }
+            return true;
+        });
+
+        const totalBadge = document.getElementById('douCondemnTotalRecordsBadge');
+        if (totalBadge) {
+            totalBadge.textContent = `${filtered.length} Record${filtered.length === 1 ? '' : 's'}`;
+        }
+
+        if (filtered.length === 0) {
+            emptyState.style.display = 'block';
+            return;
+        }
+        emptyState.style.display = 'none';
+
+        filtered.forEach(r => {
+
+            const condNoBadge = r.condemnation_no
+                ? `<span style="font-family:monospace;font-weight:700;font-size:0.82rem;color:#dc2626;background:rgba(239,68,68,0.1);padding:3px 8px;border-radius:5px;border:1px solid rgba(239,68,68,0.25);white-space:nowrap;display:inline-block;">${escapeHtml(r.condemnation_no)}</span>`
+                : '<span style="color:var(--text-secondary);font-size:0.8rem;">—</span>';
+
+            const pdfBtn = r.pdf_url
+                ? `<a href="${r.pdf_url}" target="_blank" class="btn btn-sm btn-outline-danger px-2 py-1" style="font-size:0.76rem;border-radius:6px;font-weight:700;white-space:nowrap;"><i class="fa-solid fa-file-pdf me-1"></i>View PDF</a>`
+                : '<span style="color:var(--text-secondary);font-size:0.78rem;">—</span>';
+
+            const salvageBadge = r.salvage_rv
+                ? `<span class="badge" style="background:rgba(16,185,129,0.12);color:#047857;border:1px solid rgba(16,185,129,0.3);font-weight:800;font-size:0.72rem;padding:4px 8px;"><i class="fa-solid fa-check me-1"></i>YES</span>`
+                : `<span class="badge" style="background:rgba(107,114,128,0.1);color:#6b7280;border:1px solid rgba(107,114,128,0.25);font-weight:700;font-size:0.72rem;padding:4px 8px;"><i class="fa-solid fa-xmark me-1"></i>NO</span>`;
+
+            const destCertBadge = r.destruction_certificate
+                ? `<span class="badge" style="background:rgba(16,185,129,0.12);color:#047857;border:1px solid rgba(16,185,129,0.3);font-weight:800;font-size:0.72rem;padding:4px 8px;"><i class="fa-solid fa-check me-1"></i>YES</span>`
+                : `<span class="badge" style="background:rgba(107,114,128,0.1);color:#6b7280;border:1px solid rgba(107,114,128,0.25);font-weight:700;font-size:0.72rem;padding:4px 8px;"><i class="fa-solid fa-xmark me-1"></i>NO</span>`;
+
+            const submittedDate = (r.created_at || '—').split(' ')[0];
+
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-dim)';
+            tr.innerHTML = `
+                <td style="padding:12px 14px;font-weight:700;color:var(--text-primary);white-space:nowrap;"><i class="fa-solid fa-shield me-1 text-primary" style="font-size:0.75rem;"></i>${escapeHtml(r.unit_name)}</td>
+                <td style="padding:12px 14px;font-weight:600;color:var(--text-primary);white-space:nowrap;">${escapeHtml(r.item_name)}</td>
+                <td style="padding:12px 14px;white-space:nowrap;">${condNoBadge}</td>
+                <td style="text-align:center;padding:12px 10px;font-weight:700;color:#dc2626;font-size:0.95rem;white-space:nowrap;">${r.req_ser}</td>
+                <td style="text-align:center;padding:12px 10px;font-weight:700;color:#dc2626;font-size:0.95rem;white-space:nowrap;">${r.req_pws}</td>
+                <td style="text-align:center;padding:12px 10px;white-space:nowrap;">${pdfBtn}</td>
+                <td style="text-align:center;padding:12px 10px;white-space:nowrap;">${salvageBadge}</td>
+                <td style="text-align:center;padding:12px 10px;white-space:nowrap;">${destCertBadge}</td>
+                <td style="text-align:center;padding:12px 10px;font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;">${submittedDate}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterDouCondemnTable() {
+        renderDouCondemnTable();
+    }
+
+    function renderDouCondemnError(msg) {
+        const tbody = document.getElementById('douCondemnTableBody');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">${escapeHtml(msg)}</td></tr>`;
+    }
+
+    function showDouCondemnAlert(type, message) {
+        const al = document.getElementById('douCondemnActionAlert');
+        if (!al) return;
+        al.className = `alert alert-${type} py-2 mb-3`;
+        al.style.fontSize = '0.84rem';
+        al.style.borderRadius = '8px';
+        al.innerHTML = message;
+        al.style.display = 'block';
+        setTimeout(() => { al.style.display = 'none'; }, 4000);
+    }
+
+    function approveDouCondemn(id, unitName, itemName, ser, pws) {
+        if (!confirm(`Are you sure you want to APPROVE condemnation of ${ser} SER, ${pws} PWS for ${unitName} (${itemName})?\n\nThis will accumulate into the unit's condemned stock.`)) {
+            return;
+        }
+
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        fetch(`/division_admin/api/condemnation-requests/${id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showDouCondemnAlert('success', `<i class="fa-solid fa-circle-check me-1"></i>${data.message}`);
+                loadDouCondemnRequests();
+            } else {
+                showDouCondemnAlert('danger', `<i class="fa-solid fa-circle-exclamation me-1"></i>${data.message}`);
+            }
+        })
+        .catch(() => {
+            showDouCondemnAlert('danger', 'Network error during approval.');
+        });
+    }
+
+    function openRejectDouCondemn(id, unitName, itemName) {
+        document.getElementById('rejectDouCondemnReqId').value = id;
+        document.getElementById('rejectDouCondemnUnitItem').textContent = `${unitName} — ${itemName}`;
+        document.getElementById('rejectDouCondemnReason').value = '';
+        const m = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDouCondemnReject'));
+        m.show();
+    }
+
+    function submitDouCondemnReject() {
+        const id = document.getElementById('rejectDouCondemnReqId').value;
+        const reason = document.getElementById('rejectDouCondemnReason').value.trim();
+        const btn = document.getElementById('btnConfirmRejectCondemn');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Rejecting...';
+
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        fetch(`/division_admin/api/condemnation-requests/${id}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body: JSON.stringify({ rejection_reason: reason })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-ban me-1"></i> Confirm Rejection';
+            bootstrap.Modal.getInstance(document.getElementById('modalDouCondemnReject'))?.hide();
+
+            if (data.success) {
+                showDouCondemnAlert('warning', `<i class="fa-solid fa-circle-check me-1"></i>${data.message}`);
+                loadDouCondemnRequests();
+            } else {
+                showDouCondemnAlert('danger', `<i class="fa-solid fa-circle-exclamation me-1"></i>${data.message}`);
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-ban me-1"></i> Confirm Rejection';
+            showDouCondemnAlert('danger', 'Network error during rejection.');
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+        });
+    }
+
+    // Auto-fetch pending condemnation count on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/division_admin/api/condemnation-requests')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.pending_count !== undefined) {
+                    const count = data.pending_count || 0;
+                    const cardCount = document.getElementById('douCondemnPendingCount');
+                    if (cardCount) cardCount.textContent = count;
+                    const badge = document.getElementById('douCondemnPendingBadge');
+                    if (badge) {
+                        badge.textContent = count;
+                        badge.style.display = count > 0 ? 'inline-block' : 'none';
+                    }
+                }
+            })
+            .catch(() => {});
+    });
+</script>
+{% endblock %}

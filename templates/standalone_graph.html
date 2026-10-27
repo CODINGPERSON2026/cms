@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS Intelligence • Standalone Graph Visualizer</title>
+    <!-- FontAwesome & Bootstrap CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --border-color: #334155;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-bar {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title i {
+            font-size: 22px;
+            color: var(--accent-blue);
+        }
+
+        .header-title h5 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: 0.3px;
+        }
+
+        .toolbar-btn {
+            background: #273549;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 7px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+            transform: translateY(-1px);
+        }
+
+        .main-container {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chart-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 520px;
+            position: relative;
+        }
+
+        #standaloneChartCanvas {
+            width: 100%;
+            height: 100%;
+            min-height: 480px;
+            flex: 1;
+        }
+
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 20px;
+        }
+
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .table-dark-custom {
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .table-dark-custom th {
+            background: #0f172a;
+            color: #94a3b8;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        .table-dark-custom td {
+            border-color: var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER BAR -->
+    <div class="header-bar">
+        <div class="header-title">
+            <i class="fas fa-chart-line"></i>
+            <div>
+                <h5>{{ title or 'CMS AI Intelligence Visualizer' }}</h5>
+                <small class="text-secondary">Session ID: {{ session_id }} • Enterprise Dashboard View</small>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="toolbar-btn" id="btnFullscreen" title="Toggle Fullscreen"><i class="fas fa-expand"></i> Full Screen</button>
+            <button class="toolbar-btn" id="btnResetView" title="Reset Chart Zoom"><i class="fas fa-rotate"></i> Reset View</button>
+            <button class="toolbar-btn" id="btnClose" onclick="window.close()"><i class="fas fa-times"></i> Close Tab</button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="main-container">
+        
+        <!-- CHART CARD -->
+        <div class="chart-card" id="chartCard">
+            <div id="standaloneChartCanvas"></div>
+        </div>
+
+        <!-- CONTROLS & EXPORT TOOLBAR -->
+        <div class="controls-bar">
+            <button class="toolbar-btn" id="btnDownloadPNG"><i class="fas fa-file-image"></i> Download PNG</button>
+
+            <a class="toolbar-btn text-decoration-none" href="/chatbot/export-data?session_id={{ session_id }}&format=csv">
+                <i class="fas fa-file-csv"></i> Download CSV
+            </a>
+            <a class="toolbar-btn text-decoration-none" href="/chatbot/export-data?session_id={{ session_id }}&format=excel">
+                <i class="fas fa-file-excel"></i> Download Excel
+            </a>
+            <a class="toolbar-btn text-decoration-none" href="/chatbot/export-data?session_id={{ session_id }}&format=pdf">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
+        </div>
+
+        <!-- TABLE PREVIEW CARD -->
+        {% if records and records|length > 0 %}
+        <div class="table-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0 text-white fw-bold"><i class="fas fa-table me-2 text-primary"></i>Source Dataset Preview ({{ records|length }} rows)</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark-custom table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            {% for col in columns %}
+                            <th>{{ col|replace('_', ' ')|upper }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in records %}
+                        <tr>
+                            {% for col in columns %}
+                            <td>{{ row[col] }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const rawChartData = {{ chart_data|safe if chart_data else '{}' }};
+            const canvasEl = document.getElementById("standaloneChartCanvas");
+            if (!canvasEl) return;
+
+            if (window.Plotly && rawChartData.plotly_data) {
+                const pData = rawChartData.plotly_data || [];
+                const pLayout = rawChartData.plotly_layout || { title: { text: rawChartData.title || "CMS Graph" } };
+                pLayout.paper_bgcolor = "transparent";
+                pLayout.plot_bgcolor = "transparent";
+                pLayout.height = 500;
+                Plotly.newPlot(canvasEl, pData, pLayout, { responsive: true });
+            } else if (window.echarts) {
+                const myChart = echarts.init(canvasEl, 'dark');
+                let option = rawChartData.echarts_option || {};
+                option.backgroundColor = "transparent";
+                myChart.setOption(option);
+                window.addEventListener("resize", () => myChart.resize());
+            }
+
+            // Controls
+            document.getElementById("btnFullscreen").addEventListener("click", function() {
+                const elem = document.getElementById("chartCard");
+                if (!document.fullscreenElement) {
+                    elem.requestFullscreen().catch(err => alert("Error enabling fullscreen: " + err.message));
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+
+            document.getElementById("btnResetView").addEventListener("click", function() {
+                if (window.Plotly) Plotly.relayout(canvasEl, { 'xaxis.autorange': true, 'yaxis.autorange': true });
+            });
+
+            document.getElementById("btnDownloadPNG").addEventListener("click", function() {
+                if (window.Plotly) {
+                    Plotly.downloadImage(canvasEl, { format: 'png', filename: 'cms_graph_' + Date.now() });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
