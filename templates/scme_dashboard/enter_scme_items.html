@@ -7,10 +7,12 @@
     <i class="fa-solid fa-gauge-high"></i>
     <span class="nav-tooltip">Dashboard</span>
 </a>
+{% if not is_read_only %}
 <a href="/scme/add-stock" class="nav-item">
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
 </a>
+{% endif %}
 <a href="/scme/current-stock" class="nav-item">
     <i class="fa-solid fa-boxes-stacked"></i>
     <span class="nav-tooltip">Available Stock</span>

@@ -50,9 +50,10 @@ def login():
         session["role"] = user.role
         # session['org_id'] = user.org_id
         
+        redirect_url = "/scme" if user.role == "ORD_BR" else f"/{user.role}"
         return jsonify({
             "success": True,
-            "redirect": f"/{user.role}"
+            "redirect": redirect_url
         })
 
     return render_template("Login_Page/login_page.html")

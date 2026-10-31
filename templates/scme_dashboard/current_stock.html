@@ -7,10 +7,12 @@
     <i class="fa-solid fa-gauge-high"></i>
     <span class="nav-tooltip">Dashboard</span>
 </a>
+{% if not is_read_only %}
 <a href="/scme/add-stock" class="nav-item">
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
 </a>
+{% endif %}
 <a href="/scme/current-stock" class="nav-item active">
     <i class="fa-solid fa-boxes-stacked"></i>
     <span class="nav-tooltip">Available Stock</span>
@@ -80,6 +82,15 @@
 
 {% block content %}
 <div class="current-stock-container animate-fade-in">
+    {% if is_read_only %}
+    <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between" style="border-radius: 10px; background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.3); color: #0284c7; font-weight: 600; font-size: 0.88rem;">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-eye fs-5"></i>
+            <span><strong>Independent Viewer Mode (ORD_BR):</strong> Real-time available depot stock ledger. Read-only mode.</span>
+        </div>
+        <span class="badge bg-primary">READ ONLY</span>
+    </div>
+    {% endif %}
 
     <!-- ── STOCK AVAILABILITY TABLE CARD ── -->
     <div class="glass-card">

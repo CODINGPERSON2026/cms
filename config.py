@@ -9,7 +9,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = URL.create(
         drivername="mysql+pymysql",
         username="root",
-        password="qaz123QAZ!@#",
+        password="yawar@123",
         host="127.0.0.1",
         port=3306,
         database="cms",

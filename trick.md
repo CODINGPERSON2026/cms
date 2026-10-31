@@ -6,13 +6,6 @@ DELETE FROM org_ladder;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-
-
-
-
-
-
-
 <!-- here we are setting the two table login user and orgLaddr -->
 ## we atleast need this below seed in both the tables
 
@@ -26,5 +19,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 '1', 'ORD', '123', 'super_admin', '1'
 '2', '2_FOD', '123', 'scme', '2'
+'3', 'ORD_BR', '123', 'ORD_BR', '2'
 
-
+-- Or direct SQL INSERT statement:
+-- INSERT INTO login_users (username, password, role, org_id) VALUES ('ORD_BR', '123', 'ORD_BR', 2);

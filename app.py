@@ -101,6 +101,22 @@ def create_app():
         upload_folder = app.config.get("CONDEMNATION_UPLOAD_FOLDER", r"C:\Condemnation_pdf")
         os.makedirs(upload_folder, exist_ok=True)
 
+        try:
+            from models import LoginUser
+            ord_br_user = LoginUser.query.filter_by(username="ORD_BR").first()
+            if not ord_br_user:
+                new_user = LoginUser(
+                    username="ORD_BR",
+                    password="123",
+                    role="ORD_BR",
+                    org_id=2
+                )
+                db.session.add(new_user)
+                db.session.commit()
+                print("Auto-seed notice: ORD_BR user initialized.")
+        except Exception as e:
+            print("Auto-seed ORD_BR notice:", e)
+
     app.register_blueprint(login_bp)
     app.register_blueprint(unit_bp)
     app.register_blueprint(div_bp)
@@ -134,8 +150,16 @@ def create_app():
     def homepage():
         if "user_id" not in session:
             return render_template('/Login_page/login_page.html')
-        route = session['role']
+        route = session.get('role', '')
+        if route == "ORD_BR":
+            return redirect("/scme")
         return redirect(f'/{route}')
+    
+    @app.route("/ORD_BR")
+    def ord_br_route():
+        if "user_id" not in session:
+            return redirect("/auth/login")
+        return redirect("/scme")
     
     @app.route("/incoming-requests")
     def incoming_requests():
@@ -143,10 +167,12 @@ def create_app():
     
     @app.context_processor
     def inject_user_data():
+        role = session.get("role")
         return {
-            "current_role": session.get("role"),
+            "current_role": role,
             "current_user_id": session.get("user_id"),
-            "current_username": session.get("username")
+            "current_username": session.get("username"),
+            "is_read_only": (role == "ORD_BR")
         }
     
     

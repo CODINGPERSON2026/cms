@@ -1,16 +1,18 @@
 {% extends '/base.html' %}
 
-{% block page_title %}2 FOD Dashboard{% endblock %}
+{% block page_title %}{% if is_read_only %}ORD_BR{% else %}2 FOD Dashboard{% endif %}{% endblock %}
 
 {% block sidebar_nav %}
 <a href="/scme/" class="nav-item active">
     <i class="fa-solid fa-gauge-high"></i>
     <span class="nav-tooltip">Dashboard</span>
 </a>
+{% if not is_read_only %}
 <a href="/scme/add-stock" class="nav-item">
     <i class="fa-solid fa-boxes-packing"></i>
     <span class="nav-tooltip">Add Stock</span>
 </a>
+{% endif %}
 <a href="/scme/current-stock" class="nav-item">
     <i class="fa-solid fa-boxes-stacked"></i>
     <span class="nav-tooltip">Available Stock</span>
@@ -863,6 +865,7 @@
             <span>SCME Overview &amp; Quick Actions</span>
         </h4>
         <div class="d-flex align-items-center gap-2">
+            {% if not is_read_only %}
             <a href="/scme/enter-items" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
                 <i class="fa-solid fa-file-signature"></i>
                 <span>Record Issued Item</span>
@@ -871,6 +874,7 @@
                 <i class="fa-solid fa-sliders"></i>
                 <span>Div Item Auth</span>
             </button>
+            {% endif %}
             <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#ledgerTableModal" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
                 <i class="fa-solid fa-table"></i>
                 <span>Tabular View</span>
@@ -915,7 +919,8 @@
             </div>
         </div>
 
-        <!-- 4. INSERT AUTH -->
+        <!-- 4. 2FOD AUTH -->
+        {% if not is_read_only %}
         <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#insertAuthModal">
             <div class="metric-icon-box" style="background: rgba(37, 99, 235, 0.12); color: #2563eb;">
                 <i class="fa-solid fa-shield-halved"></i>
@@ -927,6 +932,19 @@
                 </span>
             </div>
         </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-icon-box" style="background: rgba(37, 99, 235, 0.12); color: #2563eb;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">2FOD Status</span>
+                <span style="font-size: 0.88rem; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    Active Depot
+                </span>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Main Chart Row -->
@@ -1122,6 +1140,7 @@
             <span>ECC Overview &amp; Quick Actions</span>
         </h4>
         <div class="d-flex align-items-center gap-2">
+            {% if not is_read_only %}
             <a href="/scme/enter-items" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
                 <i class="fa-solid fa-clipboard-list"></i>
                 <span>Issue Item</span>
@@ -1130,6 +1149,7 @@
                 <i class="fa-solid fa-sliders"></i>
                 <span>Div Item Auth</span>
             </button>
+            {% endif %}
             <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#eccLedgerTableModal" style="border-radius: 9px; font-weight: 700; padding: 7px 16px;">
                 <i class="fa-solid fa-table"></i>
                 <span>Tabular View</span>
@@ -1174,7 +1194,8 @@
             </div>
         </div>
 
-        <!-- 4. INSERT AUTH -->
+        <!-- 4. 2FOD AUTH -->
+        {% if not is_read_only %}
         <div class="metric-card metric-card-clickable" data-bs-toggle="modal" data-bs-target="#insertAuthModal">
             <div class="metric-icon-box" style="background: rgba(37, 99, 235, 0.12); color: #2563eb;">
                 <i class="fa-solid fa-shield-halved"></i>
@@ -1186,6 +1207,19 @@
                 </span>
             </div>
         </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-icon-box" style="background: rgba(37, 99, 235, 0.12); color: #2563eb;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="metric-content">
+                <span class="metric-label">Total ECC Auth</span>
+                <span style="font-size: 0.88rem; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    {{ total_ecc_auth }}
+                </span>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Main Chart Row -->

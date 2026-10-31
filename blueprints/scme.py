@@ -115,7 +115,7 @@ def ensure_transactions_type_column():
 @scme_bp.route('/')
 def scme_home():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return redirect("/auth/login")
 
     ensure_transactions_type_column()
@@ -1095,6 +1095,7 @@ def scme_home():
         monthly_held_trend_data=monthly_held_trend_data,
         is_div_admin=is_div_admin,
         user_div=user_div or "",
+        is_read_only=(user_role == "ORD_BR"),
         items=items,
         categories=categories,
         ecc_categories=ecc_categories,
@@ -1103,7 +1104,7 @@ def scme_home():
 @scme_bp.route('/enter-items')
 def enter_items():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return redirect("/auth/login")
     
     is_div_admin = (user_role == "division_admin")
@@ -1494,7 +1495,7 @@ def api_get_logs():
 @scme_bp.route('/api/get-unit-item-auth', methods=['GET'])
 def api_get_unit_item_auth():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
     
     unit_name = (request.args.get("unit_name") or "").strip()
@@ -1609,7 +1610,7 @@ def api_get_unit_item_auth():
 @scme_bp.route('/api/get-previous-month-data', methods=['GET'])
 def api_get_previous_month_data():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
     
     unit_name = (request.args.get("unit_name") or "").strip()
@@ -1687,6 +1688,8 @@ def api_add_ecc_state():
     user_role = session.get("role")
     if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
+    if user_role == "ORD_BR":
+        return jsonify({"success": False, "message": "Read-only access: Adding ECC state is not permitted."}), 403
         
     try:
         data = request.get_json()
@@ -2174,7 +2177,7 @@ def api_ecc_state_actions(state_id):
 @scme_bp.route('/add-stock', methods=['GET', 'POST'])
 def add_stock():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return redirect("/auth/login")
 
     # Ensure table exists
@@ -2184,6 +2187,9 @@ def add_stock():
         pass
 
     if request.method == 'POST':
+        if user_role == "ORD_BR":
+            flash("Read-only access: Adding stock is not permitted.", "danger")
+            return redirect(url_for('scme.add_stock'))
         voucher_no = request.form.get('voucher_no', '').strip()
         category = request.form.get('category', '').strip()
         item_id = request.form.get('item_id', type=int)
@@ -2350,6 +2356,9 @@ def insert_auth():
     user_role = session.get("role")
     if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
         return redirect("/auth/login")
+    if user_role == "ORD_BR":
+        flash("Read-only access: Modifying authorization is not permitted.", "danger")
+        return redirect(url_for('scme.add_stock'))
 
     item_id = request.form.get('item_id', type=int)
     whole_auth = request.form.get('whole_auth', type=int)
@@ -2407,7 +2416,7 @@ def insert_auth():
 @scme_bp.route('/current-stock', methods=['GET'])
 def current_stock_page():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return redirect("/auth/login")
 
     from sqlalchemy import func, case
@@ -2506,7 +2515,8 @@ def current_stock_page():
         total_fod_qty=total_fod_qty,
         total_fod_ser=total_fod_ser,
         total_fod_pws=total_fod_pws,
-        items_with_stock_count=items_with_stock_count
+        items_with_stock_count=items_with_stock_count,
+        is_read_only=(user_role == "ORD_BR")
     )
 
 
@@ -3481,7 +3491,7 @@ def build_monthly_reports_payload(filter_type, month_param, year_param, is_div_a
 @scme_bp.route('/monthly-reports')
 def monthly_reports():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return redirect("/auth/login")
 
     is_div_admin = (user_role == "division_admin")
@@ -3502,7 +3512,7 @@ def monthly_reports():
 @scme_bp.route('/api/monthly-reports-data')
 def api_monthly_reports_data():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "division_admin", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     is_div_admin = (user_role == "division_admin")
@@ -3582,7 +3592,7 @@ def api_monthly_reports_data():
 def api_admin_lists():
     """Return lists of DOU admins and unit admins for SCME dropdown selectors."""
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     def sort_key(name):
@@ -3671,7 +3681,7 @@ def api_admin_lists():
 def api_dou_report_data():
     """SCME-only: return DOU monthly report rows as JSON for inline viewing."""
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     dou_name = request.args.get('dou', '').strip()
@@ -3891,7 +3901,7 @@ def api_dou_report_data():
 def api_unit_report_data():
     """SCME-only: return Unit monthly report rows as JSON for inline viewing."""
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     unit_name = request.args.get('unit', '').strip()
@@ -3918,6 +3928,8 @@ def api_unit_report_data():
 def update_div_strength():
     if "user_id" not in session:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
+    if session.get("role") == "ORD_BR":
+        return jsonify({"success": False, "message": "Read-only access: Modifying strength is not permitted."}), 403
     
     try:
         data = request.get_json() or {}
@@ -4286,7 +4298,7 @@ def api_direct_issue_to_unit():
 @scme_bp.route('/api/check-dou-delete-status')
 def api_check_dou_delete_status():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     dou_name = request.args.get('dou_name', '').strip()
@@ -4377,7 +4389,7 @@ def api_check_dou_delete_status():
 @scme_bp.route('/api/check-unit-delete-status')
 def api_check_unit_delete_status():
     user_role = session.get("role")
-    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin"]:
+    if "user_id" not in session or user_role not in ["scme", "super_admin", "brigade_admin", "ORD_BR"]:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     unit_name = request.args.get('unit_name', '').strip()
@@ -4758,4 +4770,4 @@ def api_delete_dou():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "message": f"Error deleting DOU: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"Error deleting DOU: {str(e)}"}), 500

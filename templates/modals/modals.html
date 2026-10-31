@@ -500,9 +500,11 @@
                     Dependent DOU & Strengths
                 </h5>
                 <div class="d-flex align-items-center gap-3">
+                    {% if not is_read_only %}
                     <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteDOU" style="border-radius: 8px; font-weight: 600; font-size: 0.82rem; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
                         <i class="fa-solid fa-trash-can"></i> Delete
                     </button>
+                    {% endif %}
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>

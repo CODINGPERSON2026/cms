@@ -54,14 +54,20 @@ def build_notification_filter(user_id, username, role, names):
         conditions.append(func.lower(Notification.target_user).in_(list(names)))
 
     # 2. Broadcast notifications to user's role (where target_user is NULL or empty)
+    role_match = or_(
+        func.lower(Notification.target_role) == role.lower(),
+        func.lower(Notification.target_role) == "scme" if role == "ORD_BR" else False,
+        Notification.target_role.is_(None),
+        func.trim(Notification.target_role) == ""
+    )
     broadcast_condition = and_(
         or_(Notification.target_user.is_(None), func.trim(Notification.target_user) == ""),
-        or_(func.lower(Notification.target_role) == role.lower(), Notification.target_role.is_(None), func.trim(Notification.target_role) == "")
+        role_match
     )
     conditions.append(broadcast_condition)
 
-    # 3. For SCME (e.g. 2_FOD), also include notifications they originated
-    if role == "scme" and names:
+    # 3. For SCME & ORD_BR (e.g. 2_FOD), also include notifications they originated
+    if role in ["scme", "ORD_BR"] and names:
         conditions.append(func.lower(Notification.sender_name).in_(list(names)))
 
     return or_(*conditions)
